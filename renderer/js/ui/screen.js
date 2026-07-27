@@ -19,6 +19,7 @@ import * as sounds from '../sounds.js';
 import * as navigation from '../navigation.js';
 
 let _container = null;
+let _fokusTimer = null;
 const _stack = [];
 
 export function init(container) {
@@ -51,6 +52,22 @@ export function pop() {
   sounds.playSchliessen();
   _render({ sound: false, restore: true });
   return true;
+}
+
+/**
+ * Zurückgehen mit Wächter. Definiert ein Bildschirm onBack(), wird erst
+ * gefragt (z. B. "Charakter wirklich verwerfen?"); nur bei true wird gepoppt.
+ * Escape und der sichtbare Zurück-Schalter nutzen beide diesen Weg.
+ * @returns {Promise<boolean>} true, wenn tatsächlich zurückgegangen wurde
+ */
+export async function zurueck() {
+  const cur = current();
+  if (cur && typeof cur.onBack === 'function') {
+    let erlaubt = true;
+    try { erlaubt = await cur.onBack(); } catch (e) { console.error('onBack:', e); }
+    if (!erlaubt) return false;
+  }
+  return pop();
 }
 
 /** Direkt zum Wurzel-Bildschirm (Hauptmenü) zurück, ein einziges Rendern. */
@@ -111,19 +128,49 @@ function _render({ sound, restore }) {
   }
   screen._focusIndex = null;
 
-  // Kombinierte Ansage VOR dem Fokus (wie im Skularis-Reitersystem),
-  // damit NVDA die aria-live-Ansage nicht durch den Focus-Event überschreibt.
-  const feldText = ziel ? sprache.getZeilenText(ziel) : '';
-  sprache.sage(`${screen.title}. ${feldText}`);
+  // Beim Öffnen nur den Titel ansagen. Das fokussierte Element liest NVDA gleich
+  // selbst vor (siehe _setzeFokus), sonst käme die erste Zeile doppelt.
+  sprache.sage(screen.title);
 
   if (typeof screen.onShow === 'function') {
     try { screen.onShow(el); } catch (e) { console.error('onShow:', e); }
   }
 
-  setTimeout(() => {
-    if (!ziel) return;
-    ziel.focus();
-    if (ziel.tagName === 'INPUT' && (ziel.type === 'text' || ziel.type === 'search')) ziel.select();
-    ziel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  // Ein noch offener Fokus-Auftrag von einem vorigen Aufbau wird verworfen.
+  // Sonst würde er kurz danach auf ein Element zeigen, das es nicht mehr gibt;
+  // der Fokus landete dann auf dem Dokument selbst und die Pfeiltasten waren tot.
+  if (_fokusTimer) clearTimeout(_fokusTimer);
+  _fokusTimer = setTimeout(() => {
+    _fokusTimer = null;
+    _setzeFokus(ziel);
   }, 80);
+}
+
+/**
+ * Fokus sicher setzen. Ist das Ziel inzwischen aus dem Dokument verschwunden
+ * (weil zwischenzeitlich neu aufgebaut wurde), wird der erste Punkt des
+ * aktuellen Bildschirms genommen. So bleibt der Fokus nie im Nichts hängen.
+ */
+function _setzeFokus(ziel) {
+  const panel = _container && _container.firstElementChild;
+  if (!panel) return;
+
+  let el = (ziel && panel.contains(ziel)) ? ziel : panel.querySelector(navigation.FOCUSABLE);
+  if (!el) el = panel;
+
+  // Zusammengesetzte Zeilen vollständig benennen, damit NVDA den Fokus einmal
+  // und komplett vorliest.
+  sprache.benenneFuerFokus(el);
+  el.focus();
+  if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) el.select();
+  if (el.scrollIntoView) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+  // Letzte Sicherung: hat der Fokus das Panel trotzdem nicht erreicht, das
+  // Panel selbst nehmen, damit die Pfeil-Navigation wieder greift.
+  if (!panel.contains(document.activeElement)) panel.focus();
+}
+
+/** Fokus zurück in den aktuellen Bildschirm holen (siehe navigation.js). */
+export function fokusZurueckHolen() {
+  _setzeFokus(null);
 }

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><title>Kompatibilität</title></head>
+<body>
+<script type="module">
+import { transformDb } from '../renderer/js/core/db.js';
+import { createCharakter, BESCHREIBUNG_FELDER } from '../renderer/js/core/character.js';
+import { parse, serialisiere, eigenheitZuText, textZuEigenheit } from '../renderer/js/core/sephrasto-xml.js';
+import { gesamtEP } from '../renderer/js/core/regeln.js';
+
+const ECHT = [
+  'C:\\Users\\kaisa\\Desktop\\Rollenspiel\\0,03 Jucho Skachunow Ordner\\Dateien-ordner\\Spielbar 1\\Jucho Skachunow.xml',
+  'C:\\Users\\kaisa\\Desktop\\Rollenspiel\\0,03 Jucho Skachunow Ordner\\Dateien-ordner\\Entwurf 1\\Jucho Skachunow.xml',
+];
+
+let fehler = 0;
+const pruefe = (name, ok, zusatz = '') => {
+  console.log((ok ? 'ok   ' : 'FEHLER ') + name + (ok || zusatz === '' ? '' : ' -> ' + zusatz));
+  if (!ok) fehler++;
+};
+const ersteAbweichung = (a, b) => {
+  const x = a.split('\n'), y = b.split('\n');
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    if (x[i] !== y[i]) return `Zeile ${i + 1}: ${JSON.stringify(x[i])} statt ${JSON.stringify(y[i])}`;
+  }
+  return 'Länge ' + a.length + ' gegen ' + b.length;
+};
+
+try {
+  const db = transformDb(await window.rtIpc('datenbankLaden'));
+
+  console.log('A. Echte Sephrasto-Dateien, CharakterVersion 6');
+  for (const pfad of ECHT) {
+    const kurz = pfad.split('\\').slice(-2).join('\\');
+    const xml = await window.rtIpc('dateiLesen', pfad);
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    const c = parse(xml, db);
+
+    const epDatei = parseInt(doc.getElementsByTagName('Ausgegeben')[0].textContent, 10);
+    const epSku = gesamtEP(c, db).total;
+
+    pruefe(`${kurz}: Vorteile gelesen`, c.vorteile.length === doc.getElementsByTagName('Vorteil').length,
+      `${c.vorteile.length} von ${doc.getElementsByTagName('Vorteil').length}`);
+    pruefe(`${kurz}: Talente gelesen`, c.talente.length === doc.getElementsByTagName('Talent').length,
+      `${c.talente.length} von ${doc.getElementsByTagName('Talent').length}`);
+    pruefe(`${kurz}: Waffen gelesen`, c.waffen.length === doc.getElementsByTagName('Waffe').length,
+      `${c.waffen.length} von ${doc.getElementsByTagName('Waffe').length}`);
+    pruefe(`${kurz}: EP stimmen mit Sephrasto überein`, epSku === epDatei, `${epSku} statt ${epDatei}`);
+    pruefe(`${kurz}: Kultur gelesen`, c.kultur === 'Bornland', c.kultur);
+
+    const zurueck = serialisiere(c, db);
+    pruefe(`${kurz}: Speichern verändert die Datei nicht`, zurueck === xml, ersteAbweichung(zurueck, xml));
+  }
+
+  console.log('\nB. Skularis-Felder eintragen, alles Fremde muss bleiben');
+  {
+    const xml = await window.rtIpc('dateiLesen', ECHT[0]);
+    const c = parse(xml, db);
+    c.groesse = '1,84 Schritt';
+    c.gewicht = '82 Stein';
+    c.geburtsdatum = '41 Jahre';
+    c.haarfarbe = 'grau meliert';
+    c.augenfarbe = 'graublau';
+    c.titel = 'Magister';
+    c.aussehen[0] = 'kurz, Vollbart';
+    c.aussehen[1] = 'Brandnarbe & "Stabmal" <links>';
+    c.aussehen[5] = 'trägt immer den Stab bei sich';
+    c.hintergrund[0] = 'Sohn eines Bornländer Kaufmanns';
+    c.hintergrund[8] = 'will die Akademie zurückgewinnen';
+    c.eigenheiten = [
+      { name: 'Ein Kind der Großstadt', positiv: 'kennt jede Gasse, taucht unter', negativ: 'verirrt sich in der Wildnis, kennt das Landleben nicht' },
+      { name: 'Gildenstolz', positiv: 'Autorität unter Magiern, kennt die Regeln', negativ: 'herablassend, unterschätzt Ungelehrte' },
+    ];
+    c.profession = 'Gildenmagier';
+
+    const neu = serialisiere(c, db);
+    const d1 = new DOMParser().parseFromString(xml, 'application/xml');
+    const d2 = new DOMParser().parseFromString(neu, 'application/xml');
+    const t = (doc, tag) => (doc.getElementsByTagName(tag)[0] || {}).textContent;
+
+    pruefe('CharakterVersion bleibt 6', t(d2, 'CharakterVersion') === '6', t(d2, 'CharakterVersion'));
+    pruefe('Hausregeln unverändert', t(d2, 'Hausregeln') === t(d1, 'Hausregeln'));
+    pruefe('Einstellungen unverändert',
+      d2.getElementsByTagName('Einstellungen')[0].children.length === d1.getElementsByTagName('Einstellungen')[0].children.length);
+    pruefe('Geschlecht unverändert', t(d2, 'Geschlecht') === t(d1, 'Geschlecht'), t(d2, 'Geschlecht'));
+    pruefe('BeschreibungDetails weiterhin 24 Felder',
+      d2.getElementsByTagName('BeschreibungDetails')[0].children.length === 24,
+      String(d2.getElementsByTagName('BeschreibungDetails')[0].children.length));
+    pruefe('Talente vollständig erhalten',
+      d2.getElementsByTagName('Talent').length === d1.getElementsByTagName('Talent').length,
+      `${d2.getElementsByTagName('Talent').length} statt ${d1.getElementsByTagName('Talent').length}`);
+    pruefe('Grösse geschrieben', t(d2, 'Grösse') === '1,84 Schritt', t(d2, 'Grösse'));
+    pruefe('Geburtsdatum geschrieben', t(d2, 'Geburtsdatum') === '41 Jahre', t(d2, 'Geburtsdatum'));
+    pruefe('Titel geschrieben', t(d2, 'Titel') === 'Magister', t(d2, 'Titel'));
+    pruefe('freie Aussehen-Zeile 1', t(d2, 'Aussehen1') === 'kurz, Vollbart', t(d2, 'Aussehen1'));
+    pruefe('freie Aussehen-Zeile 2', t(d2, 'Aussehen2') === 'Brandnarbe & "Stabmal" <links>', t(d2, 'Aussehen2'));
+    pruefe('freie Aussehen-Zeile 6', t(d2, 'Aussehen6') === 'trägt immer den Stab bei sich', t(d2, 'Aussehen6'));
+    pruefe('Hintergrund-Zeile 1', t(d2, 'Hintergrund0') === 'Sohn eines Bornländer Kaufmanns', t(d2, 'Hintergrund0'));
+    pruefe('Hintergrund-Zeile 9', t(d2, 'Hintergrund8') === 'will die Akademie zurückgewinnen', t(d2, 'Hintergrund8'));
+    pruefe('Profession geschrieben', t(d2, 'Profession') === 'Gildenmagier', t(d2, 'Profession'));
+    pruefe('kein eigener Aussehen-Block mehr', d2.getElementsByTagName('Aussehen').length === 0);
+
+    const eig = Array.from(d2.getElementsByTagName('Eigenheit'));
+    pruefe('zwei Eigenheiten als Sephrasto-Text', eig.length === 2, String(eig.length));
+    pruefe('Eigenheit in einer Zeile',
+      eig[0].textContent === 'Ein Kind der Großstadt | Positiv: kennt jede Gasse, taucht unter | Negativ: verirrt sich in der Wildnis, kennt das Landleben nicht',
+      eig[0].textContent);
+    pruefe('Eigenheit trägt keine fremden Attribute', eig[0].attributes.length === 0);
+
+    const zurueck = parse(neu, db);
+    pruefe('beschriftete Felder kommen zurück',
+      BESCHREIBUNG_FELDER.every(f => zurueck[f.key] === c[f.key]),
+      BESCHREIBUNG_FELDER.map(f => `${f.key}=${zurueck[f.key]}`).join(', '));
+    pruefe('sechs Aussehen-Zeilen kommen zurück',
+      zurueck.aussehen.length === 6 && zurueck.aussehen.every((z, i) => z === c.aussehen[i]),
+      JSON.stringify(zurueck.aussehen));
+    pruefe('neun Hintergrund-Zeilen kommen zurück',
+      zurueck.hintergrund.length === 9 && zurueck.hintergrund.every((z, i) => z === c.hintergrund[i]),
+      JSON.stringify(zurueck.hintergrund));
+    pruefe('Eigenheiten kommen zerlegt zurück',
+      zurueck.eigenheiten.length === 2
+      && zurueck.eigenheiten[0].name === 'Ein Kind der Großstadt'
+      && zurueck.eigenheiten[0].positiv === 'kennt jede Gasse, taucht unter'
+      && zurueck.eigenheiten[1].negativ === 'herablassend, unterschätzt Ungelehrte',
+      JSON.stringify(zurueck.eigenheiten));
+    pruefe('EP unverändert', gesamtEP(zurueck, db).total === gesamtEP(c, db).total);
+    pruefe('zweites Speichern ändert nichts mehr', serialisiere(zurueck, db) === neu,
+      ersteAbweichung(serialisiere(zurueck, db), neu));
+  }
+
+  console.log('\nC. Von Hand in Sephrasto geschriebene Eigenheit');
+  {
+    pruefe('Freitext ohne Muster bleibt erhalten',
+      textZuEigenheit('Einfach nur ein Satz.').name === 'Einfach nur ein Satz.');
+    pruefe('nur positiver Teil', textZuEigenheit('Mutig | Positiv: geht voran').positiv === 'geht voran');
+    pruefe('Hin und zurück ist stabil', (() => {
+      const e = { name: 'Test', positiv: 'a, b', negativ: 'c, d' };
+      const z = textZuEigenheit(eigenheitZuText(e));
+      return z.name === e.name && z.positiv === e.positiv && z.negativ === e.negativ;
+    })());
+  }
+
+  // Die Erschaffungspakete stehen in pakete.html und werden dort gegen
+  // Sephrastos eigene EP-Angabe geprüft.
+
+  console.log('\nD. Sets und Inventarorte überstehen die Datei');
+  {
+    const xml = await window.rtIpc('dateiLesen', ECHT[0]);
+    const c = parse(xml, db);
+    c.ausruestung = [
+      'Fackel',
+      'Im Rucksack: Seil, 10 Schritt',
+      'Waffenset: Kampfset 1; Haupthand: Säbel; Nebenhand: Buckler',
+      'Rüstungsset: Reise; Teile: Lederharnisch, Kappe',
+    ];
+    const neu = serialisiere(c, db);
+    const d = new DOMParser().parseFromString(neu, 'application/xml');
+    const stuecke = Array.from(d.getElementsByTagName('Ausrüstungsstück')).map(x => x.textContent);
+
+    pruefe('alle vier Zeilen stehen in der Ausrüstung', stuecke.length === 4, String(stuecke.length));
+    pruefe('Waffenset wortgetreu gespeichert',
+      stuecke.includes('Waffenset: Kampfset 1; Haupthand: Säbel; Nebenhand: Buckler'),
+      stuecke.join(' | '));
+    pruefe('Rüstungsset wortgetreu gespeichert',
+      stuecke.includes('Rüstungsset: Reise; Teile: Lederharnisch, Kappe'));
+    pruefe('Inventarort wortgetreu gespeichert', stuecke.includes('Im Rucksack: Seil, 10 Schritt'));
+
+    const zurueck = parse(neu, db);
+    pruefe('kommt unverändert zurück',
+      JSON.stringify(zurueck.ausruestung) === JSON.stringify(c.ausruestung),
+      JSON.stringify(zurueck.ausruestung));
+    pruefe('zweites Speichern ändert nichts', serialisiere(zurueck, db) === neu);
+  }
+
+  console.log('\nE. Neuer Charakter');
+  {
+    const c = createCharakter(db, { name: 'Neue Heldin', gesamtEP: 2000 });
+    c.eigenheiten = [{ name: 'Neugierig', positiv: 'fragt nach', negativ: 'stochert im Falschen' }];
+    c.haarfarbe = 'rot';
+    c.kultur = 'Bornland';
+    const xml = serialisiere(c, db);
+    const d = new DOMParser().parseFromString(xml, 'application/xml');
+    pruefe('wird als CharakterVersion 6 angelegt',
+      (d.getElementsByTagName('CharakterVersion')[0] || {}).textContent === '6');
+    pruefe('alle 21 Fertigkeiten geschrieben', d.getElementsByTagName('Fertigkeit').length === 21,
+      String(d.getElementsByTagName('Fertigkeit').length));
+    pruefe('BeschreibungDetails vollständig',
+      d.getElementsByTagName('BeschreibungDetails')[0].children.length === 24,
+      String(d.getElementsByTagName('BeschreibungDetails')[0].children.length));
+    pruefe('Notiz vorhanden', d.getElementsByTagName('Notiz').length === 1);
+    const z = parse(xml, db);
+    pruefe('liest sich selbst wieder', z.name === 'Neue Heldin' && z.haarfarbe === 'rot'
+      && z.eigenheiten[0].negativ === 'stochert im Falschen' && z.kultur === 'Bornland');
+    pruefe('zweites Speichern ändert nichts', serialisiere(z, db) === xml, ersteAbweichung(serialisiere(z, db), xml));
+
+    // Der Bauplan muss dem entsprechen, was Sephrasto selbst schreibt.
+    const echt = new DOMParser().parseFromString(await window.rtIpc('dateiLesen', ECHT[0]), 'application/xml');
+    const tags = (doc, pfad) => {
+      const el = pfad ? doc.getElementsByTagName(pfad)[0] : doc.documentElement;
+      return Array.from(el.children).map(k => k.tagName).join(', ');
+    };
+    pruefe('gleiche Blöcke wie eine echte Sephrasto-Datei', tags(d, '') === tags(echt, ''),
+      `\n      neu:  ${tags(d, '')}\n      echt: ${tags(echt, '')}`);
+    pruefe('gleiche Einstellungen wie Sephrasto', tags(d, 'Einstellungen') === tags(echt, 'Einstellungen'));
+    pruefe('gleiche BeschreibungDetails wie Sephrasto',
+      tags(d, 'BeschreibungDetails') === tags(echt, 'BeschreibungDetails'));
+    pruefe('gleiche Beschreibung wie Sephrasto', tags(d, 'Beschreibung') === tags(echt, 'Beschreibung'));
+  }
+} catch (e) {
+  fehler++;
+  console.log('AUSNAHME ' + (e && e.stack ? e.stack : e));
+}
+
+console.log(fehler ? 'ERGEBNIS ' + fehler + ' Fehler.' : 'ERGEBNIS alles in Ordnung.');
+window.rtFertig(fehler);
+</script>
+</body></html>

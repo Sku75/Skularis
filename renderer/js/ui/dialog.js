@@ -143,7 +143,7 @@ export function auswahlDialog({ titel, eintraege }) {
     dlg.insertAdjacentHTML('beforeend', `
       <div class="db-dialog__header"><span class="db-dialog__title">${titel}</span></div>
       <div class="db-dialog__body">
-        <label class="db-dialog__label" for="dlg-filter">Filter (tippen zum Suchen)</label>
+        <label class="db-dialog__label" for="dlg-filter">Filter, tippen zum Suchen</label>
         <input id="dlg-filter" class="db-input" type="text" autocomplete="off" aria-label="Filter, tippen zum Suchen">
         <div id="dlg-liste" class="db-list" role="listbox" aria-label="${titel}"></div>
       </div>

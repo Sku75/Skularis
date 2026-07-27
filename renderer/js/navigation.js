@@ -23,19 +23,54 @@ export const FOCUSABLE = [
 ].join(', ');
 
 let _aktivesPanel = null;
+let _letzterImPanel = null;
 
 export function init() {
   document.addEventListener('keydown', _onKeyDown);
+  // Den zuletzt besuchten Punkt im Bildschirm merken. Von der
+  // Barrierefreiheits-Box in der Kopfzeile führt Pfeil hoch/runter dorthin
+  // zurück, statt ins Leere zu laufen.
+  document.addEventListener('focusin', (e) => {
+    if (_aktivesPanel && _aktivesPanel.contains(e.target)) _letzterImPanel = e.target;
+  });
 }
 
 export function setAktivesPanel(panel) {
   _aktivesPanel = panel;
+  _letzterImPanel = null;
 }
 
 /**
- * Ansage für ein fokussiertes Element erzeugen.
- * Textfelder mit selektiertem Text: „Label: Wert, markiert"
- * Andere Elemente: sageZeile()
+ * Fokus aus der Kopfzeile (oder aus dem Nichts) zurück in den Bildschirm holen.
+ * @returns {boolean} ob ein Ziel gefunden wurde
+ */
+export function zurueckInsPanel() {
+  if (!_aktivesPanel) return false;
+  let el = (_letzterImPanel && _aktivesPanel.contains(_letzterImPanel)) ? _letzterImPanel : null;
+  if (!el) el = _aktivesPanel.querySelector(FOCUSABLE);
+  if (!el) return false;
+  _fokussiere(el);
+  sounds.playNavigation();
+  return true;
+}
+
+/**
+ * Ein Element fokussieren, sodass NVDA es selbst einmal vorliest. Vorher bekommt
+ * eine zusammengesetzte Zeile ihren vollständigen Namen (benenneFuerFokus).
+ * KEINE eigene aria-live-Ansage — sonst käme alles doppelt.
+ */
+function _fokussiere(el) {
+  sprache.benenneFuerFokus(el);
+  el.focus();
+  if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) el.select();
+  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+/**
+ * Ansage für ein fokussiertes Element per aria-live. Wird nur noch beim Anschlag
+ * am Listenrand genutzt: dort bewegt sich der Fokus nicht, NVDA liest also nicht
+ * von selbst, und die aktuelle Zeile soll trotzdem noch einmal kommen.
+ * Textfelder mit selektiertem Text: „Label: Wert, markiert".
  */
 function _sageElement(el) {
   if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search') && el.value) {
@@ -48,29 +83,58 @@ function _sageElement(el) {
 
 export function fokussiereErstes(container, silent = false) {
   const el = (container || _aktivesPanel)?.querySelector(FOCUSABLE);
-  if (el) {
-    el.focus();
-    if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) el.select();
-    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    if (!silent) _sageElement(el);
-  }
+  if (el) _fokussiere(el);
   return el || null;
 }
 
 export function fokussiereLetztes(container) {
   const alle = (container || _aktivesPanel)?.querySelectorAll(FOCUSABLE);
-  if (alle && alle.length > 0) {
-    const el = alle[alle.length - 1];
-    el.focus();
-    if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) el.select();
-    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    _sageElement(el);
-  }
+  if (alle && alle.length > 0) _fokussiere(alle[alle.length - 1]);
 }
 
 function _getAlleFokussierbar() {
   if (!_aktivesPanel) return [];
   return Array.from(_aktivesPanel.querySelectorAll(FOCUSABLE));
+}
+
+/**
+ * Zur nächsten Überschrift im aktiven Bildschirm springen. Überschriften sind
+ * fokussierbare Elemente mit data-ueberschrift.
+ * @returns {boolean} ob eine gefunden wurde
+ */
+function zurUeberschrift(richtung) {
+  return zurMarkierung(richtung, 'ueberschrift');
+}
+
+/** Zum nächsten Kapitel springen (Regeldokument): Elemente mit data-kapitel. */
+function zurKapitel(richtung) {
+  return zurMarkierung(richtung, 'kapitel');
+}
+
+/** Zum nächsten fokussierbaren Element mit dem gegebenen data-Merkmal springen. */
+function zurMarkierung(richtung, merkmal) {
+  const alle = _getAlleFokussierbar();
+  let idx = alle.indexOf(document.activeElement);
+  if (idx < 0) idx = richtung > 0 ? -1 : alle.length;
+  for (let i = idx + richtung; i >= 0 && i < alle.length; i += richtung) {
+    if (alle[i].dataset && alle[i].dataset[merkmal]) {
+      _fokussiere(alle[i]);
+      sounds.playNavigation();
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Anschlag am Rand einer Liste: leiser Ton, danach die Zeile, auf der man steht,
+ * erneut vorlesen. Die kurze Verzögerung sorgt dafür, dass der Ton die Ansage
+ * nicht wegdrückt. Gilt in allen Menüs.
+ */
+function anschlag() {
+  sounds.play('grenze');
+  const el = document.activeElement;
+  setTimeout(() => { if (document.activeElement === el) _sageElement(el); }, 200);
 }
 
 function _naechstesElement(richtung) {
@@ -116,8 +180,41 @@ function _onKeyDown(e) {
 
   // Pfeil-Navigation nur innerhalb des aktiven Panels
   if (!_aktivesPanel) return;
-  // Fokus ausserhalb des Panels? → nicht eingreifen (z.B. Dialog offen)
-  if (!_aktivesPanel.contains(document.activeElement)) return;
+
+  // Fokus ausserhalb des Bildschirms? Bei offenem Dialog nicht eingreifen, der
+  // bringt seine eigene Steuerung mit. Sonst holen Pfeil hoch/runter, Pos1 und
+  // Ende den Fokus zurück in den Bildschirm. Das gilt für die
+  // Barrierefreiheits-Box in der Kopfzeile, die man mit Tabulator erreicht und
+  // in der die Pfeiltasten sonst wirkungslos wären, und für den Fall, dass der
+  // Fokus nach einem Neuaufbau gar nirgends steht.
+  // Links und rechts bleiben unangetastet, damit der Lautstärkeregler in der
+  // Kopfzeile weiter bedienbar ist.
+  if (!_aktivesPanel.contains(document.activeElement)) {
+    if (document.querySelector('dialog[open]')) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
+      e.preventDefault();
+      zurueckInsPanel();
+    }
+    return;
+  }
+
+  // Strg und Pfeil hoch/runter: zur nächsten Überschrift springen. Überschriften
+  // sind Zeilen mit data-ueberschrift (z. B. im Charakterbogen). Shift bleibt
+  // dem Tooltip vorbehalten und wird hier nicht angefasst.
+  if (e.ctrlKey && !e.shiftKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    if (_istInEingabefeld(document.activeElement)) return;
+    e.preventDefault();
+    if (!zurUeberschrift(e.key === 'ArrowDown' ? 1 : -1)) anschlag();
+    return;
+  }
+
+  // Strg und Bild auf/ab: zwischen Kapiteln springen (Regeldokument).
+  if (e.ctrlKey && !e.shiftKey && (e.key === 'PageDown' || e.key === 'PageUp')) {
+    if (_istInEingabefeld(document.activeElement)) return;
+    e.preventDefault();
+    if (!zurKapitel(e.key === 'PageDown' ? 1 : -1)) anschlag();
+    return;
+  }
 
   // In Textfeldern: Pfeiltasten normal verwenden
   if (_istInEingabefeld(document.activeElement)) {
@@ -133,37 +230,19 @@ function _onKeyDown(e) {
     case 'ArrowDown': {
       e.preventDefault();
       const el = _naechstesElement(1);
-      if (!el) {
-        sounds.playError();
-        break;
-      }
-      el.focus();
-      if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) {
-        sounds.playEingabeStart();
-        el.select();
-      } else {
-        sounds.playNavigation();
-      }
-      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      _sageElement(el);
+      if (!el) { anschlag(); break; }
+      const eingabe = el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search');
+      _fokussiere(el);
+      sounds[eingabe ? 'playEingabeStart' : 'playNavigation']();
       break;
     }
     case 'ArrowUp': {
       e.preventDefault();
       const el = _naechstesElement(-1);
-      if (!el) {
-        sounds.playError();
-        break;
-      }
-      el.focus();
-      if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) {
-        sounds.playEingabeStart();
-        el.select();
-      } else {
-        sounds.playNavigation();
-      }
-      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      _sageElement(el);
+      if (!el) { anschlag(); break; }
+      const eingabe = el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search');
+      _fokussiere(el);
+      sounds[eingabe ? 'playEingabeStart' : 'playNavigation']();
       break;
     }
     case 'Home': {

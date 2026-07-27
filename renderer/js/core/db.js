@@ -7,10 +7,14 @@
  * isArray für die Top-Level-Elementtypen (siehe main/file-operations.js).
  */
 
+import { aufbereiten } from './regeltext.js';
+
 function arr(v) { return v == null ? [] : (Array.isArray(v) ? v : [v]); }
 function num(v, d = 0) { const n = parseInt(v, 10); return Number.isNaN(n) ? d : n; }
 function pipe(s) { return String(s || '').split('|').map(x => x.trim()).filter(Boolean); }
 function komma(s) { return String(s || '').split(',').map(x => x.trim()).filter(Boolean); }
+/** Jeder Beschreibungstext wird einmal beim Laden für die Ansage aufbereitet. */
+function txt(s) { return aufbereiten(s); }
 
 export function transformDb(raw) {
   const q = raw?.db?.Datenbank || raw?.Datenbank || raw || {};
@@ -25,6 +29,7 @@ export function transformDb(raw) {
     talente: [], talentByName: {}, talenteByFertigkeit: {},
     freieFertigkeiten: [], freieByName: {},
     waffen: [], ruestungen: [], waffeneigenschaften: {},
+    regeln: [], regelByName: {},
     einstellungen: {},
   };
 
@@ -38,7 +43,7 @@ export function transformDb(raw) {
     const o = {
       name: a.name, anzeigename: a.anzeigename || a.name,
       steigerungsfaktor: num(a.steigerungsfaktor, 16),
-      sortorder: num(a.sortorder), text: a._text || '',
+      sortorder: num(a.sortorder), text: txt(a._text),
     };
     db.attribute.push(o); db.attributByName[o.name] = o;
   }
@@ -50,7 +55,7 @@ export function transformDb(raw) {
       name: w.name, anzeigename: w.anzeigename || w.name,
       anzeigen: w.anzeigen === '1',
       formel: w.formel || '', script: w.script || '', finalscript: w.finalscript || '',
-      sortorder: num(w.sortorder), text: w._text || '',
+      sortorder: num(w.sortorder), text: txt(w._text),
     };
     db.abgeleitete.push(o); db.abgeleiteteByName[o.name] = o;
   }
@@ -61,7 +66,7 @@ export function transformDb(raw) {
     const o = {
       name: e.name, anzeigename: e.anzeigename || e.name,
       steigerungsfaktor: num(e.steigerungsfaktor, 1),
-      voraussetzungen: e.voraussetzungen || '', sortorder: num(e.sortorder), text: e._text || '',
+      voraussetzungen: e.voraussetzungen || '', sortorder: num(e.sortorder), text: txt(e._text),
     };
     db.energien.push(o); db.energieByName[o.name] = o;
   }
@@ -73,9 +78,9 @@ export function transformDb(raw) {
       name: v.name, kosten: num(v.kosten, 0),
       voraussetzungen: v.voraussetzungen || '', nachkauf: v.nachkauf || '',
       typ: num(v.typ, 0), variableKosten: v.variableKosten === '1', kommentar: v.kommentar === '1',
-      script: v.script || '', csBeschreibung: v.csBeschreibung || '',
+      script: v.script || '', csBeschreibung: txt(v.csBeschreibung),
       linkKategorie: v.linkKategorie || '', linkElement: v.linkElement || '',
-      querverweise: v.querverweise || '', info: v.info || '', text: v._text || '',
+      querverweise: v.querverweise || '', info: txt(v.info), text: txt(v._text),
     };
     db.vorteile.push(o); db.vorteilByName[o.name] = o;
   }
@@ -89,8 +94,15 @@ export function transformDb(raw) {
       voraussetzungen: t.voraussetzungen || '',
       verbilligt: t.verbilligt === '1',
       variableKosten: t.variableKosten === '1',
+      kommentar: t.kommentar === '1',
       fertigkeiten: komma(t.fertigkeiten),
-      text: t._text || '',
+      text: txt(t._text),
+      info: txt(t.info),
+      // Für den Nachschlag im Regelwerk und die richtige Bezeichnung:
+      // spezialTyp 0 = Zauber, 1 = Liturgie, 2 = Anrufung, fehlt = profanes Talent.
+      referenzseite: t.referenzseite === undefined ? null : num(t.referenzseite, 0),
+      referenzbuch: num(t.referenzbuch, 0),
+      spezialTyp: t.spezialTyp === undefined ? null : num(t.spezialTyp, 0),
     };
     db.talente.push(o); db.talentByName[o.name] = o;
     for (const f of o.fertigkeiten) {
@@ -104,7 +116,7 @@ export function transformDb(raw) {
       name: f.name, steigerungsfaktor: num(f.steigerungsfaktor, 1),
       voraussetzungen: f.voraussetzungen || '', attribute: pipe(f.attribute),
       kampffertigkeit: num(f.kampffertigkeit, 0), typ: num(f.typ, 0),
-      talente: db.talenteByFertigkeit[f.name] || [], text: f._text || '', uebernatuerlich: false,
+      talente: db.talenteByFertigkeit[f.name] || [], text: txt(f._text), uebernatuerlich: false,
     };
     db.fertigkeiten.push(o); db.fertigkeitByName[o.name] = o;
   }
@@ -115,9 +127,21 @@ export function transformDb(raw) {
       name: u.name, steigerungsfaktor: num(u.steigerungsfaktor, 2),
       voraussetzungen: u.voraussetzungen || '', attribute: pipe(u.attribute),
       typ: num(u.typ, 0), talente: db.talenteByFertigkeit[u.name] || [],
-      text: u._text || '', uebernatuerlich: true,
+      text: txt(u._text), uebernatuerlich: true,
     };
     db.uebernat.push(o); db.uebernatByName[o.name] = o;
+  }
+
+  // Regeln (Regelanhang und Nachschlagewerk)
+  for (const r of arr(q.Regel)) {
+    const o = {
+      name: r.name, typ: num(r.typ, 0),
+      voraussetzungen: r.voraussetzungen || '',
+      probe: r.probe || '',
+      querverweise: r.querverweise || '',
+      text: txt(r._text),
+    };
+    db.regeln.push(o); db.regelByName[o.name] = o;
   }
 
   // Freie Fertigkeiten
@@ -152,6 +176,21 @@ export function transformDb(raw) {
   ];
   db.freieKostenlos = num(db.einstellungen['FreieFertigkeiten: Anzahl Kostenlos'], 1);
   db.kampfstilTyp = num(db.einstellungen['Vorteile: Kampfstil Typ'], 3);
+
+  // Bezeichnungen der Spezialtalente, aus der Einstellung
+  // "Talente: Spezialtalent Typen" (je Zeile Einzahl=Mehrzahl).
+  db.spezialTypen = String(db.einstellungen['Talente: Spezialtalent Typen'] || '')
+    .split('\n').map(z => z.split('=')[0].trim()).filter(Boolean);
+  // Referenzwerke, aus der Einstellung "Referenzbücher".
+  db.referenzbuecher = komma(db.einstellungen['Referenzbücher']);
+  // Kategorien der Regeln, aus der Einstellung "Regeln: Typen".
+  db.regelTypen = komma(db.einstellungen['Regeln: Typen']);
+  // Waffentalente ohne Attacke bzw. ohne Verteidigung (Bögen, Wurfwaffen, Lanze).
+  db.waffenTalenteATverboten = komma(db.einstellungen['Waffen: Talente AT verboten']);
+  db.waffenTalenteVTverboten = komma(db.einstellungen['Waffen: Talente VT verboten']);
+  // Kampfstile sind Vorteile eines bestimmten Typs (Einstellung "Vorteile: Typen").
+  db.kampfstile = db.vorteile.filter(v => v.typ === db.kampfstilTyp).map(v => v.name);
+  db.regeln.sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
   return db;
 }

@@ -11,6 +11,7 @@ import * as navigation from './navigation.js';
 import * as einstellungen from './daten/einstellungen.js';
 import * as screen from './ui/screen.js';
 import * as startScreen from './screens/start.js';
+import { hatInhalt } from './core/infotext.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -42,15 +43,9 @@ async function init() {
   registriereEscape();
   registriereQuit();
 
-  // Fokus außerhalb des aktiven Panels (Kopfzeile) ansagen
-  document.addEventListener('focusin', (e) => {
-    const el = e.target;
-    if (!el) return;
-    if (['sr-live', 'sr-polite', 'sr-status'].includes(el.id)) return;
-    if (el.closest('[role="application"]')) return; // navigation.js sagt an
-    if (el.dataset && el.dataset.srSkip) return;
-    sprache.sageZusatz(sprache.beschreibe(el));
-  });
+  // Keine eigene Fokus-Ansage mehr: NVDA liest fokussierte Elemente selbst einmal
+  // vor. Jedes Element trägt dazu seinen vollständigen Namen (siehe
+  // sprache.benenneFuerFokus). Eine zusätzliche Ansage käme sonst doppelt.
 
   // Hauptmenü zeigen
   screen.reset(startScreen.build());
@@ -60,13 +55,14 @@ async function init() {
 // --- Escape = zurück ---
 
 function registriereEscape() {
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', async (e) => {
     if (e.key !== 'Escape') return;
-    // Offener Dialog? Dann Dialog-eigenes Escape wirken lassen.
+    // Offener Dialog? Dann Dialog-eigenes Escape wirken lassen. Das gilt auch
+    // für die Rückfrage aus onBack — mehrfaches Escape verwirft also nichts.
     if (document.querySelector('dialog[open]')) return;
     e.preventDefault();
-    if (!screen.pop()) {
-      sprache.sage('Hauptmenü. Bereits oberste Ebene.');
+    if (!await screen.zurueck()) {
+      if (screen.tiefe() <= 1) sprache.sage('Hauptmenü. Bereits oberste Ebene.');
     }
   });
 }
@@ -112,33 +108,94 @@ function registriereShortcuts() {
   shortcuts.registriere('Ctrl+-', () => schriftAendern(-1), 'Schrift verkleinern');
   shortcuts.registriere('Ctrl+0', () => schriftReset(), 'Schrift zurücksetzen');
 
-  // Info zum fokussierten Eintrag vorlesen (überall gleich)
-  shortcuts.registriere('Shift+ArrowDown', async () => {
-    const t = await detailText(document.activeElement);
-    sprache.sage(t || 'Keine weiteren Informationen.');
-  }, 'Info zum Eintrag vorlesen');
-
-  // Info als navigierbares Feld öffnen
-  shortcuts.registriere('Ctrl+I', async () => {
-    const el = document.activeElement;
-    const t = await detailText(el);
-    if (!t) { sprache.sage('Keine weiteren Informationen.'); return; }
-    const titel = (el.querySelector && el.querySelector('.db-menu__label')?.textContent)
-      || el.getAttribute('aria-label') || 'Eintrag';
-    const m = await import('./ui/info-screen.js');
-    m.zeigeInfo(titel, t);
-  }, 'Info-Feld öffnen');
+  // Shift halten und Pfeil: Tooltip. Strg und I oder Doppelklick: Info-Fenster.
+  // Beides steuert das Info-Fenster auf der rechten Bildschirmhälfte
+  // (ui/infofenster.js). Registriert wird das direkt über keydown/keyup, weil
+  // der Shortcut-Manager nur auf Drücken hört, nicht auf Loslassen.
+  registriereInfoFenster();
 }
 
-/** Vollinfo eines fokussierten Elements ermitteln (auch verzögert geladene). */
-async function detailText(el) {
-  if (!el) return '';
-  if (el.__detailText !== undefined) return el.__detailText;
+/** Titel eines fokussierten Eintrags für die Fensterüberschrift. */
+function eintragTitel(el) {
+  if (!el) return 'Eintrag';
+  return (el.querySelector && el.querySelector('.db-menu__label')?.textContent)
+    || el.getAttribute('aria-label')
+    || (el.textContent || '').trim().split('\n')[0]
+    || 'Eintrag';
+}
+
+function registriereInfoFenster() {
+  let infofenster = null;
+  import('./ui/infofenster.js').then(m => { infofenster = m; });
+
+  // Tooltip: Shift gehalten und Pfeil. Läuft in der Erfassungsphase, damit die
+  // Pfeil-Navigation im Panel diese Kombination nicht auch verarbeitet.
+  document.addEventListener('keydown', async (e) => {
+    if (!infofenster) return;
+    if (!e.shiftKey) return;
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    if (document.querySelector('dialog[open]')) return;
+    // Im Info-Modus steuert das Fenster selbst.
+    if (infofenster.istOffen() && !infofenster.imTooltip()) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.repeat) return; // Halten der Pfeiltaste nicht durchlaufen lassen
+
+    if (!infofenster.imTooltip()) {
+      // Öffnen: erste Zeile lesen. Mit Strg zusätzlich zur ersten Überschrift.
+      // Ohne Inhalt geht der Tooltip gar nicht auf.
+      const el = document.activeElement;
+      const detail = await detailBaustein(el);
+      if (!hatInhalt(detail)) { sprache.sage('Keine weiteren Informationen.'); return; }
+      infofenster.oeffneTooltip(eintragTitel(el), detail);
+      if (e.ctrlKey) infofenster.zurUeberschrift(1);
+      return;
+    }
+    // Bereits offen: navigieren.
+    if (e.ctrlKey) infofenster.zurUeberschrift(e.key === 'ArrowDown' ? 1 : -1);
+    else infofenster.weiter(e.key === 'ArrowDown' ? 1 : -1);
+  }, true);
+
+  // Shift losgelassen: Tooltip schließt sich.
+  document.addEventListener('keyup', (e) => {
+    if (!infofenster) return;
+    if (e.key === 'Shift' && infofenster.imTooltip()) infofenster.schliesseTooltip();
+  }, true);
+
+  // Strg und I: Info-Fenster, bleibt offen.
+  shortcuts.registriere('Ctrl+I', async () => {
+    if (!infofenster) return;
+    const el = document.activeElement;
+    const detail = await detailBaustein(el);
+    if (!hatInhalt(detail)) { sprache.sage('Keine weiteren Informationen.'); return; }
+    infofenster.oeffneInfo(eintragTitel(el), detail);
+  }, 'Info-Fenster öffnen');
+
+  // Doppelklick auf einen Eintrag öffnet ebenfalls das Info-Fenster.
+  document.addEventListener('dblclick', async (e) => {
+    if (!infofenster) return;
+    const el = e.target.closest('[tabindex], button');
+    if (!el || el.closest('.ii-overlay')) return;
+    const detail = await detailBaustein(el);
+    if (!hatInhalt(detail)) return;
+    infofenster.oeffneInfo(eintragTitel(el), detail);
+  });
+}
+
+/**
+ * Vollinfo eines fokussierten Elements ermitteln, als String oder als
+ * strukturierte Zeilenliste. Verzögert geladene (Funktions-)Details werden
+ * aufgelöst und gecacht.
+ */
+async function detailBaustein(el) {
+  if (!el) return null;
+  if (el.__detailCache !== undefined) return el.__detailCache;
   let d = el.__detail;
-  if (d === undefined) return '';
-  if (typeof d === 'function') { try { d = await d(); } catch { d = ''; } }
-  el.__detailText = (typeof d === 'string' ? d : '');
-  return el.__detailText;
+  if (d === undefined) return null;
+  if (typeof d === 'function') { try { d = await d(); } catch { d = null; } }
+  el.__detailCache = d || null;
+  return el.__detailCache;
 }
 
 async function schriftAendern(delta) {

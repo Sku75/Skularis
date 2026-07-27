@@ -19,6 +19,9 @@ export function auswahlScreen(o) {
   const items = (o.eintraege || []).map(e => ({
     label: e.label,
     detail: e.detail,
+    // Einträge, deren Voraussetzungen fehlen, bekommen eine eigene Farbe.
+    // Wählbar bleiben sie, wie in Sephrasto.
+    klasse: e.gesperrt ? 'ed-gesperrt' : undefined,
     onSelect: () => { screen.pop(); o.onWahl(e.wert); },
   }));
   screen.push(menuScreen({

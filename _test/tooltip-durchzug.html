@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><title>Tooltip-Durchzug</title></head>
+<body>
+<div id="sr-live" aria-live="assertive"></div>
+<div id="sr-polite" aria-live="polite"></div>
+<div id="sr-status" aria-live="polite"></div>
+<div id="app-content"></div>
+<script>
+window.skularis = { ipc: {
+  datenbankLaden: () => window.rtIpc('datenbankLaden'),
+  paketeListe: (k) => window.rtIpc('paketeListe', k),
+  paketLaden: (p) => window.rtIpc('paketLaden', p),
+  bibliothekListe: () => [],
+  configLesen: () => window.rtIpc('configLesen'),
+  configSchreiben: () => window.rtIpc('configSchreiben'),
+} };
+</script>
+<script type="module">
+import * as sounds from '../renderer/js/sounds.js';
+import * as screen from '../renderer/js/ui/screen.js';
+import * as navigation from '../renderer/js/navigation.js';
+import { transformDb } from '../renderer/js/core/db.js';
+import { parse } from '../renderer/js/core/sephrasto-xml.js';
+import { hatInhalt, zuZeilen } from '../renderer/js/core/infotext.js';
+import * as editor from '../renderer/js/editor/editor.js';
+import { vorteileScreen } from '../renderer/js/editor/vorteile.js';
+import { fertigkeitenScreen } from '../renderer/js/editor/fertigkeiten.js';
+import { uebernatuerlichesScreen } from '../renderer/js/editor/uebernatuerliches.js';
+import { eigenheitenScreen } from '../renderer/js/editor/eigenheiten.js';
+import { talentScreen } from '../renderer/js/editor/talente.js';
+import { ausruestungScreen } from '../renderer/js/editor/ausruestung.js';
+import { regelnScreen } from '../renderer/js/screens/regeln.js';
+import { baueCharakterbogen } from '../renderer/js/abenteuer/charakterbogen.js';
+
+let fehler = 0;
+const pruefe = (name, ok, zusatz = '') => {
+  console.log((ok ? 'ok   ' : 'FEHLER ') + name + (ok || !zusatz ? '' : ' -> ' + zusatz));
+  if (!ok) fehler++;
+};
+const warte = (ms = 30) => new Promise(r => setTimeout(r, ms));
+
+/** Ein Detail (String, Array oder Funktion) auflösen wie der echte Controller. */
+async function loeseDetail(el) {
+  let d = el.__detail;
+  if (typeof d === 'function') { try { d = await d(); } catch { d = null; } }
+  return d;
+}
+
+/**
+ * Ein Menü Zeile für Zeile prüfen: jede fokussierbare Zeile hat entweder keinen
+ * Inhalt (Tooltip geht nicht auf) oder wohlgeformten Inhalt (Tooltip geht auf,
+ * kein [object Object], Zeilen lesbar).
+ */
+async function pruefeMenue(name, el) {
+  const panel = el;
+  const zeilen = Array.from(panel.querySelectorAll(navigation.FOCUSABLE));
+  let mitInhalt = 0, ohneInhalt = 0, kaputt = 0;
+  for (const z of zeilen) {
+    const d = await loeseDetail(z);
+    if (!hatInhalt(d)) { ohneInhalt++; continue; }
+    mitInhalt++;
+    const rows = zuZeilen(d);
+    if (!rows.length || rows.some(r => /\[object|undefined|null/.test(r.text))) {
+      kaputt++;
+      console.log(`    kaputte Zeile in ${name}: ${JSON.stringify(rows).slice(0, 100)}`);
+    }
+  }
+  pruefe(`${name}: ${zeilen.length} Zeilen, ${mitInhalt} mit Tooltip, ${ohneInhalt} ohne, keine kaputt`,
+    kaputt === 0 && zeilen.length > 0, `kaputt ${kaputt}`);
+  return { mitInhalt, ohneInhalt };
+}
+
+try {
+  sounds.setSoundAn(false);
+  screen.init(document.getElementById('app-content'));
+  navigation.init();
+
+  const db = transformDb(await window.rtIpc('datenbankLaden'));
+
+  // Einen reichhaltigen Magier als Vorlage laden (Vorteile, Talente, Eigenheiten, Waffen).
+  const liste = await window.rtIpc('paketeListe', 'Profession');
+  let magier = null;
+  for (const p of liste) {
+    if (!/Krötenhexe|Gwendel/.test(p.name)) continue;
+    const res = await window.rtIpc('paketLaden', p.pfad);
+    magier = parse(res.inhalt, db);
+    break;
+  }
+  await editor.uebernimmCharakter(magier);
+
+  const container = document.getElementById('app-content');
+  const zeige = (bauplan) => {
+    container.innerHTML = '';
+    const dom = bauplan.build ? bauplan.build() : bauplan;
+    container.appendChild(dom);
+    return dom;
+  };
+
+  console.log('--- Tooltip zieht sich durch alle wichtigen Menüs ---');
+  let gesamtMitInhalt = 0;
+
+  gesamtMitInhalt += (await pruefeMenue('Vorteile', zeige(vorteileScreen()))).mitInhalt;
+  gesamtMitInhalt += (await pruefeMenue('Fertigkeiten', zeige(fertigkeitenScreen()))).mitInhalt;
+  gesamtMitInhalt += (await pruefeMenue('Übernatürliches', zeige(uebernatuerlichesScreen()))).mitInhalt;
+  gesamtMitInhalt += (await pruefeMenue('Eigenheiten', zeige(eigenheitenScreen()))).mitInhalt;
+  gesamtMitInhalt += (await pruefeMenue('Ausrüstung', zeige(ausruestungScreen()))).mitInhalt;
+
+  // Talente einer übernatürlichen Fertigkeit
+  const uf = Object.keys(magier.uebernatuerlich)[0];
+  if (uf) gesamtMitInhalt += (await pruefeMenue(`Talente ${uf}`, zeige(talentScreen(uf, true)))).mitInhalt;
+
+  // Regelnachschlagewerk
+  gesamtMitInhalt += (await pruefeMenue('Regeln', zeige(regelnScreen({ db, charakter: magier })))).mitInhalt;
+
+  // Charakterbogen
+  const bogen = await pruefeMenue('Charakterbogen', zeige(baueCharakterbogen(magier, db)));
+  gesamtMitInhalt += bogen.mitInhalt;
+
+  pruefe('insgesamt viele Zeilen mit funktionierendem Tooltip', gesamtMitInhalt > 40, String(gesamtMitInhalt));
+
+  // Charakterbogen hat anspringbare Überschriften
+  const bogenDom = zeige(baueCharakterbogen(magier, db));
+  const ueberschriften = bogenDom.querySelectorAll('[data-ueberschrift]');
+  pruefe('Charakterbogen hat Überschriften zum Anspringen', ueberschriften.length >= 5,
+    String(ueberschriften.length));
+
+  console.log('--- Eine Zeile ohne Inhalt öffnet nicht ---');
+  const leer = document.createElement('button');
+  leer.tabIndex = 0;
+  pruefe('Zeile ohne Detail: hatInhalt ist falsch', !hatInhalt(await loeseDetail(leer)));
+  leer.__detail = '';
+  pruefe('Zeile mit leerem Detail: hatInhalt ist falsch', !hatInhalt(await loeseDetail(leer)));
+  leer.__detail = [];
+  pruefe('Zeile mit leerer Liste: hatInhalt ist falsch', !hatInhalt(await loeseDetail(leer)));
+} catch (e) {
+  fehler++;
+  console.log('AUSNAHME ' + (e && e.stack ? e.stack : e));
+}
+
+console.log(fehler ? 'ERGEBNIS ' + fehler + ' Fehler.' : 'ERGEBNIS alles in Ordnung.');
+window.rtFertig(fehler);
+</script>
+</body></html>

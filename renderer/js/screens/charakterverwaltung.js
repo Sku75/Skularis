@@ -18,21 +18,21 @@ export function build() {
       },
       {
         label: 'Neuen Charakter erstellen',
-        hint: 'Das Erstellungs-Tool öffnen (Sephrasto-Regeln)',
+        hint: 'Startet die Charakter-Generierung: assistiert, aus einer Vorlage oder frei. Nach Ilaris Regeln',
         onSelect: () => import('../editor/editor.js')
           .then(m => m.starteNeu())
           .catch(() => sprache.sage('Das Erstellungs-Tool wird gerade gebaut.')),
       },
       {
         label: 'Charakter importieren',
-        hint: 'Eine Sephrasto-XML-Datei einlesen',
+        hint: 'Eine Ilaris-Charakterdatei im XML-Format einlesen',
         onSelect: () => import('./meine-charaktere.js')
           .then(m => m.importieren())
           .catch(() => sprache.sage('Import wird gerade gebaut.')),
       },
       {
         label: 'Charakter exportieren',
-        hint: 'Als HTML oder Sephrasto-XML weitergeben',
+        hint: 'Als HTML oder als Charakterdatei weitergeben',
         onSelect: () => import('./meine-charaktere.js')
           .then(m => m.exportieren())
           .catch(() => sprache.sage('Export wird gerade gebaut.')),

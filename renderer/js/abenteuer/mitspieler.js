@@ -18,7 +18,7 @@ async function hinzufuegen() {
   const a = getAbenteuer();
   const name = await textDialog({ titel: 'Mitspieler hinzufügen', label: 'Name der Mitspielerkarte' });
   if (name === null || !name.trim()) return;
-  const zusatz = (await textDialog({ titel: 'Zusatzinformationen', label: 'Zusatzinformationen (optional)' })) || '';
+  const zusatz = (await textDialog({ titel: 'Zusatzinformationen', label: 'Zusatzinformationen, freiwillig' })) || '';
   a.mitspieler.push({ name: name.trim(), zusatz: zusatz.trim() });
   await speichere();
   screen.refresh();

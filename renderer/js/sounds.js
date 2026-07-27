@@ -10,9 +10,19 @@ const SOUND_MAP = {
   click:          'sound3.wav',
   bing:           'Sound1.wav',
   error:          'sound 15.wav',
-  tab:            'sound 12.wav',
+  // Bildschirmwechsel: zwei Töne aufwärts beim Vorgehen, dieselben zwei Töne
+  // abwärts beim Zurückgehen. Gleiche Klangfarbe, gespiegelte Richtung, damit
+  // ohne Hinsehen klar ist, in welche Richtung es ging. Beide klingen lange aus.
+  tab:            'ebene-vor.wav',
+  schliessen:     'ebene-zurueck.wav',
+  wuerfel:        'wuerfel.wav',
+  // Info-Fenster (Tooltip und Strg und I): Papier blättert auf, Buch schlägt zu.
+  buch_auf:       'buch-auf.wav',
+  buch_zu:        'buch-zu.wav',
+  // Anschlag am Listenrand: derselbe Klang wie 'error', nur leiser. Danach wird
+  // die aktuelle Zeile erneut vorgelesen, damit der Ton die Ansage nicht verdeckt.
+  grenze:         'sound 15.wav',
   oeffnen:        'sound10.wav',
-  schliessen:     'sound9.wav',
   speichern:      'sound20.wav',
   loeschen:       'sound 8.wav',
   sonderinhalt:   'sound2.wav',
@@ -30,9 +40,13 @@ const FALLBACK_BEEPS = {
   click:         { freq: 660, ms: 60 },
   bing:          { freq: 880, ms: 120 },
   error:         { freq: 220, ms: 400 },
-  tab:           { freq: 440, ms: 80 },
+  tab:           { freq: 740, ms: 220 },
+  wuerfel:       { freq: 900, ms: 120 },
+  buch_auf:      { freq: 660, ms: 160 },
+  buch_zu:       { freq: 300, ms: 160 },
+  grenze:        { freq: 220, ms: 400 },
   oeffnen:       { freq: 523, ms: 100 },
-  schliessen:    { freq: 440, ms: 100 },
+  schliessen:    { freq: 494, ms: 220 },
   speichern:     { freq: 660, ms: 100 },
   loeschen:      { freq: 330, ms: 200 },
   sonderinhalt:  { freq: 880, ms: 150 },
@@ -50,8 +64,12 @@ const FALLBACK_BEEPS = {
 // Sprachausgabe nicht ueberdecken — je um die Haelfte reduziert.
 const VOLUME_MAP = {
   navigation: 0.075,  // Pfeil-Navigation zwischen Zeilen
-  tab:        0.35,   // Reiter-/Bildschirmwechsel
+  tab:        0.30,   // Bildschirmwechsel vor
+  schliessen: 0.30,   // Bildschirmwechsel zurueck, gleich laut wie vor
   click:      0.35,   // Menuepunkt auswaehlen
+  grenze:     0.45,   // Anschlag am Listenrand, etwas leiser als error, danach folgt die Ansage
+  buch_auf:   0.30,   // Info-Fenster oeffnet
+  buch_zu:    0.30,   // Info-Fenster schliesst
 };
 const DEFAULT_VOLUME_FACTOR = 0.7;  // Alle anderen 30% leiser
 
@@ -144,6 +162,7 @@ export function playError()        { play('error'); }
 export function playTab()          { play('tab'); }
 export function playOeffnen()      { play('oeffnen'); }
 export function playSchliessen()   { play('schliessen'); }
+export function playWuerfel()      { play('wuerfel'); }
 export function playSpeichern()    { play('speichern'); }
 export function playLoeschen()     { play('loeschen'); }
 export function playSonderinhalt() { play('sonderinhalt'); }

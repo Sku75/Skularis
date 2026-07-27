@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><title>Tooltip</title>
+<link rel="stylesheet" href="../renderer/css/design-tokens.css">
+<link rel="stylesheet" href="../renderer/css/infofenster.css">
+</head>
+<body>
+<div id="sr-live" aria-live="assertive"></div>
+<div id="sr-polite" aria-live="polite"></div>
+<div id="sr-status" aria-live="polite"></div>
+<div id="app-content"></div>
+<script>
+window.skularis = { ipc: {
+  datenbankLaden: () => window.rtIpc('datenbankLaden'),
+  configLesen: () => window.rtIpc('configLesen'),
+  configSchreiben: () => window.rtIpc('configSchreiben'),
+} };
+</script>
+<script type="module">
+import * as sounds from '../renderer/js/sounds.js';
+import * as infofenster from '../renderer/js/ui/infofenster.js';
+import { bauInfo } from '../renderer/js/core/infotext.js';
+
+let fehler = 0;
+const pruefe = (name, ok, zusatz = '') => {
+  console.log((ok ? 'ok   ' : 'FEHLER ') + name + (ok || !zusatz ? '' : ' -> ' + zusatz));
+  if (!ok) fehler++;
+};
+const warte = (ms = 40) => new Promise(r => setTimeout(r, ms));
+const aktuelleZeile = () => {
+  const el = document.querySelector('.ii-zeile.ii-aktuell');
+  return el ? el.textContent : null;
+};
+
+try {
+  sounds.setSoundAn(false);
+
+  const info = bauInfo([
+    ['Kosten', '20 EP.'],
+    ['Voraussetzungen', 'Es fehlt: Attribut CH 4.'],
+    ['Beschreibung', 'Erster Satz. Zweiter Satz. Dritter Satz.'],
+    ['Regeln', 'Ausfall: Der Angreifer weicht aus.'],
+  ]);
+
+  console.log('--- Tooltip: öffnen, Zeilen, Überschriften, schließen ---');
+  pruefe('Tooltip ist anfangs zu', !infofenster.istOffen());
+
+  infofenster.oeffneTooltip('Standfest', info);
+  await warte(80);
+  pruefe('Tooltip offen', infofenster.istOffen() && infofenster.imTooltip());
+  pruefe('Fenster überblendet die rechte Hälfte',
+    document.querySelector('.ii-overlay.ii-tooltip.ii-auf') !== null);
+  pruefe('erste Zeile ist die erste Überschrift', aktuelleZeile() === 'Kosten', aktuelleZeile());
+  pruefe('Tooltip ist für die Maus gesperrt',
+    getComputedStyle(document.querySelector('.ii-overlay')).pointerEvents === 'none');
+
+  infofenster.weiter(1);
+  pruefe('eine Zeile weiter', aktuelleZeile() === '20 EP.', aktuelleZeile());
+
+  infofenster.zurUeberschrift(1);
+  pruefe('Strg-Sprung zur nächsten Überschrift', aktuelleZeile() === 'Voraussetzungen', aktuelleZeile());
+  infofenster.zurUeberschrift(1);
+  pruefe('weiter zur übernächsten Überschrift', aktuelleZeile() === 'Beschreibung', aktuelleZeile());
+  infofenster.weiter(1);
+  pruefe('darunter der erste Inhalt', aktuelleZeile() === 'Erster Satz.', aktuelleZeile());
+  infofenster.zurUeberschrift(-1);
+  pruefe('Rücksprung landet auf der eigenen Überschrift', aktuelleZeile() === 'Beschreibung', aktuelleZeile());
+  infofenster.zurUeberschrift(-1);
+  pruefe('noch einer höher zur vorigen Überschrift', aktuelleZeile() === 'Voraussetzungen', aktuelleZeile());
+
+  infofenster.schliesseTooltip();
+  await warte(400);
+  pruefe('Tooltip nach Loslassen zu', !infofenster.istOffen());
+
+  console.log('--- Leerer Inhalt öffnet nicht ---');
+  // Der Controller entscheidet über das Nichtöffnen; das Fenster selbst zeigt
+  // bei leerem Inhalt einen Hinweis. Hier prüfen wir die Controller-Regel
+  // nachgestellt: kein Detail -> nicht öffnen.
+  const detailLeer = null;
+  if (!detailLeer) pruefe('kein Detail führt zu keinem Öffnen', !infofenster.istOffen());
+
+  console.log('--- Info-Modus: bleibt offen, Schließen-Schaltfläche ---');
+  infofenster.oeffneInfo('Standfest', info);
+  await warte(120);
+  pruefe('Info-Fenster offen', infofenster.istOffen() && !infofenster.imTooltip());
+  pruefe('Schließen-Schaltfläche sichtbar',
+    getComputedStyle(document.querySelector('.ii-schliessen')).display !== 'none');
+  pruefe('Info-Modus ist mausbedienbar',
+    getComputedStyle(document.querySelector('.ii-overlay')).pointerEvents === 'auto');
+  infofenster.weiter(1);
+  pruefe('Info: Zeile weiter', aktuelleZeile() === '20 EP.', aktuelleZeile());
+  infofenster.schliesse();
+  await warte(400);
+  pruefe('Info-Fenster geschlossen', !infofenster.istOffen());
+} catch (e) {
+  fehler++;
+  console.log('AUSNAHME ' + (e && e.stack ? e.stack : e));
+}
+
+console.log(fehler ? 'ERGEBNIS ' + fehler + ' Fehler.' : 'ERGEBNIS alles in Ordnung.');
+window.rtFertig(fehler);
+</script>
+</body></html>

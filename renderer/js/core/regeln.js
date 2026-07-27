@@ -39,20 +39,45 @@ export function kostenTalent(talent, parentSF, db, verbilligt = null) {
 
 /**
  * Freie Fertigkeiten: 4/8/16 je Stufe. Kostenlos sind nur bis zu
- * `Anzahl Kostenlos` Fertigkeiten mit wert==3 (die Muttersprache),
- * exakt wie in Sephrasto (Charakter.py).
+ * `Anzahl Kostenlos` Fertigkeiten mit wert==3 (die Muttersprache).
+ *
+ * Zwei Prüfungen, in genau dieser Reihenfolge wie in Sephrasto
+ * (Charakter.py, epZaehlen):
+ *   1. wert 3 und noch ein Freiplatz übrig -> kostenlos
+ *   2. kein Name -> überspringen. Sephrasto legt in der Oberfläche leere
+ *      Zeilen an (name="" wert="1"); die kosten nichts und stehen trotzdem
+ *      in der Datei.
  */
 export function kostenFreieFertigkeiten(freie, db) {
   let numKostenlos = 0;
   let summe = 0;
   for (const ff of freie || []) {
     const w = Math.max(0, Math.min(3, ff.wert | 0));
-    let k = 0;
-    for (let s = 0; s < w; s++) k += db.freieKosten[s] || 0;
     if (w === 3 && numKostenlos < (db.freieKostenlos || 0)) { numKostenlos++; continue; }
-    summe += k;
+    if (!ff.name) continue;
+    for (let s = 0; s < w; s++) summe += db.freieKosten[s] || 0;
   }
   return summe;
+}
+
+/**
+ * Kosten eines Talents für diesen Charakter. Talente mit variablen Kosten
+ * (Sephrasto: variableKosten="1") tragen ihren Preis am Charakter, nicht in der
+ * Datenbank — etwa wenn mehrere Tiere für Adlerschwinge Wolfsgestalt gewählt
+ * wurden. Nur wenn dort nichts steht, gilt der Datenbankwert.
+ */
+export function talentKostenFuer(char, db, name, parentSF) {
+  // Von einem Vorteil geschenkt (Tiergeist-Vorteile): das Skript gibt den Preis
+  // vor, in aller Regel 0.
+  if (char.geschenkteTalente && Object.prototype.hasOwnProperty.call(char.geschenkteTalente, name)) {
+    return char.geschenkteTalente[name] | 0;
+  }
+  if (char.talentKosten && Object.prototype.hasOwnProperty.call(char.talentKosten, name)) {
+    return char.talentKosten[name] | 0;
+  }
+  const def = db.talentByName[name];
+  const sf = parentSF !== undefined ? parentSF : (def ? def.steigerungsfaktor : 1);
+  return kostenTalent(def, sf, db);
 }
 
 /**
@@ -86,33 +111,37 @@ export function gesamtEP(char, db) {
     }
   }
 
-  // Profane Fertigkeiten + Talente
+  // Profane Fertigkeiten
   let hoechsteNahkampf = 0;
   for (const [fname, fe] of Object.entries(char.fertigkeiten || {})) {
     const f = db.fertigkeitByName[fname];
     const sf = f?.steigerungsfaktor ?? 1;
     b.fertigkeiten += kostenFertigkeit(sf, fe.wert || 0);
     if (f && f.kampffertigkeit === 1) hoechsteNahkampf = Math.max(hoechsteNahkampf, fe.wert || 0);
-    for (const tname of fe.talente || []) {
-      if (bezahlt.has(tname)) continue;
-      bezahlt.add(tname);
-      b.talente += kostenTalent(db.talentByName[tname], sf, db);
-    }
   }
   // Aufschlag auf die höchste Nahkampf-Kampffertigkeit: 2 · Dreieckssumme(wert)
   // (Sephrasto Core/Fertigkeit.py: getHöchsteKampffertigkeit).
   b.fertigkeiten += 2 * (hoechsteNahkampf * (hoechsteNahkampf + 1) / 2);
 
-  // Übernatürliche Fertigkeiten + Talente (Zauber/Liturgien)
+  // Übernatürliche Fertigkeiten
   for (const [uname, ue] of Object.entries(char.uebernatuerlich || {})) {
     const u = db.uebernatByName[uname];
     const sf = u?.steigerungsfaktor ?? 2;
     b.uebernat += kostenFertigkeit(sf, ue.wert || 0);
-    for (const tname of ue.talente || []) {
-      if (bezahlt.has(tname)) continue;
-      bezahlt.add(tname);
-      b.uebernatTalente += kostenTalent(db.talentByName[tname], sf, db);
-    }
+  }
+
+  // Talente. Der Charakter führt sie in einer Liste; jedes wird einmal bezahlt,
+  // auch wenn es unter mehreren Fertigkeiten erscheint. Der Steigerungsfaktor
+  // kommt aus der primären Fertigkeit des Talents (db.js), ist also unabhängig
+  // davon, wo es angezeigt wird.
+  for (const tname of char.talente || []) {
+    if (bezahlt.has(tname)) continue;
+    bezahlt.add(tname);
+    const def = db.talentByName[tname];
+    const primaer = def && def.fertigkeiten && def.fertigkeiten[0];
+    const kosten = talentKostenFuer(char, db, tname, def ? def.steigerungsfaktor : 1);
+    if (primaer && db.uebernatByName[primaer]) b.uebernatTalente += kosten;
+    else b.talente += kosten;
   }
 
   // Energien (gekaufte Punkte über der Basis)
@@ -142,6 +171,87 @@ export function fertigkeitBasiswert(char, fdef) {
   return Math.round(summe / attrs.length);
 }
 
+/**
+ * Probenwert einer Fertigkeit. Ilaris unterscheidet zwei Fälle, die Datenbank
+ * gibt beide vor:
+ *   ohne passendes Talent   PW Script  = Basiswert + int(Wert/2 + 0,5)
+ *   mit passendem Talent    PWT Script = Basiswert + Wert
+ * Bis 0.05 zeigte Skularis nur den zweiten Wert und nannte ihn "Probenwert".
+ */
+export function fertigkeitProbenwert(char, fdef, wert, mitTalent) {
+  const basis = fertigkeitBasiswert(char, fdef);
+  const w = Math.max(0, wert | 0);
+  return mitTalent ? basis + w : basis + Math.round(w / 2);
+}
+
+/** Probenwert eines Attributs: der doppelte Wert (Attribute: PW Script). */
+export function attributProbenwert(char, abk) {
+  return (char.attribute?.[abk] || 0) * 2;
+}
+
+/**
+ * Kampfwerte einer ausgerüsteten Waffe.
+ *
+ * Attacke und Verteidigung sind der Probenwert der Kampffertigkeit, die zur
+ * Waffe gehört, plus der Waffenmodifikator. Ob der volle oder der halbe
+ * Fertigkeitswert zählt, entscheidet das Waffentalent: wer es hat, führt die
+ * Waffe geübt. Dazu kommen die Aufschläge des eingestellten Kampfstils
+ * (Vorteile mit modifyKampfstil), die nur für Waffen mit genau diesem Stil gelten.
+ *
+ * Für einige Talente ist keine Verteidigung vorgesehen — Bögen, Armbrüste,
+ * Wurfwaffen und die Lanze (Einstellung "Waffen: Talente VT verboten").
+ *
+ * @returns {{ at, vt, tp, rw, be, fertigkeit, talent, geuebt, stil }}
+ *   at und vt sind null, wenn die Waffe das nicht kann.
+ */
+export function waffenwerte(char, db, waffe) {
+  const def = db.waffen.find(w => w.name === (waffe.id || waffe.name)) || {};
+  const fName = def.fertigkeit || '';
+  const tName = def.talent || '';
+  const fdef = db.fertigkeitByName[fName];
+
+  const geuebt = tName ? (char.talente || []).includes(tName) : false;
+  const basis = fdef ? fertigkeitProbenwert(char, fdef, char.fertigkeiten?.[fName]?.wert || 0, geuebt) : 0;
+  const wm = waffe.wm || 0;
+
+  const stilName = waffe.kampfstil && waffe.kampfstil !== 'Kein Kampfstil' ? waffe.kampfstil : '';
+  const stil = (stilName && char.kampfstilMods && char.kampfstilMods[stilName]) || null;
+
+  const atVerboten = (db.waffenTalenteATverboten || []).includes(tName);
+  const vtVerboten = (db.waffenTalenteVTverboten || []).includes(tName);
+
+  return {
+    at: atVerboten ? null : basis + wm + (stil ? stil.at : 0),
+    vt: vtVerboten ? null : basis + wm + (stil ? stil.vt : 0),
+    tp: (waffe.plus || 0) + (stil ? stil.tp : 0),
+    rw: (waffe.rw || 0) + (stil ? stil.rw : 0),
+    be: stil ? stil.be : 0,
+    fertigkeit: fName,
+    talent: tName,
+    geuebt,
+    stil: stilName,
+  };
+}
+
+/** Kampfwerte als lesbarer Satz für Ansage und Detailfeld. */
+export function waffenwerteText(char, db, waffe) {
+  const k = waffenwerte(char, db, waffe);
+  const schaden = `${waffe.wuerfel || 0} W ${waffe.wuerfelSeiten || 6}`
+    + (k.tp ? (k.tp > 0 ? ` plus ${k.tp}` : ` minus ${-k.tp}`) : '');
+  const teile = [
+    `Attacke ${k.at === null ? 'nicht möglich' : k.at}`,
+    `Verteidigung ${k.vt === null ? 'nicht möglich' : k.vt}`,
+    `Schaden ${schaden}`,
+    `Reichweite ${k.rw}`,
+  ];
+  if (k.fertigkeit) {
+    teile.push(`Fertigkeit ${k.fertigkeit}${k.talent ? `, Talent ${k.talent}` : ''}`
+      + `, ${k.geuebt ? 'geübt' : 'ungeübt, deshalb nur der halbe Fertigkeitswert'}`);
+  }
+  if (k.stil) teile.push(`Kampfstil ${k.stil}`);
+  return teile.join(', ') + '.';
+}
+
 // --- Abgeleitete Werte (Ilaris-Formeln) ---
 
 export function getRuestungswerte(char) {
@@ -163,60 +273,42 @@ function finanzenIndex(char) {
   return typeof char.finanzen === 'number' ? char.finanzen : 2;
 }
 
+/**
+ * Abgeleitete Werte nach den Skripten der Regeldatenbank, samt der Aufschläge
+ * aus den Vorteil-Skripten (char.wertMods, gefüllt von character.js):
+ *   WS    4 + KO/4,  final + RS
+ *   MR    4 + MU/4
+ *   GS    4 + GE/4,  final max(GS - BE, 1)
+ *   SB    KK/4
+ *   INI   IN
+ *   DH    KO,        final max(DH - 2·BE, 1)
+ *   RS    Rüstung + Aufschlag
+ *   BE    Rüstung + Aufschlag, mindestens 0
+ *   SchiP 4, final plus Finanzen
+ */
 export function abgeleiteteWerte(char) {
   const a = char.attribute || {};
   const at = k => a[k] || 0;
-  const { rs, be } = getRuestungswerte(char);
+  const mod = k => (char.wertMods && char.wertMods[k]) || 0;
+  const roh = getRuestungswerte(char);
   const fin = finanzenIndex(char);
 
-  const ws = 4 + Math.floor(at('KO') / 4) + rs;
-  const mr = 4 + Math.floor(at('MU') / 4);
-  const gs = Math.max(4 + Math.floor(at('GE') / 4) - be, 1);
-  const sb = Math.floor(at('KK') / 4);
-  const ini = at('IN');
-  const dh = Math.max(at('KO') - 2 * be, 1);
-  const schipBasis = 4 + (char.schipBonus || 0); // Vorteile Glück etc. modifizieren schipBonus
+  const rs = roh.rs + mod('RS');
+  const be = Math.max(roh.be + mod('BE'), 0);
+
+  const ws = 4 + Math.floor(at('KO') / 4) + mod('WS') + rs;
+  const mr = 4 + Math.floor(at('MU') / 4) + mod('MR');
+  const gs = Math.max(4 + Math.floor(at('GE') / 4) + mod('GS') - be, 1);
+  const sb = Math.floor(at('KK') / 4) + mod('SB');
+  const ini = at('IN') + mod('INI');
+  const dh = Math.max(at('KO') + mod('DH') - 2 * be, 1);
+  const schipBasis = 4 + mod('SchiP');
   const schip = schipBasis + (fin >= 2 ? (fin - 2) : -((2 - fin) * 2));
 
   return { WS: ws, MR: mr, GS: gs, SB: sb, INI: ini, DH: dh, RS: rs, BE: be, SchiP: schip };
 }
 
-// --- Voraussetzungsprüfung ---
-// Grammatik: Komma = UND; " ODER " = alternative Gruppe; Atome:
-// "Vorteil X", "Kein Vorteil X", "Attribut ABK n", "Fertigkeit X n",
-// "Talent X", "Kein Talent X". Unbekannte Atome gelten als erfüllt.
-
-function hatVorteil(char, name) {
-  return (char.vorteile || []).some(v => (typeof v === 'string' ? v : v.name) === name);
-}
-function hatTalent(char, name) {
-  const inMap = m => Object.values(m || {}).some(e => (e.talente || []).includes(name));
-  return inMap(char.fertigkeiten) || inMap(char.uebernatuerlich);
-}
-
-function pruefeAtom(char, db, atom) {
-  atom = atom.trim();
-  if (!atom) return true;
-  let m;
-  if ((m = atom.match(/^Kein Vorteil (.+)$/))) return !hatVorteil(char, m[1].trim());
-  if ((m = atom.match(/^Vorteil (.+)$/))) return hatVorteil(char, m[1].trim());
-  if ((m = atom.match(/^Kein Talent (.+)$/))) return !hatTalent(char, m[1].trim());
-  if ((m = atom.match(/^Talent (.+)$/))) return hatTalent(char, m[1].trim());
-  if ((m = atom.match(/^Attribut ([A-ZÄÖÜ]{2}) (\d+)$/))) return (char.attribute?.[m[1]] || 0) >= parseInt(m[2], 10);
-  if ((m = atom.match(/^Fertigkeit (.+) (\d+)$/))) {
-    const fw = (char.fertigkeiten?.[m[1].trim()]?.wert) || (char.uebernatuerlich?.[m[1].trim()]?.wert) || 0;
-    return fw >= parseInt(m[2], 10);
-  }
-  return true; // Unbekanntes Atom nicht blockieren
-}
-
-export function pruefeVoraussetzungen(char, db, voraussetzungen) {
-  const text = String(voraussetzungen || '').trim();
-  if (!text) return true;
-  // UND über Kommas; jede Klausel darf ODER-Alternativen enthalten
-  const klauseln = text.split(',').map(s => s.trim()).filter(Boolean);
-  return klauseln.every(kl => {
-    const alternativen = kl.split(/\s+ODER\s+/).map(s => s.trim());
-    return alternativen.some(alt => pruefeAtom(char, db, alt));
-  });
-}
+// Die Voraussetzungsprüfung steht in core/voraussetzungen.js. Sie ist von hier
+// weggezogen, weil sie inzwischen die volle Sephrasto-Grammatik beherrscht
+// (Platzhalter, MeisterAttribut, Spezies, Waffeneigenschaft) und außerdem eine
+// Aufschlüsselung für Anzeige und Ansage liefert.

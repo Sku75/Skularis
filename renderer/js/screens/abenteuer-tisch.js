@@ -39,6 +39,18 @@ function einstiegScreen() {
   });
 }
 
+/** Regelnachschlagewerk, mit dem Charakter des offenen Abenteuers als Bezug. */
+export async function regelnOeffnen() {
+  const db = await ladeDb();
+  const a = getAbenteuer();
+  const m = await import('./regeln.js');
+  screen.push(m.regelnScreen({
+    db,
+    charakter: a && a.charakter ? a.charakter : null,
+    titel: a && a.charakter ? `Regeln, Bezug ${a.charakter.name || 'Charakter'}` : 'Regeln',
+  }));
+}
+
 async function erstellen() {
   const name = await textDialog({ titel: 'Neues Abenteuer', label: 'Name des Abenteuers' });
   if (name === null || !name.trim()) return;
@@ -111,13 +123,21 @@ function hubScreen(modus) {
         .catch((e) => { console.error(e); sprache.sage('Bereich wird gerade gebaut.'); });
 
       const items = [
-        { label: 'Live-Spiel', hint: 'Würfeln und Charakterstatus', onSelect: () => push('live-spiel', 'liveSpielScreen') },
+        { label: 'Live-Spiel', hint: 'Würfeln und Kampfwerte', onSelect: () => push('live-spiel', 'liveSpielScreen') },
+        { label: 'Charakterstatus', hint: 'Wunden, Energien, Werte zum Lesen', onSelect: () => push('live-spiel', 'charakterstatusScreen') },
         { label: 'Charakterbogen', hint: 'Werte ansehen, Schnellauskunft', onSelect: () => push('charakterbogen', 'charakterbogenScreen') },
         { label: 'Inventar', hint: 'Geldbörse, Rucksack, am Gürtel', onSelect: () => push('inventar', 'inventarScreen') },
         { label: 'Notizen und Tagebuch', onSelect: () => push('notizen', 'notizenScreen') },
         { label: 'Mitspieler', onSelect: () => push('mitspieler', 'mitspielerScreen') },
         { label: 'Spielfeld', hint: 'Platzhalter für spätere Versionen', onSelect: () => sprache.sage('Spielfeld, Platzhalter für später.') },
         { label: 'Protokoll', hint: 'Was im Abenteuer passiert ist', onSelect: () => zeigeProtokoll() },
+        {
+          label: 'Regelnachschlagewerk',
+          hint: 'Alle Regeln alphabetisch, verfügbare vorn gekennzeichnet',
+          detail: 'Die vollständige Regelliste, auch Manöver, die du noch nicht gekauft hast. '
+            + 'Regeln, die dein Charakter hat, stehen vorn mit "Verfügbar".',
+          onSelect: () => regelnOeffnen(),
+        },
       ];
 
       if (modus === 'spielen') {

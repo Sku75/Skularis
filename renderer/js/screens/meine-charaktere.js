@@ -116,11 +116,11 @@ export async function importieren() {
   } catch (e) {
     console.error('Import fehlgeschlagen:', e);
     sounds.playError();
-    sprache.sage('Import fehlgeschlagen. Keine gültige Sephrasto-Datei.');
+    sprache.sage('Import fehlgeschlagen. Keine gültige Ilaris-Charakterdatei.');
   }
 }
 
 export async function exportieren() {
-  sprache.sage('Export erfolgt pro Charakter. Wähle in Meine Charaktere einen Charakter und dort Als HTML exportieren. Die Sephrasto-XML liegt bereits im Ordner Charakter-Dateien.');
+  sprache.sage('Export erfolgt pro Charakter. Wähle in Meine Charaktere einen Charakter und dort Als HTML exportieren. Die Charakterdatei liegt bereits im Ordner Charakter-Dateien.');
   await oeffne();
 }

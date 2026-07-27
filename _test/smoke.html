@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><title>Smoke</title></head>
+<body>
+<div id="sr-live" aria-live="assertive"></div>
+<div id="sr-polite" aria-live="polite"></div>
+<div id="sr-status" aria-live="polite"></div>
+<!-- Kopfzeile wie im Programm: steht im DOM vor dem Inhalt, Tabulator landet
+     von unten also hier. -->
+<header class="db-header">
+  <input type="range" id="volume-slider" min="0" max="100" value="80" aria-label="Lautstärke">
+  <button id="btn-font-plus" aria-label="Schrift vergrößern">A+</button>
+  <button id="btn-font-minus" aria-label="Schrift verkleinern">A−</button>
+</header>
+<div id="app-content"></div>
+
+<script>
+// IPC-Ersatz: greift über die Test-Brücke auf echte Daten zu.
+window.skularis = {
+  ipc: {
+    datenbankLaden: () => window.rtIpc('datenbankLaden'),
+    paketeListe: (kat) => window.rtIpc('paketeListe', kat),
+    paketLaden: (pfad) => window.rtIpc('paketLaden', pfad),
+    bibliothekSpeichern: (d) => window.rtIpc('bibliothekSpeichern', d),
+    configLesen: () => window.rtIpc('configLesen'),
+    configSchreiben: () => window.rtIpc('configSchreiben'),
+  },
+};
+</script>
+
+<script type="module">
+import * as screen from '../renderer/js/ui/screen.js';
+import * as navigation from '../renderer/js/navigation.js';
+import * as sounds from '../renderer/js/sounds.js';
+import * as editor from '../renderer/js/editor/editor.js';
+import * as assistent from '../renderer/js/editor/assistent.js';
+
+let fehler = 0;
+const pruefe = (name, ok, zusatz = '') => {
+  console.log((ok ? 'ok   ' : 'FEHLER ') + name + (ok || !zusatz ? '' : ' -> ' + zusatz));
+  if (!ok) fehler++;
+};
+const warte = (ms = 60) => new Promise(r => setTimeout(r, ms));
+const panel = () => document.querySelector('#app-content [role="application"]');
+const fokussierbare = () => Array.from(panel().querySelectorAll(navigation.FOCUSABLE));
+const beschriftungen = () => fokussierbare().map(el =>
+  (el.getAttribute('aria-label') || el.getAttribute('data-sr-label') || el.textContent || '').trim());
+const schalter = (text) => fokussierbare().find(el =>
+  (el.getAttribute('aria-label') || el.textContent || '').startsWith(text));
+
+try {
+  sounds.setSoundAn(false);
+  screen.init(document.getElementById('app-content'));
+  navigation.init();
+
+  // Wurzel-Bildschirm, damit der Editor wie im echten Programm darüber liegt.
+  screen.reset({
+    title: 'Wurzel',
+    build() {
+      const d = document.createElement('div');
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = 'Wurzel';
+      d.appendChild(b);
+      return d;
+    },
+  });
+  await warte();
+
+  console.log('--- Einstiegsseite ---');
+  await editor.starteNeu();
+  await warte();
+  pruefe('Einstieg gebaut', Boolean(panel()));
+  pruefe('Methodenauswahl bietet Assistierte Erstellung', Boolean(schalter('Assistierte Erstellung')),
+    beschriftungen().join(' | '));
+  pruefe('Methodenauswahl bietet Abbrechen', Boolean(schalter('Abbrechen')),
+    beschriftungen().join(' | '));
+
+  const c = editor.getChar();
+  c.name = 'Testheldin';
+  c.erfahrung.gesamt = 2000;
+
+  console.log('\n--- Assistent: alle zehn Seiten ---');
+  await assistent.starteAssistent();
+  await warte(150);
+
+  const ERWARTET = [
+    'Spezies wählen', 'Kultur wählen', 'Profession wählen', 'Aussehen',
+    'Status festlegen', 'Finanzen wählen', 'Eigenheiten beschreiben',
+    'Attribute verteilen', 'Vorteile wählen', 'Assistierte Führung abgeschlossen',
+  ];
+
+  for (let i = 0; i < ERWARTET.length; i++) {
+    const titel = ERWARTET[i];
+    const labels = beschriftungen();
+    // Seiten, die schon durch die Auswahl weiterschalten, brauchen kein "vor".
+    let schonWeiter = false;
+
+    pruefe(`Seite ${i + 1} ist "${titel}"`, labels[0] === titel, labels[0]);
+    pruefe(`Seite ${i + 1}: Bildschirmtitel nennt den Schritt`,
+      screen.current().title === `Assistierte Charaktererstellung, Schritt ${i + 1} von 10`,
+      screen.current().title);
+    pruefe(`Seite ${i + 1}: Reihenfolge Überschrift, Info, zurück, vor`,
+      labels[2].startsWith('ein Schritt zurück') && labels[3].startsWith('ein Schritt vor'),
+      labels.slice(0, 5).join(' | '));
+    pruefe(`Seite ${i + 1}: Info-Feld hat Vollinfo`,
+      (() => { const d = fokussierbare()[1].__detail;
+        return typeof d === 'string' ? d.length > 40 : (Array.isArray(d) && d.length > 0); })());
+    pruefe(`Seite ${i + 1}: Escape-Wächter gesetzt`, typeof screen.current().onBack === 'function');
+
+    // Seiten-spezifische Prüfungen
+    if (titel === 'Aussehen') {
+      // Sieben beschriftete Felder wie in Sephrasto plus sechs freie Zeilen.
+      const felder = panel().querySelectorAll('input.db-input:not(#as-filter)');
+      pruefe('Aussehen: 7 beschriftete Felder und 6 freie Zeilen', felder.length === 13, String(felder.length));
+      pruefe('Aussehen: Feldnamen wie in Sephrasto',
+        ['#bd-geschlecht', '#bd-geburtsdatum', '#bd-groesse', '#bd-gewicht', '#bd-haarfarbe',
+          '#bd-augenfarbe', '#bd-titel', '#aussehen-1', '#aussehen-6'].every(s => panel().querySelector(s)));
+      pruefe('Aussehen: kein erfundenes Feld "Frisur und Bart"',
+        !beschriftungen().some(l => l.startsWith('Frisur und Bart')), beschriftungen().join(' | '));
+      panel().querySelector('#bd-haarfarbe').value = 'rabenschwarz';
+      panel().querySelector('#aussehen-1').value = 'kurz, Vollbart';
+    }
+    if (titel === 'Status festlegen') {
+      pruefe('Status: fünf Stufen', panel().querySelectorAll('.db-menu__item').length === 5);
+      pruefe('Status: Unterschicht vorbelegt', editor.getChar().status === 3, editor.getChar().status);
+      pruefe('Status: gewählter Eintrag angesagt',
+        beschriftungen().some(l => l.startsWith('Unterschicht, gewählt')), beschriftungen().join(' | '));
+
+      // Eingabetaste auf einem Status wählt und geht weiter, wie bei Spezies.
+      schalter('Mittelschicht').click();
+      await warte(200);
+      pruefe('Status: Wahl schaltet zur nächsten Seite', beschriftungen()[0] === 'Finanzen wählen',
+        beschriftungen()[0]);
+      pruefe('Status: Wahl ist angekommen', editor.getChar().status === 2, editor.getChar().status);
+      schonWeiter = true;
+    }
+    if (titel === 'Finanzen wählen') {
+      pruefe('Finanzen: fünf Stufen', panel().querySelectorAll('.db-menu__item').length === 5);
+      pruefe('Finanzen: Normal vorbelegt', editor.getChar().finanzen === 2, editor.getChar().finanzen);
+      schalter('Arm').click();
+      await warte(200);
+      pruefe('Finanzen: Wahl schaltet zur nächsten Seite', beschriftungen()[0] === 'Eigenheiten beschreiben',
+        beschriftungen()[0]);
+      pruefe('Finanzen: Wahl ist angekommen', editor.getChar().finanzen === 3, editor.getChar().finanzen);
+      schonWeiter = true;
+    }
+    if (titel === 'Eigenheiten beschreiben') {
+      // Zwei Eigenheiten eintragen und speichern
+      for (const [n, p, ng] of [['Ein Kind der Großstadt', 'kennt jede Gasse, taucht unter', 'verirrt sich in der Wildnis, kennt das Landleben nicht'],
+        ['Werkzeug? Schaffe ich auch ohne.', 'improvisiert, bleibt gelassen', 'unterschätzt Vorbereitung, verliert Zeit']]) {
+        panel().querySelector('#eig-name').value = n;
+        panel().querySelector('#eig-pos').value = p;
+        panel().querySelector('#eig-neg').value = ng;
+        schalter('Eigenheit speichern').click();
+        await warte(40);
+      }
+      pruefe('Eigenheiten: zwei gespeichert', editor.getChar().eigenheiten.length === 2,
+        editor.getChar().eigenheiten.length);
+      pruefe('Eigenheiten: Buchstaben A und B',
+        beschriftungen().some(l => l.startsWith('A, Ein Kind')) && beschriftungen().some(l => l.startsWith('B, Werkzeug')),
+        beschriftungen().join(' | '));
+    }
+    if (titel === 'Attribute verteilen') {
+      pruefe('Attribute: acht Wertzeilen', panel().querySelectorAll('.ed-zeile').length === 8,
+        panel().querySelectorAll('.ed-zeile').length);
+      pruefe('Attribute: Summenzeilen vorhanden',
+        beschriftungen().some(l => l.startsWith('Vergebene Punkte insgesamt'))
+        && beschriftungen().some(l => l.startsWith('Ausgegebene Erfahrungspunkte für Attribute')),
+        beschriftungen().join(' | '));
+    }
+    if (titel === 'Vorteile wählen') {
+      pruefe('Vorteile: Hinzufügen angeboten', Boolean(schalter('Vorteil hinzufügen')));
+    }
+
+    if (i < ERWARTET.length - 1 && !schonWeiter) {
+      const vor = schalter('ein Schritt vor');
+      pruefe(`Seite ${i + 1}: Schalter "ein Schritt vor" vorhanden`, Boolean(vor));
+      vor.click();
+      await warte(150);
+    }
+  }
+
+  console.log('\n--- Übernahme der Eingaben ---');
+  pruefe('beschriftetes Feld beim Seitenwechsel übernommen',
+    editor.getChar().haarfarbe === 'rabenschwarz', editor.getChar().haarfarbe);
+  pruefe('freie Aussehen-Zeile beim Seitenwechsel übernommen',
+    editor.getChar().aussehen[0] === 'kurz, Vollbart', JSON.stringify(editor.getChar().aussehen));
+  pruefe('Spezies gesetzt oder übersprungen', typeof editor.getChar().spezies === 'string');
+
+  console.log('\n--- Zurückgehen erhält Eingaben ---');
+  schalter('ein Schritt zurück').click();
+  await warte(150);
+  pruefe('eine Seite zurück auf Vorteile', beschriftungen()[0] === 'Vorteile wählen', beschriftungen()[0]);
+
+  console.log('\n--- Abschluss: speichern und in den freien Editor ---');
+  // wieder nach vorn
+  schalter('ein Schritt vor').click();
+  await warte(150);
+  const fertig = schalter('ein Schritt vor');
+  fertig.click();
+  await warte(400);
+  pruefe('Fertigkeiten-Bildschirm geöffnet', String(screen.current().title).startsWith('Fertigkeiten und Talente'),
+    screen.current().title);
+
+  console.log('\n--- Freier Editor: Reihenfolge der Bereiche ---');
+  screen.pop();
+  await warte(150);
+  const hubLabels = beschriftungen();
+  // Übernatürliches fehlt hier bewusst: der Testcharakter hat keine Tradition,
+  // also auch keine übernatürlichen Fertigkeiten.
+  const SOLL = ['Beschreibung', 'Aussehen', 'Familie, Hintergrund und Herkunft', 'Status und Finanzen',
+    'Eigenheiten', 'Attribute', 'Fertigkeiten und Talente', 'Vorteile',
+    'Ausrüstung', 'Erfahrungspunkte', 'Charakter speichern',
+    'Charakter speichern und schließen', 'Charakterbogen-Ansicht', 'Charakter schließen'];
+  const ist = hubLabels.map(l => l.split(/[:.]/)[0].trim());
+  pruefe('Reihenfolge im Editor stimmt', SOLL.every((s, i) => ist[i] === s), ist.join(' | '));
+  pruefe('Erfahrungspunkte vor Charakter speichern',
+    ist.indexOf('Erfahrungspunkte') === ist.indexOf('Charakter speichern') - 1, ist.join(' | '));
+  pruefe('speichern und schließen direkt nach Charakter speichern',
+    ist[ist.indexOf('Charakter speichern') + 1] === 'Charakter speichern und schließen');
+  pruefe('Charakterbogen-Ansicht über Charakter schließen',
+    ist.indexOf('Charakterbogen-Ansicht') === ist.indexOf('Charakter schließen') - 1);
+
+  console.log('\n--- Die neuen Bereiche im freien Editor öffnen ---');
+  for (const [name, treffer] of [['Aussehen', 'Aussehen'],
+    ['Familie, Hintergrund und Herkunft', 'Familie, Hintergrund und Herkunft'],
+    ['Status und Finanzen', 'Status und Finanzen'], ['Eigenheiten', 'Eigenheiten']]) {
+    schalter(name).click();
+    await warte(200);
+    pruefe(`${name} öffnet sich`, String(screen.current().title).startsWith(treffer), screen.current().title);
+    screen.pop();
+    await warte(150);
+  }
+  console.log('\n--- Traditionen steuern die übernatürlichen Fertigkeiten ---');
+  {
+    const char = editor.getChar();
+    pruefe('ohne Tradition kein Punkt Übernatürliches', !schalter('Übernatürliches'));
+
+    char.vorteile.push('Zauberer I', 'Tradition der Gildenmagier I');
+    editor.aktualisiere();
+    screen.refresh();
+    await warte(200);
+    pruefe('mit der Tradition erscheinen 20 Fertigkeiten von selbst',
+      Object.keys(char.uebernatuerlich).length === 20, String(Object.keys(char.uebernatuerlich).length));
+    pruefe('Editor zeigt jetzt Übernatürliches', Boolean(schalter('Übernatürliches')));
+
+    schalter('Übernatürliches').click();
+    await warte(250);
+    pruefe('Bereich öffnet sich', String(screen.current().title).startsWith('Übernatürliches'),
+      screen.current().title);
+    pruefe('kein Schalter zum Hinzufügen mehr', !schalter('Übernatürliche Fertigkeit hinzufügen'),
+      beschriftungen().slice(0, 4).join(' | '));
+
+    // Talente einer Fertigkeit: gefiltert statt alle
+    const einfluss = fokussierbare().find(el => (el.getAttribute('data-sr-label') || '').startsWith('Einfluss'));
+    pruefe('Einfluss ist als Wertzeile da', Boolean(einfluss));
+    einfluss.focus();
+    einfluss.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await warte(300);
+    pruefe('Talent-Seite für Einfluss geöffnet', String(screen.current().title).startsWith('Talente Einfluss'),
+      screen.current().title);
+    const hinzu = schalter('Talent hinzufügen');
+    pruefe('Talentliste ist gefiltert, nicht alle 73', /, 22 verfügbar/.test(hinzu.textContent),
+      hinzu.textContent);
+    pruefe('Übersichtstext nennt die Fertigkeit',
+      beschriftungen().some(l => l.includes('Einfluss umfasst')), beschriftungen()[1]);
+    screen.pop(); await warte(150);
+    screen.pop(); await warte(150);
+  }
+
+  console.log('\n--- Nicht verfügbare Vorteile ---');
+  {
+    schalter('Vorteile').click();
+    await warte(250);
+    const hinzu = schalter('Vorteil hinzufügen');
+    pruefe('Zähler nennt verfügbar und gesperrt', /, \d+ verfügbar, \d+ noch nicht/.test(hinzu.textContent),
+      hinzu.textContent);
+    hinzu.click();
+    await warte(300);
+    const labels = beschriftungen();
+    pruefe('gesperrte Vorteile stehen mit "Nicht verfügbar" vorn',
+      labels.some(l => l.startsWith('Nicht verfügbar: ')),
+      labels.slice(0, 5).join(' | '));
+    pruefe('gesperrte Vorteile sind zusätzlich farblich markiert',
+      panel().querySelectorAll('.ed-gesperrt').length > 0,
+      String(panel().querySelectorAll('.ed-gesperrt').length));
+    const gesperrt = fokussierbare().find(el => (el.getAttribute('aria-label') || el.textContent || '')
+      .startsWith('Nicht verfügbar: '));
+    const detail = await Promise.resolve(gesperrt.__detail);
+    // Vollinfo ist jetzt eine strukturierte Zeilenliste mit Überschriften.
+    const detailText = Array.isArray(detail) ? detail.map(z => z.text).join(' ') : String(detail);
+    pruefe('Vollinfo hat eine Überschrift Voraussetzungen',
+      Array.isArray(detail) && detail.some(z => z.ueberschrift && z.text === 'Voraussetzungen'),
+      detailText.slice(0, 120));
+    pruefe('Vollinfo nennt die fehlende Voraussetzung',
+      detailText.includes('Es fehlt noch:'), detailText.slice(0, 160));
+    screen.pop(); await warte(150);
+    screen.pop(); await warte(150);
+  }
+
+  console.log('\n--- Gegenstände: Ort setzen und verschieben ---');
+  {
+    const char = editor.getChar();
+    char.ausruestung = ['Fackel', 'Seil', 'Wasserschlauch'];
+
+    schalter('Ausrüstung').click();
+    await warte(250);
+    pruefe('Ausrüstung ist gegliedert',
+      beschriftungen().some(l => l.startsWith('Waffen,'))
+      && beschriftungen().some(l => l.startsWith('Rüstung,'))
+      && beschriftungen().some(l => l.startsWith('Gegenstände,')),
+      beschriftungen().join(' | '));
+
+    schalter('Gegenstände').click();
+    await warte(250);
+    pruefe('Untermenüs am Mann und im Rucksack vorhanden',
+      Boolean(schalter('Inventar am Mann')) && Boolean(schalter('Inventar im Rucksack')),
+      beschriftungen().join(' | '));
+
+    schalter('Gegenstandsliste').click();
+    await warte(250);
+    pruefe('drei Gegenstände in der Liste', beschriftungen().filter(l => l.includes('am Mann')).length === 3,
+      beschriftungen().join(' | '));
+
+    // Zweiten Gegenstand öffnen und in den Rucksack schieben
+    schalter('Seil').click();
+    await warte(250);
+    pruefe('Untermenü des Gegenstands geöffnet',
+      String(screen.current().title).startsWith('Seil'), screen.current().title);
+    pruefe('Untermenü bietet verschieben, umbenennen, löschen',
+      Boolean(schalter('Verschieben')) && Boolean(schalter('Umbenennen')) && Boolean(schalter('Löschen')),
+      beschriftungen().join(' | '));
+
+    schalter('Verschieben').click();
+    await warte(200);
+    pruefe('Gegenstand liegt jetzt im Rucksack',
+      char.ausruestung.includes('Im Rucksack: Seil'), JSON.stringify(char.ausruestung));
+    pruefe('die anderen bleiben am Mann',
+      char.ausruestung.includes('Fackel') && char.ausruestung.includes('Wasserschlauch'),
+      JSON.stringify(char.ausruestung));
+    pruefe('Titel zeigt den neuen Ort', String(screen.current().title).includes('im Rucksack'),
+      screen.current().title);
+
+    // Und wieder zurück
+    schalter('Verschieben').click();
+    await warte(200);
+    pruefe('Zurückschieben an den Mann klappt ebenfalls',
+      char.ausruestung.includes('Seil') && !char.ausruestung.includes('Im Rucksack: Seil'),
+      JSON.stringify(char.ausruestung));
+
+    screen.pop(); await warte(150);   // zurück zur Liste
+    screen.pop(); await warte(150);   // zurück zu Gegenstände
+    schalter('Inventar am Mann').click();
+    await warte(250);
+    pruefe('Inventar am Mann zeigt alle drei', beschriftungen().length === 3,
+      beschriftungen().join(' | '));
+    screen.pop(); await warte(150);
+    screen.pop(); await warte(150);   // zurück zur Ausrüstung
+    screen.pop(); await warte(150);   // zurück zum Editor
+  }
+
+  console.log('\n--- Charaktererstellung aus Vorlage ---');
+  {
+    // Von der Wurzel aus neu beginnen, damit der Editor sauber startet.
+    screen.zuWurzel();
+    await warte();
+    await editor.starteNeu();
+    await warte();
+    pruefe('Einstieg bietet die drei Methoden',
+      Boolean(schalter('Freier Editor')) && Boolean(schalter('Assistierte Erstellung')) && Boolean(schalter('Erstellen aus Vorlage')),
+      beschriftungen().join(' | '));
+
+    schalter('Erstellen aus Vorlage').click();
+    await warte(600);   // Vorlagen laden 28 Dateien
+    pruefe('drei Erfahrungsstufen', beschriftungen().filter(l => l.includes('Erfahrungspunkte')).length === 3,
+      beschriftungen().join(' | '));
+
+    schalter('Unerfahren').click();
+    await warte(250);
+    const heldenTitel = String(screen.current().title);
+    pruefe('Heldenliste einer Stufe geöffnet', heldenTitel.startsWith('Unerfahren'), heldenTitel);
+    const ersterHeld = fokussierbare()[1]; // 0 ist ggf. Filtern; nimm den ersten echten
+    const heldName = (ersterHeld?.getAttribute('aria-label') || ersterHeld?.textContent || '').split(',')[0];
+    pruefe('mindestens ein Held gelistet', Boolean(heldName), beschriftungen().slice(0, 3).join(' | '));
+    pruefe('Held hat einen Steckbrief',
+      Array.isArray(ersterHeld.__detail) && ersterHeld.__detail.some(z => z.ueberschrift),
+      JSON.stringify(ersterHeld.__detail).slice(0, 80));
+
+    ersterHeld.click();
+    await warte(250);
+    pruefe('Held-Untermenü mit auswählen und Charakterbogen',
+      Boolean(schalter('auswählen')) && Boolean(schalter('Charakterbogen betrachten')),
+      beschriftungen().join(' | '));
+
+    // Charakterbogen ansehen (dieselbe Ansicht wie am Spieltisch)
+    schalter('Charakterbogen betrachten').click();
+    await warte(250);
+    pruefe('Charakterbogen zeigt Attribute',
+      beschriftungen().some(l => l.includes('Konstitution')), beschriftungen().slice(0, 6).join(' | '));
+    screen.pop(); await warte(150);
+
+    // auswählen -> Mini-Assistent
+    schalter('auswählen').click();
+    await warte(400);
+    pruefe('Mini-Assistent startet mit der Namensseite',
+      beschriftungen()[0] === 'Name deines Helden', beschriftungen()[0]);
+    pruefe('Mini-Assistent zählt vier Schritte',
+      String(screen.current().title).includes('Schritt 1 von 4'), screen.current().title);
+
+    // Name überschreiben
+    const namensfeld = panel().querySelector('#vorlage-name');
+    pruefe('Name ist mit dem Vorlagennamen vorbelegt', Boolean(namensfeld && namensfeld.value),
+      namensfeld ? namensfeld.value : 'kein Feld');
+    namensfeld.value = 'Mein eigener Held';
+
+    // Gewünschte Gesamt-EP: Feld vorhanden, mit Vorlagen-EP vorbelegt. Erhöhen
+    // lässt die zusätzlichen Punkte als frei verteilbar übrig (Auffüllen).
+    const apFeld = panel().querySelector('#vorlage-ap');
+    const vorlagenEP = editor.getChar().erfahrung.gesamt;
+    pruefe('AP-Feld ist mit den Vorlagen-EP vorbelegt',
+      Boolean(apFeld) && parseInt(apFeld.value, 10) === vorlagenEP,
+      apFeld ? apFeld.value : 'kein Feld');
+    apFeld.value = String(vorlagenEP + 500);
+
+    // Durch die vier Seiten
+    schalter('ein Schritt vor').click();
+    await warte(200);
+    pruefe('Seite 2 ist Aussehen', beschriftungen()[0] === 'Aussehen', beschriftungen()[0]);
+    schalter('ein Schritt vor').click();
+    await warte(200);
+    pruefe('Seite 3 ist Hintergrund',
+      beschriftungen()[0] === 'Familie, Hintergrund und Herkunft', beschriftungen()[0]);
+    schalter('ein Schritt vor').click();
+    await warte(200);
+    pruefe('Seite 4 ist Fertig', beschriftungen()[0] === 'Fertig', beschriftungen()[0]);
+    pruefe('Name ist übernommen', editor.getChar().name === 'Mein eigener Held', editor.getChar().name);
+    pruefe('Gewünschte EP füllen die Vorlage auf', editor.getChar().erfahrung.gesamt === vorlagenEP + 500,
+      `${editor.getChar().erfahrung.gesamt} statt ${vorlagenEP + 500}`);
+    pruefe('die zusätzlichen 500 EP bleiben frei verteilbar',
+      editor.getChar().erfahrung.gesamt - editor.getChar().erfahrung.ausgegeben >= 500,
+      `frei ${editor.getChar().erfahrung.gesamt - editor.getChar().erfahrung.ausgegeben}`);
+    pruefe('Vorlage brachte Vorteile mit', (editor.getChar().vorteile || []).length > 0,
+      String((editor.getChar().vorteile || []).length));
+
+    const fertig = schalter('ein Schritt vor');
+    fertig.click();
+    await warte(400);
+    pruefe('Abschluss öffnet den Editor-Hub',
+      String(screen.current().title).startsWith('Editor:'), screen.current().title);
+  }
+
+  console.log('\n--- Fokus bleibt bedienbar ---');
+  {
+    // Der Fokus ist per Tabulator in die Barrierefreiheits-Box gewandert.
+    // Pfeil hoch oder runter muss ihn zurück in den Bildschirm holen, sonst
+    // sitzt man dort fest: die Pfeil-Navigation greift nur im Bildschirm.
+    const kopfKnopf = document.getElementById('btn-font-minus');
+    kopfKnopf.focus();
+    pruefe('Fokus liegt in der Kopfzeile', document.activeElement === kopfKnopf);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    await warte(60);
+    pruefe('Pfeil runter holt den Fokus aus der Kopfzeile zurück',
+      panel().contains(document.activeElement),
+      document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : 'nichts');
+
+    // Der Lautstärkeregler muss links und rechts behalten.
+    const regler = document.getElementById('volume-slider');
+    regler.focus();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    await warte(40);
+    pruefe('links und rechts bleiben beim Lautstärkeregler', document.activeElement === regler);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    await warte(60);
+    pruefe('Pfeil hoch holt auch vom Regler zurück', panel().contains(document.activeElement));
+
+    // Zwei Neuaufbauten kurz hintereinander: der Fokus-Auftrag des ersten darf
+    // nicht auf ein Element zeigen, das es nicht mehr gibt.
+    screen.refresh();
+    screen.refresh();
+    await warte(300);
+    pruefe('nach zwei schnellen Neuaufbauten steht der Fokus im Bildschirm',
+      panel().contains(document.activeElement),
+      document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : 'nichts');
+  }
+
+  console.log('\n--- Rückfrage vor dem Verwerfen ---');
+  const tiefeVorher = screen.tiefe();
+  let zurueckErgebnis = null;
+  screen.zurueck().then(r => { zurueckErgebnis = r; });
+  await warte(80);
+  const dlg = document.querySelector('dialog[open]');
+  pruefe('Rückfrage erscheint', Boolean(dlg));
+  pruefe('Rückfrage nennt den Verlust', Boolean(dlg) && dlg.textContent.includes('gehen verloren'));
+  pruefe('Fokus auf dem Ja-Schalter (Projekt-Konvention: Eingabe ja, Escape nein)',
+    document.activeElement && document.activeElement.id === 'dlg-ja');
+  dlg.querySelector('#dlg-nein').click();
+  await warte(80);
+  pruefe('Nein behält den Charakter', zurueckErgebnis === false && screen.tiefe() === tiefeVorher,
+    `${zurueckErgebnis}, Tiefe ${screen.tiefe()} statt ${tiefeVorher}`);
+
+  screen.zurueck().then(r => { zurueckErgebnis = r; });
+  await warte(80);
+  document.querySelector('dialog[open]').querySelector('#dlg-ja').click();
+  await warte(150);
+  pruefe('Ja verlässt die Charaktererstellung', screen.tiefe() === tiefeVorher - 1,
+    `Tiefe ${screen.tiefe()} statt ${tiefeVorher - 1}`);
+} catch (e) {
+  fehler++;
+  console.log('AUSNAHME ' + (e && e.stack ? e.stack : e));
+}
+
+console.log(fehler ? 'ERGEBNIS ' + fehler + ' Fehler.' : 'ERGEBNIS alles in Ordnung.');
+window.rtFertig(fehler);
+</script>
+</body></html>

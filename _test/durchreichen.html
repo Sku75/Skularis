@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><title>Durchreichen</title></head>
+<body>
+<script type="module">
+import { leseDokument, schreibeDokument } from '../renderer/js/core/xml-dokument.js';
+
+const DATEIEN = [
+  'C:\\Users\\kaisa\\Desktop\\Rollenspiel\\0,03 Jucho Skachunow Ordner\\Dateien-ordner\\Spielbar 1\\Jucho Skachunow.xml',
+  'C:\\Users\\kaisa\\Desktop\\Rollenspiel\\0,03 Jucho Skachunow Ordner\\Dateien-ordner\\Entwurf 1\\Jucho Skachunow.xml',
+];
+
+let fehler = 0;
+for (const pfad of DATEIEN) {
+  const kurz = pfad.split('\\').slice(-2).join('\\');
+  try {
+    const original = await window.rtIpc('dateiLesen', pfad);
+    const neu = schreibeDokument(leseDokument(original));
+    if (neu === original) {
+      console.log('ok   zeichengenau gleich: ' + kurz);
+      continue;
+    }
+    fehler++;
+    console.log('FEHLER unterschiedlich: ' + kurz);
+    const a = original.split('\n'), b = neu.split('\n');
+    let gezeigt = 0;
+    for (let i = 0; i < Math.max(a.length, b.length) && gezeigt < 6; i++) {
+      if (a[i] !== b[i]) {
+        console.log('  Zeile ' + (i + 1));
+        console.log('    original: ' + JSON.stringify(a[i]));
+        console.log('    neu:      ' + JSON.stringify(b[i]));
+        gezeigt++;
+      }
+    }
+    console.log('  Zeilen original ' + a.length + ', neu ' + b.length);
+  } catch (e) {
+    fehler++;
+    console.log('AUSNAHME ' + kurz + ' ' + (e && e.stack ? e.stack : e));
+  }
+}
+console.log(fehler ? 'ERGEBNIS ' + fehler + ' Fehler.' : 'ERGEBNIS alles zeichengenau.');
+window.rtFertig(fehler);
+</script>
+</body></html>

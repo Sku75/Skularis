@@ -22,22 +22,22 @@ export function mergePaket(char, paket, kategorie, paketName) {
     if (!haben.has(n)) { char.vorteile.push(v); haben.add(n); }
   }
 
-  // Profane Fertigkeiten: Werte addieren, Talente vereinen
+  // Profane Fertigkeiten: Werte addieren
   for (const [name, fe] of Object.entries(paket.fertigkeiten || {})) {
-    if (!char.fertigkeiten[name]) char.fertigkeiten[name] = { wert: 0, talente: [] };
+    if (!char.fertigkeiten[name]) char.fertigkeiten[name] = { wert: 0 };
     char.fertigkeiten[name].wert += fe.wert || 0;
-    for (const t of fe.talente || []) {
-      if (!char.fertigkeiten[name].talente.includes(t)) char.fertigkeiten[name].talente.push(t);
-    }
   }
 
   // Übernatürliche Fertigkeiten: analog
   for (const [name, ue] of Object.entries(paket.uebernatuerlich || {})) {
-    if (!char.uebernatuerlich[name]) char.uebernatuerlich[name] = { wert: 0, talente: [] };
+    if (!char.uebernatuerlich[name]) char.uebernatuerlich[name] = { wert: 0 };
     char.uebernatuerlich[name].wert += ue.wert || 0;
-    for (const t of ue.talente || []) {
-      if (!char.uebernatuerlich[name].talente.includes(t)) char.uebernatuerlich[name].talente.push(t);
-    }
+  }
+
+  // Talente: eine gemeinsame Liste, jedes Talent nur einmal
+  char.talente = char.talente || [];
+  for (const t of paket.talente || []) {
+    if (!char.talente.includes(t)) char.talente.push(t);
   }
 
   // Freie Fertigkeiten
@@ -52,6 +52,16 @@ export function mergePaket(char, paket, kategorie, paketName) {
     else char.freieFertigkeiten.push({ ...ff });
   }
 
+  // Talente mit variablen Kosten bringen ihren Preis und Kommentar mit.
+  char.talentKosten = char.talentKosten || {};
+  char.talentKommentar = char.talentKommentar || {};
+  for (const [name, kosten] of Object.entries(paket.talentKosten || {})) {
+    if (!(name in char.talentKosten)) char.talentKosten[name] = kosten;
+  }
+  for (const [name, text] of Object.entries(paket.talentKommentar || {})) {
+    if (!(name in char.talentKommentar)) char.talentKommentar[name] = text;
+  }
+
   // Gekaufte Energien additiv
   for (const k of ['AsP', 'KaP', 'GuP']) {
     if (paket.energien && paket.energien[k]) {
@@ -60,7 +70,10 @@ export function mergePaket(char, paket, kategorie, paketName) {
     }
   }
 
-  // Meta
+  // Meta. Kultur und Profession führt Sephrasto in BeschreibungDetails, deshalb
+  // merken wir uns den Paketnamen und schreiben ihn beim Speichern dorthin.
   if (kategorie === 'Spezies' && paketName) char.spezies = paketName;
+  if (kategorie === 'Kultur' && paketName) char.kultur = paketName;
   if (kategorie === 'Kultur' && paket.heimat) char.heimat = paket.heimat;
+  if (kategorie === 'Profession' && paketName) char.profession = paketName;
 }

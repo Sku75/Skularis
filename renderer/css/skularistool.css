@@ -45,6 +45,17 @@
   line-height: 1.35;
 }
 
+/* Ergebnisanzeige rechts in einer Menüzeile, etwa das Würfelergebnis.
+   Steht im Quelltext vor der Beschriftung, damit der Umbruch stimmt. */
+.db-menu__ergebnis {
+  float: right;
+  margin-left: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: calc(1.3rem + var(--db-font-offset, 0px));
+}
+.db-menu__ergebnis:empty { display: none; }
+
 .db-menu__item .db-menu__hint {
   display: block;
   font-size: calc(0.9rem + var(--db-font-offset, 0px));
@@ -120,6 +131,65 @@
   white-space: pre-wrap;
 }
 .ed-detail:empty { display: none; }
+
+/* --- Assistierte Charaktererstellung --- */
+
+/* Überschrift einer Assistenten-Seite: fokussierbar, hier landet der Fokus. */
+.ed-ueberschrift {
+  display: block;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font-size: calc(1.6rem + var(--db-font-offset, 0px));
+  font-weight: 700;
+  border-radius: 8px;
+}
+.ed-ueberschrift:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Inhaltsbereich unter Info, Navigation und Filter */
+.as-inhalt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+/* Einträge, deren Voraussetzungen fehlen: wie in Sephrasto in Fehlerfarbe,
+   aber weiterhin wählbar. Für Blinde steht "Nicht verfügbar" zusätzlich vorn
+   in der Beschriftung, die Farbe allein trägt also keine Information. */
+.ed-gesperrt,
+.db-menu__item.ed-gesperrt {
+  color: var(--db-error, #d9534f);
+  border-style: dashed;
+}
+
+/* Abschnittsüberschrift in einer Menüliste (Charakterbogen). Mit Strg und
+   Pfeil hoch/runter anspringbar. */
+.db-menu__item.db-menu__ueberschrift {
+  font-weight: 700;
+  font-size: calc(1.35rem + var(--db-font-offset, 0px));
+  color: var(--db-accent-blue, #44ddff);
+  border-bottom: 1px solid var(--db-border-medium, #2a2a2a);
+  margin-top: 0.6rem;
+}
+
+/* Kapitelüberschrift im Regeldokument. Größer als eine normale Überschrift und
+   zusätzlich mit Strg und Bild auf/ab anspringbar. */
+.db-menu__item.db-menu__kapitel {
+  font-weight: 800;
+  font-size: calc(1.7rem + var(--db-font-offset, 0px));
+  color: var(--db-accent-gold, #ffcc44);
+  border-bottom: 2px solid var(--db-accent-gold, #ffcc44);
+  margin-top: 1.2rem;
+}
+
+/* Der aktuell gewählte Eintrag einer Einfachauswahl */
+.db-menu__item--gewaehlt {
+  border-width: 3px;
+  font-weight: 700;
+}
 
 /* Zurück-Schalter: visuell oben links, im Fokus/DOM zuletzt */
 .ed-zurueck {

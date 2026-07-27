@@ -9,7 +9,7 @@ npmRebuild: false
 files:
   - "!Charakter-Dateien"
   - "!Abenteuer-Daten"
-  - "!test"
+  - "!_test"
   - "!dist"
   - "!*.bat"
   - "!*.md"

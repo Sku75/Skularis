@@ -28,6 +28,11 @@ contextBridge.exposeInMainWorld('skularis', {
     abenteuerLaden:       (pfad)    => ipcRenderer.invoke('skularis:abenteuer-laden', { pfad }),
     abenteuerLoeschen:    (pfad)    => ipcRenderer.invoke('skularis:abenteuer-loeschen', { pfad }),
 
+    updatePruefen:      ()   => ipcRenderer.invoke('skularis:update-pruefen'),
+    updateAusfuehren:   ()   => ipcRenderer.invoke('skularis:update-ausfuehren'),
+    updateBeenden:      ()   => ipcRenderer.invoke('skularis:update-beenden'),
+    onUpdateFortschritt:(cb) => ipcRenderer.on('skularis:update-fortschritt', (_e, pct) => cb(pct)),
+
     onMenuAktion:       (cb) => ipcRenderer.on('skularis:menu-aktion', (_e, d) => cb(d)),
     onDateiVonCli:      (cb) => ipcRenderer.on('skularis:datei-von-cli', (_e, d) => cb(d)),
     onVorSchliessen:    (cb) => ipcRenderer.on('skularis:vor-schliessen', () => cb()),

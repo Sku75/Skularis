@@ -10,7 +10,7 @@ function dateiOeffnenDialog(win, charOrdner) {
     title: 'Charakter öffnen',
     defaultPath: charOrdner,
     filters: [
-      { name: 'Sephrasto-Charakter', extensions: ['xml'] },
+      { name: 'Ilaris-Charakter', extensions: ['xml'] },
       { name: 'Alle Dateien', extensions: ['*'] },
     ],
     properties: ['openFile'],
@@ -37,7 +37,7 @@ function dateiSpeichernAlsDialog(win, charOrdner, vorschlag, inhalt) {
     title: 'Charakter speichern',
     defaultPath: path.join(charOrdner, vorschlag),
     filters: [
-      { name: 'Sephrasto-Charakter', extensions: ['xml'] },
+      { name: 'Ilaris-Charakter', extensions: ['xml'] },
       { name: 'Alle Dateien', extensions: ['*'] },
     ],
   });

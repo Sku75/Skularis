@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><title>Import-Befund</title></head>
+<body>
+<script type="module">
+import { transformDb } from '../renderer/js/core/db.js';
+import { parse, serialisiere } from '../renderer/js/core/sephrasto-xml.js';
+import { gesamtEP } from '../renderer/js/core/regeln.js';
+
+const DATEI = 'C:\\Users\\kaisa\\Desktop\\Rollenspiel\\0,03 Jucho Skachunow Ordner\\Dateien-ordner\\Spielbar 1\\Jucho Skachunow.xml';
+
+try {
+  const db = transformDb(await window.rtIpc('datenbankLaden'));
+  const xml = await window.rtIpc('dateiLesen', DATEI);
+
+  // Was steht wirklich in der Datei?
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const zaehle = (tag) => doc.getElementsByTagName(tag).length;
+  console.log('IN DER DATEI:');
+  console.log('  CharakterVersion  ' + (doc.getElementsByTagName('CharakterVersion')[0]?.textContent ?? 'fehlt'));
+  console.log('  DatenbankVersion  ' + (doc.getElementsByTagName('DatenbankVersion')[0]?.textContent ?? 'fehlt'));
+  console.log('  Vorteil-Elemente  ' + zaehle('Vorteil'));
+  console.log('  Talent-Elemente   ' + zaehle('Talent'));
+  console.log('  Fertigkeiten      ' + zaehle('Fertigkeit'));
+  console.log('  Erfahrung gesamt  ' + doc.getElementsByTagName('Gesamt')[0]?.textContent);
+  console.log('  Erfahrung ausgeg. ' + doc.getElementsByTagName('Ausgegeben')[0]?.textContent);
+
+  // Was macht Skularis daraus?
+  const c = parse(xml, db);
+  const talenteGezaehlt = new Set();
+  for (const m of [c.fertigkeiten, c.uebernatuerlich]) {
+    for (const e of Object.values(m || {})) for (const t of (e.talente || [])) talenteGezaehlt.add(t);
+  }
+  const ep = gesamtEP(c, db);
+  console.log('');
+  console.log('WAS SKULARIS LIEST:');
+  console.log('  Name              ' + c.name);
+  console.log('  Vorteile          ' + c.vorteile.length);
+  console.log('  Talente           ' + talenteGezaehlt.size);
+  console.log('  Fertigkeiten > 0  ' + Object.values(c.fertigkeiten).filter(f => f.wert > 0).length);
+  console.log('  Freie Fertigk.    ' + c.freieFertigkeiten.length);
+  console.log('  Waffen            ' + (c.waffen || []).length);
+  console.log('  Aussehen-Felder   ' + Object.values(c.aussehen || {}).filter(Boolean).length);
+  console.log('  EP laut Datei     ' + doc.getElementsByTagName('Ausgegeben')[0]?.textContent);
+  console.log('  EP laut Skularis  ' + ep.total);
+  console.log('  Abweichung        ' + (ep.total - parseInt(doc.getElementsByTagName('Ausgegeben')[0]?.textContent, 10)));
+
+  // Und was schreibt Skularis zurueck?
+  const neu = serialisiere(c, db);
+  const doc2 = new DOMParser().parseFromString(neu, 'application/xml');
+  console.log('');
+  console.log('WAS SKULARIS ZURUECKSCHREIBT:');
+  console.log('  CharakterVersion  ' + (doc2.getElementsByTagName('CharakterVersion')[0]?.textContent ?? 'fehlt'));
+  console.log('  DatenbankVersion  ' + (doc2.getElementsByTagName('DatenbankVersion')[0]?.textContent ?? 'fehlt'));
+  console.log('  BeschreibungDetails-Kinder ' + (doc2.getElementsByTagName('BeschreibungDetails')[0]?.children.length ?? 0)
+    + ' (Datei hatte ' + (doc.getElementsByTagName('BeschreibungDetails')[0]?.children.length ?? 0) + ')');
+  const verloren = [];
+  for (const tag of ['Geschlecht', 'Geburtsdatum', 'Grösse', 'Gewicht', 'Haarfarbe', 'Augenfarbe', 'Titel',
+    'Aussehen1', 'Hintergrund0', 'Hausregeln', 'DetailsAnzeigen', 'DeaktivierteRegelKategorien']) {
+    if (doc.getElementsByTagName(tag).length && !doc2.getElementsByTagName(tag).length) verloren.push(tag);
+  }
+  console.log('  Felder, die verschwinden: ' + (verloren.length ? verloren.join(', ') : 'keine'));
+} catch (e) {
+  console.log('AUSNAHME ' + (e && e.stack ? e.stack : e));
+}
+window.rtFertig(0);
+</script>
+</body></html>

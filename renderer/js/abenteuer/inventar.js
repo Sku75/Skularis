@@ -74,7 +74,7 @@ function fachScreen(fach) {
         wrap.appendChild(infoZeile('Noch nichts hier.'));
       } else {
         for (const g of [...liste]) {
-          wrap.appendChild(aktionZeile(`${g} — entfernen`, async () => {
+          wrap.appendChild(aktionZeile(`${g}, entfernen`, async () => {
             if (!await jaNeinDialog({ titel: 'Entfernen', frage: `${g} wirklich entfernen?` })) return;
             a.inventar[fach] = liste.filter(x => x !== g);
             protokolliere(a, `${g} aus ${FACH_NAME[fach]} entfernt.`);

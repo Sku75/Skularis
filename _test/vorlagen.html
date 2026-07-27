@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><title>Vorlagen</title></head>
+<body>
+<script type="module">
+import { transformDb } from '../renderer/js/core/db.js';
+import { parse } from '../renderer/js/core/sephrasto-xml.js';
+import { STUFEN, stufeFuer, steckbriefText as steckbrief, einleitung, kurzzeile } from '../renderer/js/core/vorlagen.js';
+
+let fehler = 0;
+const pruefe = (name, ok, zusatz = '') => {
+  console.log((ok ? 'ok   ' : 'FEHLER ') + name + (ok || !zusatz ? '' : ' -> ' + zusatz));
+  if (!ok) fehler++;
+};
+
+try {
+  const db = transformDb(await window.rtIpc('datenbankLaden'));
+
+  // Alle Profession-Vorlagen laden
+  const liste = await window.rtIpc('paketeListe', 'Profession');
+  const helden = [];
+  for (const p of liste) {
+    const res = await window.rtIpc('paketLaden', p.pfad);
+    const c = parse(res.inhalt, db);
+    if ((c.erfahrung?.gesamt || 0) >= 1500) helden.push(c);
+  }
+
+  pruefe('mindestens 25 fertige Helden gefunden', helden.length >= 25, String(helden.length));
+
+  // Stufen: jeder Held fällt in genau eine der drei Stufen
+  const jeStufe = {};
+  for (const c of helden) {
+    const s = stufeFuer(c.erfahrung.gesamt);
+    jeStufe[s.ep] = (jeStufe[s.ep] || 0) + 1;
+  }
+  pruefe('alle drei Stufen sind besetzt',
+    STUFEN.every(s => jeStufe[s.ep] > 0), JSON.stringify(jeStufe));
+
+  // Ein Kämpfer und ein Magier gezielt prüfen
+  const kaempfer = helden.find(c => /Garether Kriegerin/.test(c.name));
+  const magier = helden.find(c => /Gwendel|Krötenhexe/.test(c.name));
+  const geweiht = helden.find(c => /Bartolomeo|Rondrageweihter/.test(c.name));
+
+  if (kaempfer) {
+    const s = steckbrief(kaempfer, db);
+    console.log('\nKämpfer-Steckbrief:\n  ' + s + '\n');
+    pruefe('Kämpfer: Einleitung nennt ohne Magie', /ohne Magie|Kampf/.test(s), s.slice(0, 120));
+    pruefe('Kämpfer: stärkste Attribute genannt', s.includes('Stärkste Attribute'));
+    pruefe('Kämpfer: beste Waffe genannt', s.includes('Beste Waffe'));
+    pruefe('Kämpfer: keine Eigenheiten hinterlegt vermerkt', /[Kk]eine hinterlegt/.test(s));
+  }
+  if (magier) {
+    const s = steckbrief(magier, db);
+    console.log('Magier-Steckbrief:\n  ' + s + '\n');
+    pruefe('Magier: Zauber-Überschrift mit Zahl', /Zauber, \d+/.test(s), s.slice(0, 200));
+    pruefe('Magier: Eigenheiten aufgeführt', /Eigenheiten, \d+/.test(s));
+  }
+  if (geweiht) {
+    const s = steckbrief(geweiht, db);
+    pruefe('Geweihter: Liturgien-Überschrift mit Zahl', /Liturgien, \d+/.test(s), s.slice(0, 200));
+  }
+
+  // Steckbrief trägt keine Auszeichnungen (kommt aus aufbereiteten Texten)
+  pruefe('kein Steckbrief trägt Auszeichnungen',
+    helden.every(c => !/<[a-zA-Z/]/.test(steckbrief(c, db))));
+  // Kurzzeile ist knapp
+  pruefe('Kurzzeile beginnt mit dem Namen',
+    helden.every(c => kurzzeile(c).startsWith(c.name)));
+} catch (e) {
+  fehler++;
+  console.log('AUSNAHME ' + (e && e.stack ? e.stack : e));
+}
+
+console.log(fehler ? 'ERGEBNIS ' + fehler + ' Fehler.' : 'ERGEBNIS alles in Ordnung.');
+window.rtFertig(fehler);
+</script>
+</body></html>

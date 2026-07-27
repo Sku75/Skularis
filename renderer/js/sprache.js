@@ -69,6 +69,34 @@ export function warteschlangeEnde() {
 }
 
 /**
+ * Zweimal denselben Text in eine aria-live-Region schreiben liest NVDA oft nicht
+ * erneut vor. Ein unsichtbares, bei jedem Aufruf wechselndes Zeichen am Ende
+ * erzwingt eine echte Änderung, damit jede Ansage wirklich gesprochen wird —
+ * auch dieselbe Zeile ein zweites Mal (Tooltip erneut öffnen, Zeile nach einem
+ * Anschlag noch einmal vorlesen). Das Zeichen (schmales Leerzeichen) ist stumm.
+ */
+let _wechsel = false;
+let _letzterText = '';
+let _letzteZeit = -100000;
+const DUBLETTE_MS = 150;
+function ansagen(elId, text) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  // Dublette verschlucken: Beim Anspringen eines Elements sagen oft zwei Wege
+  // denselben Text fast gleichzeitig an (Pfeil-Ansage plus Fokus-Ansage, teils
+  // in verschiedenen Regionen). Innerhalb eines kurzen Fensters nur einmal
+  // sprechen. Gewollte Wiederholungen kommen spaeter und bleiben erhalten.
+  const jetzt = (typeof performance !== 'undefined' ? performance.now() : 0);
+  if (text === _letzterText && (jetzt - _letzteZeit) < DUBLETTE_MS) return;
+  _letzterText = text;
+  _letzteZeit = jetzt;
+  _wechsel = !_wechsel;
+  const marker = _wechsel ? ' ' : '';
+  el.textContent = '';
+  requestAnimationFrame(() => { el.textContent = text + marker; });
+}
+
+/**
  * Assertive Ansage — unterbricht laufende Rede.
  * Entspricht sprache.sage() in Python.
  */
@@ -77,10 +105,7 @@ export function sage(text) {
   text = _aufbereiten(text);
   // Wenn gesperrt: in Warteschlange einreihen statt sofort ansagen
   if (_gesperrt) { _warteschlange.push(text); return; }
-  const el = document.getElementById('sr-live');
-  if (!el) return;
-  el.textContent = '';
-  requestAnimationFrame(() => { el.textContent = text; });
+  ansagen('sr-live', text);
 }
 
 /**
@@ -89,11 +114,7 @@ export function sage(text) {
  */
 export function sageZusatz(text) {
   if (!_an || !text) return;
-  text = _aufbereiten(text);
-  const el = document.getElementById('sr-polite');
-  if (!el) return;
-  el.textContent = '';
-  requestAnimationFrame(() => { el.textContent = text; });
+  ansagen('sr-polite', _aufbereiten(text));
 }
 
 /**
@@ -101,11 +122,7 @@ export function sageZusatz(text) {
  */
 export function sageStatus(text) {
   if (!_an || !text) return;
-  text = _aufbereiten(text);
-  const el = document.getElementById('sr-status');
-  if (!el) return;
-  el.textContent = '';
-  requestAnimationFrame(() => { el.textContent = text; });
+  ansagen('sr-status', _aufbereiten(text));
 }
 
 /**
@@ -188,4 +205,20 @@ export function getZeilenText(element) {
 export function sageZeile(element) {
   const text = getZeilenText(element);
   if (text) sage(text);
+}
+
+/**
+ * NVDA liest ein fokussiertes Element selbst vor. Damit das genau einmal und
+ * vollständig geschieht (ohne zusätzliche aria-live-Ansage), bekommt eine
+ * zusammengesetzte Zeile — mehrere Zellen, aber kein Schalter oder Eingabefeld —
+ * ihren kombinierten Text als Namen. Schalter, Eingabefelder und Auswahllisten
+ * tragen ihren Namen bereits selbst und bleiben unangetastet. Keine Ansage.
+ */
+export function benenneFuerFokus(element) {
+  if (!element) return;
+  const tag = element.tagName;
+  if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA'
+      || element.getAttribute('role') === 'button') return;
+  const text = getZeilenText(element);
+  if (text) element.setAttribute('aria-label', text);
 }

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><title>Pakete</title></head>
+<body>
+<script type="module">
+import { transformDb } from '../renderer/js/core/db.js';
+import { parse, serialisiere } from '../renderer/js/core/sephrasto-xml.js';
+import { gesamtEP } from '../renderer/js/core/regeln.js';
+
+let fehler = 0;
+const pruefe = (name, ok, zusatz = '') => {
+  console.log((ok ? 'ok   ' : 'FEHLER ') + name + (ok || !zusatz ? '' : ' -> ' + zusatz));
+  if (!ok) fehler++;
+};
+const ersteAbweichung = (a, b) => {
+  const x = a.split('\n'), y = b.split('\n');
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    if (x[i] !== y[i]) return `Zeile ${i + 1}: ${JSON.stringify(x[i])} statt ${JSON.stringify(y[i])}`;
+  }
+  return `Länge ${a.length} gegen ${b.length}`;
+};
+
+try {
+  const db = transformDb(await window.rtIpc('datenbankLaden'));
+
+  let mitEP = 0, epFalsch = 0, identisch = 0, andersOk = 0, andersFalsch = 0, gesamt = 0;
+  const abweichungen = [];
+
+  for (const kat of ['Spezies', 'Kultur', 'Profession']) {
+    for (const p of await window.rtIpc('paketeListe', kat)) {
+      const xml = await window.rtIpc('dateiLesen', p.pfad);
+      const doc = new DOMParser().parseFromString(xml, 'application/xml');
+      const ausgegeben = parseInt(doc.getElementsByTagName('Ausgegeben')[0]?.textContent, 10) || 0;
+      const c = parse(xml, db);
+      const ep = gesamtEP(c, db).total;
+      gesamt++;
+
+      // Doppelte Vorteile werden wie in Sephrasto zu einem zusammengefasst.
+      // Dort weicht die Datei ab und die EP fallen niedriger aus.
+      const namen = Array.from(doc.getElementsByTagName('Vorteil')).map(v => v.textContent.trim());
+      const hatDoppelte = new Set(namen).size !== namen.length;
+
+      // Sephrastos eigene Zahl als Maßstab, wo sie gesetzt ist.
+      if (ausgegeben > 0 && !hatDoppelte) {
+        mitEP++;
+        if (ep !== ausgegeben) {
+          epFalsch++;
+          console.log(`    EP-Abweichung ${p.name}: Skularis ${ep}, Sephrasto ${ausgegeben}`);
+        }
+      } else if (ausgegeben > 0) {
+        console.log(`    ${p.name}: doppelter Vorteil bereinigt, ${ausgegeben} EP werden zu ${ep} EP`);
+      }
+      const wieder = serialisiere(c, db);
+      if (wieder === xml) identisch++;
+      else if (hatDoppelte) andersOk++;
+      else {
+        andersFalsch++;
+        if (abweichungen.length < 12) abweichungen.push(`${p.name} schreibt anders: ${ersteAbweichung(wieder, xml)}`);
+      }
+    }
+  }
+
+  for (const a of abweichungen) console.log('    ' + a);
+  pruefe(`${mitEP} Pakete mit EP-Angabe: Skularis rechnet wie Sephrasto`, epFalsch === 0, `${epFalsch} abweichend`);
+  pruefe(`${gesamt} Pakete: Speichern verändert die Datei nicht`, andersFalsch === 0,
+    `${andersFalsch} abweichend, ${identisch} identisch, ${andersOk} bereinigt`);
+} catch (e) {
+  fehler++;
+  console.log('AUSNAHME ' + (e && e.stack ? e.stack : e));
+}
+
+console.log(fehler ? 'ERGEBNIS ' + fehler + ' Fehler.' : 'ERGEBNIS alles in Ordnung.');
+window.rtFertig(fehler);
+</script>
+</body></html>

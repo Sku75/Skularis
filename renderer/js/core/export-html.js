@@ -1,7 +1,8 @@
 /**
  * Skularistool — Charakter als lesbares, barrierefreies HTML-Blatt exportieren.
  */
-import { abgeleiteteWerte } from './regeln.js';
+import { abgeleiteteWerte, waffenwerteText } from './regeln.js';
+import { BESCHREIBUNG_FELDER, eigenheitBuchstabe } from './character.js';
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -25,21 +26,46 @@ export function exportHtml(char, db) {
     return `<li>${esc(n)}${komm}</li>`;
   }).join('') || '<li>keine</li>';
 
+  // Talente stehen in einer Liste am Charakter und erscheinen unter jeder
+  // Fertigkeit, zu der sie gehören.
+  const talenteVon = (fname) => (char.talente || [])
+    .filter(n => (db.talentByName[n]?.fertigkeiten || []).includes(fname));
+
   const fertRows = Object.entries(char.fertigkeiten || {})
-    .filter(([, fe]) => fe.wert > 0 || (fe.talente && fe.talente.length))
-    .map(([name, fe]) => `<tr><th scope="row">${esc(name)}</th><td>${fe.wert}</td><td>${esc((fe.talente || []).join(', '))}</td></tr>`)
+    .filter(([name, fe]) => fe.wert > 0 || talenteVon(name).length)
+    .map(([name, fe]) => `<tr><th scope="row">${esc(name)}</th><td>${fe.wert}</td><td>${esc(talenteVon(name).join(', '))}</td></tr>`)
     .join('') || '<tr><td colspan="3">keine</td></tr>';
 
   const ufRows = Object.entries(char.uebernatuerlich || {})
-    .map(([name, ue]) => `<tr><th scope="row">${esc(name)}</th><td>${ue.wert}</td><td>${esc((ue.talente || []).join(', '))}</td></tr>`)
+    .map(([name, ue]) => `<tr><th scope="row">${esc(name)}</th><td>${ue.wert}</td><td>${esc(talenteVon(name).join(', '))}</td></tr>`)
     .join('');
 
   const freie = (char.freieFertigkeiten || []).filter(f => f.name)
     .map(f => `<li>${esc(f.name)} ${f.wert}</li>`).join('') || '<li>keine</li>';
 
-  const waffen = (char.waffen || []).filter(x => x.name).map(x => `<li>${esc(x.name)}</li>`).join('') || '<li>keine</li>';
+  const waffen = (char.waffen || []).filter(x => x.name).map(x => `<li>${esc(x.name)}: ${esc(waffenwerteText(char, db, x))}</li>`).join('') || '<li>keine</li>';
   const ruestungen = (char.ruestungen || []).filter(x => x.name).map(x => `<li>${esc(x.name)} (RS ${esc(x.rs)}, BE ${x.be})</li>`).join('') || '<li>keine</li>';
   const gegenstaende = (char.ausruestung || []).map(x => `<li>${esc(x)}</li>`).join('') || '<li>keine</li>';
+
+  const statusse = String(db.einstellungen['Statusse'] || '').split(',').map(s => s.trim());
+
+  const aussehenRows = BESCHREIBUNG_FELDER
+    .filter(f => (char[f.key] || '').trim())
+    .map(f => `<tr><th scope="row">${esc(f.label)}</th><td>${esc(char[f.key])}</td></tr>`)
+    .join('');
+
+  const aussehenZeilen = (char.aussehen || []).filter(z => (z || '').trim())
+    .map(z => `<li>${esc(z)}</li>`).join('');
+
+  const hintergrund = (char.hintergrund || []).filter(z => (z || '').trim())
+    .map(z => `<li>${esc(z)}</li>`).join('');
+
+  const eigenheiten = (char.eigenheiten || []).map((e, i) => {
+    const teile = [`<strong>${eigenheitBuchstabe(i)}: ${esc(e.name)}</strong>`];
+    if (e.positiv) teile.push(`<br>Positive Aspekte: ${esc(e.positiv)}`);
+    if (e.negativ) teile.push(`<br>Negative Aspekte: ${esc(e.negativ)}`);
+    return `<li>${teile.join('')}</li>`;
+  }).join('');
 
   const frei = (char.erfahrung.gesamt || 0) - (char.erfahrung.ausgegeben || 0);
 
@@ -55,8 +81,12 @@ export function exportHtml(char, db) {
   .meta { color: #444; }
 </style></head><body>
 <h1>${esc(char.name || 'Unbenannter Charakter')}</h1>
-<p class="meta">Spezies: ${esc(char.spezies || '—')} · Heimat: ${esc(char.heimat || '—')} · Finanzen: ${esc(finanzen[char.finanzen] || 'Normal')}</p>
+<p class="meta">Spezies: ${esc(char.spezies || '—')} · Heimat: ${esc(char.heimat || '—')} · Status: ${esc(statusse[char.status] || 'Mittelschicht')} · Finanzen: ${esc(finanzen[char.finanzen] || 'Normal')}</p>
 <p class="meta">Erfahrung: ${char.erfahrung.gesamt || 0} gesamt, ${char.erfahrung.ausgegeben || 0} ausgegeben, ${frei} frei</p>
+
+${aussehenRows || aussehenZeilen ? `<h2>Aussehen</h2>${aussehenRows ? `<table><tbody>${aussehenRows}</tbody></table>` : ''}${aussehenZeilen ? `<ul>${aussehenZeilen}</ul>` : ''}` : ''}
+${eigenheiten ? `<h2>Eigenheiten</h2><ul>${eigenheiten}</ul>` : ''}
+${hintergrund ? `<h2>Familie, Hintergrund und Herkunft</h2><ul>${hintergrund}</ul>` : ''}
 
 <h2>Attribute</h2><table><tbody>${attrRows}</tbody></table>
 <h2>Abgeleitete Werte</h2><table><tbody>${abgRows}</tbody></table>
@@ -69,7 +99,7 @@ ${ufRows ? `<h2>Übernatürliches</h2><table><thead><tr><th>Fertigkeit</th><th>W
 <h3>Waffen</h3><ul>${waffen}</ul>
 <h3>Rüstungen</h3><ul>${ruestungen}</ul>
 <h3>Gegenstände</h3><ul>${gegenstaende}</ul>
-<p class="meta">Erstellt mit Skularis 0.04 — Regelwerk Ilaris.</p>
+<p class="meta">Erstellt mit Skularis 0.08 — Regelwerk Ilaris.</p>
 </body></html>
 `;
 }

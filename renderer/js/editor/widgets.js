@@ -3,6 +3,7 @@
  */
 import * as sounds from '../sounds.js';
 import * as sprache from '../sprache.js';
+import { alsText } from '../core/infotext.js';
 
 /**
  * Verstellbare Wertzeile (Attribut, Fertigkeit, Energie ...).
@@ -106,6 +107,8 @@ export function verbindeDetail(wrap) {
   box.setAttribute('aria-hidden', 'true');
   wrap.appendChild(box);
 
+  // Ein Detail kann ein String oder eine strukturierte Zeilenliste sein; für
+  // die sichtbare Detailleiste wird beides zu Text zusammengefasst.
   const aktualisiere = () => {
     const el = document.activeElement;
     if (!el || !wrap.contains(el)) { box.textContent = ''; return; }
@@ -113,11 +116,11 @@ export function verbindeDetail(wrap) {
     if (d === undefined || d === null) { box.textContent = ''; return; }
     if (typeof d === 'function') {
       Promise.resolve().then(() => d()).then((t) => {
-        if (document.activeElement === el) box.textContent = (typeof t === 'string' ? t : '');
+        if (document.activeElement === el) box.textContent = alsText(t);
       }).catch(() => { box.textContent = ''; });
       return;
     }
-    box.textContent = (typeof d === 'string' ? d : '');
+    box.textContent = alsText(d);
   };
 
   wrap.addEventListener('focusin', aktualisiere);

@@ -17,12 +17,15 @@ import * as sounds from '../sounds.js';
 import * as sprache from '../sprache.js';
 import * as screen from './screen.js';
 import { textDialog } from './dialog.js';
+import { alsText } from '../core/infotext.js';
 
 const FILTER_AB = 10; // ab so vielen Einträgen automatisch Filter anbieten
 
 function resolveDetail(b) {
   if (b.__detailText !== undefined) return Promise.resolve(b.__detailText);
-  const fin = (t) => { b.__detailText = (typeof t === 'string' ? t : ''); return b.__detailText; };
+  // Ein Detail kann String oder strukturierte Zeilenliste sein; die sichtbare
+  // Detailleiste zeigt beides als Text.
+  const fin = (t) => { b.__detailText = alsText(t); return b.__detailText; };
   const d = b.__detail;
   if (typeof d === 'function') {
     try { return Promise.resolve(d()).then(fin).catch(() => fin('')); }
@@ -33,7 +36,9 @@ function resolveDetail(b) {
 
 export function menuScreen(opts) {
   const alleItems = opts.items || [];
-  const brauchtFilter = opts.filter || alleItems.length >= FILTER_AB;
+  // opts.filter: true erzwingt den Filter, false schaltet ihn ab (feste Menüs
+  // wie der Editor-Hub sollen keinen bekommen), sonst ab FILTER_AB Einträgen.
+  const brauchtFilter = opts.filter === false ? false : (opts.filter || alleItems.length >= FILTER_AB);
   let filterText = '';
 
   const obj = {
@@ -107,7 +112,26 @@ export function menuScreen(opts) {
         const b = document.createElement('button');
         b.className = 'db-btn db-menu__item';
         b.type = 'button';
+        if (it.id) b.id = it.id;
+        if (it.klasse) b.classList.add(it.klasse);
         if (it.disabled) b.disabled = true;
+        // Überschrift-Zeilen (Charakterbogen): mit Strg und Pfeil anspringbar.
+        if (it.ueberschrift) { b.classList.add('db-menu__ueberschrift'); b.dataset.ueberschrift = '1'; }
+        // Kapitel-Zeilen (Regeldokument): zusätzlich mit Strg und Bild auf/ab
+        // anspringbar. Zählen auch als Überschrift, damit Strg und Pfeil hier hält.
+        if (it.kapitel) { b.classList.add('db-menu__kapitel'); b.dataset.ueberschrift = '1'; b.dataset.kapitel = '1'; }
+
+        // Ergebnisfeld rechts in der Zeile, z. B. für den Würfelwurf. Für
+        // Sehende steht das Ergebnis damit direkt neben dem Schalter; für den
+        // Screenreader steckt es in der Beschriftung, deshalb aria-hidden.
+        if (it.ergebnisId) {
+          const erg = document.createElement('span');
+          erg.className = 'db-menu__ergebnis';
+          erg.dataset.ergebnis = it.ergebnisId;
+          erg.setAttribute('aria-hidden', 'true');
+          b.appendChild(erg);
+          b.dataset.ergebnisZiel = it.ergebnisId;
+        }
 
         const label = document.createElement('span');
         label.className = 'db-menu__label';
@@ -155,7 +179,7 @@ export function menuScreen(opts) {
         // Aus der Pfeil-/Pos1-/Ende-Navigation nehmen, damit Ende auf den letzten
         // echten Menüpunkt springt. Für Sehende per Maus klickbar, Escape gleich.
         back.tabIndex = -1;
-        back.addEventListener('click', () => { screen.pop(); });
+        back.addEventListener('click', () => { screen.zurueck(); });
         wrap.appendChild(back);
       }
 

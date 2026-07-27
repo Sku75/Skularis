@@ -41,7 +41,7 @@ export function beschreibungScreen() {
       }, 'Finanzen wählen, beeinflussen Schicksalspunkte'));
 
       wrap.appendChild(aktionZeile(`Spezies: ${char.spezies || 'keine'}`, async () => {
-        const v = await textDialog({ titel: 'Spezies', label: 'Spezies (z. B. Mensch, Elf, Zwerg)', wert: char.spezies });
+        const v = await textDialog({ titel: 'Spezies', label: 'Spezies, zum Beispiel Mensch, Elf oder Zwerg', wert: char.spezies });
         if (v !== null) { char.spezies = v.trim(); screen.refresh(); }
       }, 'Spezies eintragen'));
 
