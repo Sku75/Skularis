@@ -85,12 +85,16 @@ export function current() {
   return _stack[_stack.length - 1] || null;
 }
 
-/** Aktuellen Bildschirm neu aufbauen (z. B. nach Datenänderung). */
-export function refresh() {
+/**
+ * Aktuellen Bildschirm neu aufbauen (z. B. nach Datenänderung).
+ * @param {string} [fokusSelector] Optionaler CSS-Selektor: das passende Element
+ *   im neuen Aufbau bekommt den Fokus, statt der gemerkten Listenposition.
+ */
+export function refresh(fokusSelector) {
   if (_stack.length) {
     const cur = current();
     if (cur) cur._focusIndex = _aktuellerFokusIndex();
-    _render({ sound: false, restore: true });
+    _render({ sound: false, restore: true, fokusSelector });
   }
 }
 
@@ -102,7 +106,7 @@ function _aktuellerFokusIndex() {
   return idx >= 0 ? idx : null;
 }
 
-function _render({ sound, restore }) {
+function _render({ sound, restore, fokusSelector }) {
   const screen = current();
   if (!screen || !_container) return;
 
@@ -125,6 +129,12 @@ function _render({ sound, restore }) {
   let ziel = alle[0] || null;
   if (restore && typeof screen._focusIndex === 'number' && alle[screen._focusIndex]) {
     ziel = alle[screen._focusIndex];
+  }
+  // Ausdrückliches Fokusziel (z. B. "Vorteil hinzufügen" nach dem Hinzufügen)
+  // hat Vorrang vor der gemerkten Position.
+  if (fokusSelector) {
+    const gewuenscht = el.querySelector(fokusSelector);
+    if (gewuenscht) ziel = gewuenscht;
   }
   screen._focusIndex = null;
 

@@ -126,6 +126,45 @@ function zurMarkierung(richtung, merkmal) {
   return false;
 }
 
+/** Zum nächsten verfügbaren (nicht gesperrten) Menü-Eintrag springen. */
+function zurVerfuegbarem(richtung) {
+  const alle = _getAlleFokussierbar();
+  let idx = alle.indexOf(document.activeElement);
+  if (idx < 0) idx = richtung > 0 ? -1 : alle.length;
+  for (let i = idx + richtung; i >= 0 && i < alle.length; i += richtung) {
+    const el = alle[i];
+    if (el.classList && el.classList.contains('db-menu__item') && !el.classList.contains('ed-gesperrt')) {
+      _fokussiere(el);
+      sounds.playNavigation();
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Wie viele Zeilen eine halbe Seite sind (aus Panelhöhe und Zeilenhöhe). */
+function halbeSeiteSchritte() {
+  if (!_aktivesPanel) return 5;
+  const bezug = (_aktivesPanel.contains(document.activeElement) ? document.activeElement : _aktivesPanel.querySelector(FOCUSABLE));
+  const rowH = bezug ? Math.max(1, bezug.getBoundingClientRect().height) : 40;
+  const viewH = _aktivesPanel.clientHeight || window.innerHeight || 600;
+  const sichtbar = Math.max(1, Math.floor(viewH / rowH));
+  return Math.max(1, Math.floor(sichtbar / 2));
+}
+
+/** Eine halbe Seite in der Liste blättern (Fokus springt um mehrere Zeilen). */
+function blaettern(richtung) {
+  const alle = _getAlleFokussierbar();
+  if (!alle.length) return false;
+  let idx = alle.indexOf(document.activeElement);
+  if (idx < 0) idx = richtung > 0 ? 0 : alle.length - 1;
+  const ziel = Math.max(0, Math.min(alle.length - 1, idx + richtung * halbeSeiteSchritte()));
+  if (ziel === idx) return false;
+  _fokussiere(alle[ziel]);
+  sounds.playNavigation();
+  return true;
+}
+
 /**
  * Anschlag am Rand einer Liste: leiser Ton, danach die Zeile, auf der man steht,
  * erneut vorlesen. Die kurze Verzögerung sorgt dafür, dass der Ton die Ansage
@@ -214,6 +253,29 @@ function _onKeyDown(e) {
     e.preventDefault();
     if (!zurKapitel(e.key === 'PageDown' ? 1 : -1)) anschlag();
     return;
+  }
+
+  // Bild auf/ab (ohne Strg): eine halbe Seite in der Liste blättern. Gilt in
+  // den Menüs, im Regeldokument und im Charakterbogen.
+  if (!e.ctrlKey && !e.shiftKey && (e.key === 'PageDown' || e.key === 'PageUp')) {
+    if (_istInEingabefeld(document.activeElement)) return;
+    e.preventDefault();
+    if (!blaettern(e.key === 'PageDown' ? 1 : -1)) anschlag();
+    return;
+  }
+
+  // Pfeil links/rechts: nur in Listen mit data-sprung-verfuegbar (z. B. die
+  // Vorteil-Auswahl) zu den verfügbaren, nicht gesperrten Einträgen springen.
+  // Sonst unangetastet lassen, damit Wert-Zeilen (Attribute, Fertigkeiten,
+  // Zähler) links und rechts weiter zum Verstellen nutzen.
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+    const aktiv = document.activeElement;
+    const liste = aktiv && aktiv.closest ? aktiv.closest('[data-sprung-verfuegbar]') : null;
+    if (liste && !_istInEingabefeld(aktiv)) {
+      e.preventDefault();
+      if (!zurVerfuegbarem(e.key === 'ArrowRight' ? 1 : -1)) anschlag();
+      return;
+    }
   }
 
   // In Textfeldern: Pfeiltasten normal verwenden

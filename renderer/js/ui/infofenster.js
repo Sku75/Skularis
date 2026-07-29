@@ -64,6 +64,8 @@ function baue() {
     if (_modus !== 'info') return;
     if (e.key === 'ArrowDown') { e.preventDefault(); weiter(1); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); weiter(-1); }
+    else if (e.key === 'PageDown') { e.preventDefault(); weiter(halbeSeite()); }
+    else if (e.key === 'PageUp') { e.preventDefault(); weiter(-halbeSeite()); }
     else if (e.key === 'ArrowRight' && e.ctrlKey) { e.preventDefault(); zurUeberschrift(1); }
     else if (e.key === 'ArrowLeft' && e.ctrlKey) { e.preventDefault(); zurUeberschrift(-1); }
     else if (e.key === 'Escape') { e.preventDefault(); schliesse(); }
@@ -166,6 +168,13 @@ export function imTooltip() { return _modus === 'tooltip'; }
 function anschlag() {
   sounds.play('grenze');
   setTimeout(() => sage(), 200);
+}
+
+/** Wie viele Zeilen eine halbe Seite im Info-Fenster sind. */
+function halbeSeite() {
+  const rowH = 26;
+  const h = _inhaltEl ? (_inhaltEl.clientHeight || 300) : 300;
+  return Math.max(1, Math.floor((h / rowH) / 2));
 }
 
 /** Eine Zeile weiter oder zurück. */

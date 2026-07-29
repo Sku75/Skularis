@@ -24,11 +24,23 @@ export function auswahlScreen(o) {
     klasse: e.gesperrt ? 'ed-gesperrt' : undefined,
     onSelect: () => { screen.pop(); o.onWahl(e.wert); },
   }));
+  // Gibt es gesperrte Einträge (z. B. nicht verfügbare Vorteile), springt Pfeil
+  // links und rechts nur zwischen den verfügbaren.
+  const hatGesperrte = (o.eintraege || []).some(e => e.gesperrt);
+  const hinweis = hatGesperrte
+    ? 'Bei langer Liste oben Filtern. Pfeil hoch und runter geht alle durch, Pfeil links und rechts springt nur zu den verfügbaren. Eingabetaste wählt, Shift und Pfeil-runter liest Details, Escape zurück.'
+    : 'Bei langer Liste oben Filtern. Eingabetaste wählt, Shift und Pfeil-runter liest Details, Escape zurück.';
+  // Gesprochene Tastenhilfe beim Öffnen der Liste.
+  const ansage = hatGesperrte
+    ? `${o.titel}. Pfeil hoch und runter wechselt die Zeile, Pfeil links und rechts springt zu den verfügbaren Einträgen, Bild auf und Bild ab blättert eine halbe Seite, Eingabetaste wählt.`
+    : `${o.titel}. Pfeil hoch und runter wechselt die Zeile, Bild auf und Bild ab blättert eine halbe Seite, Eingabetaste wählt.`;
   screen.push(menuScreen({
     title: o.titel,
-    subtitle: 'Bei langer Liste oben Filtern. Eingabetaste wählt, Shift und Pfeil-runter liest Details, Escape zurück.',
+    subtitle: hinweis,
     items,
     filter: true,
     leer: 'Keine Einträge.',
+    sprungVerfuegbar: hatGesperrte,
+    ansage,
   }));
 }

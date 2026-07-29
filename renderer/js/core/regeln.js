@@ -308,6 +308,18 @@ export function abgeleiteteWerte(char) {
   return { WS: ws, MR: mr, GS: gs, SB: sb, INI: ini, DH: dh, RS: rs, BE: be, SchiP: schip };
 }
 
+// --- Wunden und Erschöpfung (Ilaris) ---
+// Wunden und Erschöpfung stehen auf derselben Statusleiste und zählen zusammen
+// als "Einschränkungen". Ab der dritten Einschränkung sind alle Proben um zwei
+// erschwert, je weitere Einschränkung um zwei mehr (3 = minus 2, 4 = minus 4,
+// 5 = minus 6). Ab fünf Einschränkungen droht nach jeder weiteren die
+// Kampfunfähigkeit (Zähigkeits-Probe mit dem Wundabzug).
+
+/** Wundabzug (Malus auf alle Proben) aus der Zahl der Einschränkungen. */
+export function wundabzug(einschraenkungen) {
+  return Math.max(0, 2 * ((einschraenkungen || 0) - 2));
+}
+
 // Die Voraussetzungsprüfung steht in core/voraussetzungen.js. Sie ist von hier
 // weggezogen, weil sie inzwischen die volle Sephrasto-Grammatik beherrscht
 // (Platzhalter, MeisterAttribut, Spezies, Waffeneigenschaft) und außerdem eine

@@ -16,6 +16,8 @@
  * lässt sich nicht weglassen, ohne die Regel zu verfälschen.
  */
 
+import { regelNotation } from './regelnotation.js';
+
 /** Auszeichnungen, Platzhalterklammern und Schmuckzeichen entfernen. */
 export function lesbarerRegeltext(roh) {
   let s = String(roh == null ? '' : roh);
@@ -61,5 +63,5 @@ export function seitenVerweiseAusschreiben(text) {
 
 /** Beides zusammen — das ist der Weg, den jeder Datenbanktext nimmt. */
 export function aufbereiten(roh) {
-  return seitenVerweiseAusschreiben(lesbarerRegeltext(roh));
+  return regelNotation(seitenVerweiseAusschreiben(lesbarerRegeltext(roh)));
 }

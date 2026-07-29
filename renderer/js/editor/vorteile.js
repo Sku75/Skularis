@@ -79,7 +79,7 @@ export function vorteileInhalt(box) {
   const offen = db.vorteile.filter(v => !habenNamen.has(v.name));
   const gesperrt = offen.filter(v => !pruefeDetail(char, db, v.voraussetzungen).erfuellt).length;
 
-  box.appendChild(aktionZeile(
+  const hinzuBtn = aktionZeile(
     `Vorteil hinzufügen, ${offen.length - gesperrt} verfügbar, ${gesperrt} noch nicht`,
     () => {
       const eintraege = offen.map(v => {
@@ -117,14 +117,17 @@ export function vorteileInhalt(box) {
           }
           char.vorteile.push(neu);
           const f2 = editor.aktualisiere();
-          screen.refresh();
+          // Fokus nach dem Neuaufbau zurück auf "Vorteil hinzufügen".
+          screen.refresh('[data-fokus="vorteil-hinzufuegen"]');
           const hinweis = d.erfuellt ? '' : ' Achtung, Voraussetzung nicht erfüllt.';
-          sprache.sage(`${v.name} hinzugefügt, ${f2} EP frei.${hinweis}`);
+          sprache.sage(`Vorteil gekauft. ${v.name}, ${f2} EP frei.${hinweis}`);
         },
       });
     },
     'Öffnet eine durchsuchbare Liste aller Vorteile',
-  ));
+  );
+  hinzuBtn.dataset.fokus = 'vorteil-hinzufuegen';
+  box.appendChild(hinzuBtn);
 
   if (char.vorteile.length === 0) {
     box.appendChild(infoZeile('Noch keine Vorteile gewählt.'));

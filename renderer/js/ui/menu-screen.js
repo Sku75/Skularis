@@ -69,6 +69,9 @@ export function menuScreen(opts) {
 
       const list = document.createElement('div');
       list.className = 'db-menu__list';
+      // Pfeil links/rechts springt in dieser Liste nur zu den verfügbaren
+      // (nicht gesperrten) Einträgen — siehe navigation.js.
+      if (opts.sprungVerfuegbar) list.dataset.sprungVerfuegbar = '1';
 
       const filtern = async () => {
         const eingabe = await textDialog({ titel: 'Filtern', label: 'Suchbegriff eingeben, dann Eingabetaste' });
@@ -186,5 +189,8 @@ export function menuScreen(opts) {
       return wrap;
     },
   };
+  // Optionale gesprochene Ansage beim Öffnen (z. B. Tastenhilfe für die
+  // Vorteil-Liste). Ersetzt die schlichte Titel-Ansage.
+  if (opts.ansage) obj.onShow = () => sprache.sage(opts.ansage);
   return obj;
 }

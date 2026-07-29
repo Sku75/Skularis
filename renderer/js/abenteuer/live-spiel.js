@@ -10,7 +10,7 @@ import { menuScreen } from '../ui/menu-screen.js';
 import { wertZeile, infoZeile, abschnittTitel, verbindeDetail } from '../editor/widgets.js';
 import { zahlDialog } from '../ui/dialog.js';
 import { auswahlScreen } from '../ui/auswahl-screen.js';
-import { abgeleiteteWerte, waffenwerte, waffenwerteText, fertigkeitProbenwert } from '../core/regeln.js';
+import { abgeleiteteWerte, waffenwerte, waffenwerteText, fertigkeitProbenwert, wundabzug } from '../core/regeln.js';
 import { getDb } from '../core/db-laden.js';
 import { leseInventar, setText, SLOTS } from '../core/ausruestung.js';
 import { protokolliere } from '../core/abenteuer.js';
@@ -24,6 +24,10 @@ const ATTR_NAME = {
   KO: 'Konstitution', MU: 'Mut', GE: 'Gewandtheit', KK: 'Körperkraft',
   IN: 'Intuition', KL: 'Klugheit', CH: 'Charisma', FF: 'Fingerfertigkeit',
 };
+const EINSCHR_REGEL = 'Wunden und Erschöpfung zählen zusammen als Einschränkungen. '
+  + 'Ab der dritten Einschränkung sind alle Proben um zwei erschwert, je weitere um zwei mehr: '
+  + 'drei gleich minus zwei, vier gleich minus vier, fünf gleich minus sechs. '
+  + 'Ab fünf Einschränkungen droht nach jeder weiteren die Kampfunfähigkeit. Sehr hohe Werte führen zum Tod.';
 
 export function liveSpielScreen() {
   return menuScreen({
@@ -160,10 +164,41 @@ export function charakterstatusScreen() {
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel('Charakterstatus'));
 
+      // Einschränkungen = Wunden plus Erschöpfung, mit Wundabzug. Diese Zeile
+      // steht über den Zählern; hinter den einzelnen Zählern steht keine Folge,
+      // weil sie hier zusammengefasst ist. Aktualisiert sich beim Verstellen.
+      const hatWundErsch = a.ressourcen.Wunden || a.ressourcen.Erschoepfung;
+      const einschrText = () => {
+        const wu = a.ressourcen.Wunden ? (a.ressourcen.Wunden.aktuell || 0) : 0;
+        const er = a.ressourcen.Erschoepfung ? (a.ressourcen.Erschoepfung.aktuell || 0) : 0;
+        const summe = wu + er;
+        const ab = wundabzug(summe);
+        let s = `Einschränkungen: ${summe}`;
+        if (ab > 0) s += `, alle Proben minus ${ab}`;
+        if (summe >= 5) s += ', Kampfunfähigkeit droht';
+        return s;
+      };
+      let einschrZeile = null;
+      const aktualisiereEinschr = () => {
+        if (!einschrZeile) return '';
+        const t = einschrText();
+        einschrZeile.textContent = t;
+        einschrZeile.setAttribute('data-sr-label', t);
+        einschrZeile.dataset.srValue = t;
+        einschrZeile.setAttribute('aria-label', t);
+        einschrZeile.dispatchEvent(new CustomEvent('detail-refresh', { bubbles: true }));
+        return t;
+      };
+      if (hatWundErsch) {
+        einschrZeile = infoZeile(einschrText(), EINSCHR_REGEL);
+        wrap.appendChild(einschrZeile);
+      }
+
       // Ressourcen, verstellbar
       for (const key of Object.keys(a.ressourcen)) {
         const r = a.ressourcen[key];
         const name = RES_NAME[key] || key;
+        const istEinschr = (key === 'Wunden' || key === 'Erschoepfung');
         wrap.appendChild(wertZeile({
           label: name,
           get: () => r.aktuell,
@@ -171,7 +206,14 @@ export function charakterstatusScreen() {
           min: 0,
           max: (r.max !== undefined) ? r.max : 999,
           suffix: () => (r.max !== undefined ? `von ${r.max}` : ''),
-          onChange: () => { protokolliere(a, `${name} auf ${r.aktuell}.`); speichere(); return (r.max !== undefined ? `von ${r.max}` : ''); },
+          onChange: () => {
+            protokolliere(a, `${name} auf ${r.aktuell}.`);
+            speichere();
+            // Bei Wunden/Erschöpfung die Einschränkungen-Zeile aktualisieren und
+            // die Folge gleich mit ansagen; sonst nur der Maximal-Hinweis.
+            if (istEinschr) return aktualisiereEinschr();
+            return (r.max !== undefined ? `von ${r.max}` : '');
+          },
         }));
       }
 

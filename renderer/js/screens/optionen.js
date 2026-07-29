@@ -126,7 +126,7 @@ export function build() {
         label: 'Über Skularis',
         hint: 'Programm-Informationen',
         onSelect: () => sprache.sage(
-          'Skularis, Version 0.08. Barrierefreie Charaktererstellung für das Ilaris-Regelwerk. ' +
+          'Skularis, Version 0.09. Barrierefreie Charaktererstellung für das Ilaris-Regelwerk. ' +
           'Regelwerk Ilaris von Lukas Rügge.'
         ),
       },

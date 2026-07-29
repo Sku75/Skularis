@@ -1,0 +1,1014 @@
+Skularis Patchnotes
+
+Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmordner.
+Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
+
+
+Version 0.09, 29. Juli 2026
+
+
+Geändert: Vorteile leichter zu bedienen
+
+Nach dem Hinzufügen eines Vorteils steht der Fokus wieder auf "Vorteil
+hinzufügen", so dass man ohne Umweg gleich den nächsten wählen kann; die
+Bestätigung sagt "Vorteil gekauft" an. In der Liste "Vorteil wählen" springen
+Pfeil links und rechts nur zwischen den verfügbaren Vorteilen, während Pfeil hoch
+und runter weiter alle durchgehen. Beim Öffnen der Liste wird die Tastenhilfe
+angesagt: hoch und runter wechselt die Zeile, links und rechts springt zu den
+verfügbaren, Bild auf und Bild ab blättert, Eingabetaste wählt.
+
+
+Neu: Einschränkungen am Spieltisch
+
+Im Charakterstatus steht über den Zählern eine Zeile "Einschränkungen": die Summe
+aus Wunden und Erschöpfung, und dahinter die Folge, falls es eine gibt, zum
+Beispiel "alle Proben minus 2". Ab drei Einschränkungen gibt es minus 2, je
+weitere minus 2 mehr; ab fünf droht Kampfunfähigkeit. Die genaue Regel steht im
+Tooltip (Shift und Pfeil-runter). Hinter den einzelnen Zählern für Wunden und
+Erschöpfung steht keine Folge mehr, weil sie in der Einschränkungen-Zeile
+zusammengefasst ist.
+
+
+Neu: Blättern mit Bild auf und Bild ab
+
+In den Listen, im Regeldokument, im Charakterbogen und im Info-Fenster springt
+Bild auf und Bild ab jetzt um eine halbe Seite, statt Zeile für Zeile. So kommt
+man in langen Texten schneller voran. Die Zielzeile wird angesagt.
+
+
+Neu: Regeldokument Satz für Satz lesen
+
+Im Regeldokument öffnet Shift und Pfeil-runter auf einem Absatz jetzt den Tooltip
+und liest den Absatz Satz für Satz. So kann man einen langen Absatz in Ruhe Stück
+für Stück hören, statt ihn nur am Stück.
+
+
+Neu: Zeichen als Wörter in den Regeltexten
+
+Kurzschreibweisen wie "VT-2-BE" oder "16+10" liest der Screenreader jetzt als
+Wörter: "VT minus 2 minus BE", "16 plus 10". Das gilt in den Regeltexten und im
+Regeldokument. Wörter mit Bindestrich wie "Nahkampf-Manöver" bleiben unangetastet,
+und der Schrägstrich bleibt stehen, weil er Bedeutung trägt.
+
+
+Geändert: Tabellen im Regeldokument sind gekennzeichnet
+
+Aus der PDF zerfallen Tabellen in viele kurze Bruchstücke, die vorher unvermittelt
+zwischen den Absätzen standen. Jetzt steht vor einer erkannten Tabelle der Hinweis
+"Es folgt eine Tabelle mit N Feldern, Zeile für Zeile lesbar", danach folgt "Ende
+der Tabelle". So weiß man, dass ein tabellarischer Abschnitt kommt, und geht ihn
+Feld für Feld durch. Mit Strg und Pfeil springt man von Tabelle zu Tabelle.
+
+
+Version 0.08 Alpha, 24. Juli 2026
+
+
+Neu: Original Ilaris Regeldokument, vollständig
+
+Im Hauptmenü, unter Regelnachschlagewerk, öffnet ein neuer Punkt das komplette
+Original-Regeldokument von Ilaris als lesbare Seite. Der Text ist aus der PDF
+übernommen und in Kapitel, Überschriften und Absätze gegliedert. Oben ein Filter
+für die Volltextsuche, Strg und Pfeil hoch oder runter springt zwischen den
+Überschriften, Strg und Bild auf oder ab zwischen den Kapiteln, ganz oben steht
+ein Inhaltsverzeichnis zum sofortigen Springen. Reines Nachschlagen, nichts wird
+verändert. Tabellen und einzelne Zauber sind noch nicht fein gegliedert.
+
+
+Neu: Charaktererstellung klarer geordnet
+
+Nach „Charakter erstellen" wählt man zuerst die Methode: Freier Editor,
+Assistierte Erstellung oder Erstellen aus Vorlage. Name und Erfahrungspunkte
+kommen erst danach. Bei der Vorlage gibt man dem Helden einen eigenen Namen und
+kann darunter die gewünschten Gesamt-Erfahrungspunkte festlegen; die Punkte der
+Vorlage werden auf diesen Wert aufgefüllt, der Rest bleibt frei zum Verteilen.
+
+
+Verbessert: Ansagen fühlen sich runder an
+
+Kein Doppelvorlesen mehr. Bisher las der Screenreader jeden angesprungenen
+Schalter selbst vor und das Programm sagte ihn zusätzlich an. Jetzt liest der
+Screenreader jedes fokussierte Element genau einmal; das Programm mischt sich
+beim Anspringen nicht mehr ein. Zusammengesetzte Zeilen (Charakterbogen,
+Wertzeilen) tragen dafür ihren vollständigen Text als Namen, damit nichts fehlt.
+Beim Öffnen eines Bildschirms wird nur noch der Titel angesagt, den ersten Punkt
+liest der Screenreader.
+
+Am Rand einer Liste kommt ein leiserer Anschlag und danach wird die Zeile, auf
+der man steht, noch einmal vorgelesen, statt dass der Ton die Sprache wegdrückt.
+Dieselbe Zeile lässt sich auch sonst bewusst erneut hören (Tooltip erneut
+öffnen). Aufzählungen in den Infos (Vorteile, Zauber, Attribute, Siehe auch)
+stehen jetzt Punkt für Punkt in eigenen Zeilen, Sätze Satz für Satz.
+
+
+Neu: Info-Fenster und Tooltip auf der rechten Bildschirmhälfte
+
+Die Vollinfos, die bisher nur vorgelesen wurden, erscheinen jetzt in einem
+gerahmten Fenster auf der rechten Bildschirmhälfte. Es öffnet mit dem Klang von
+aufgeblättertem Papier und schließt wie ein zugeschlagenes Buch. Zwei Wege,
+gleicher Platz:
+
+  Tooltip (Shift halten und Pfeil runter):
+    Rollt auf und liest die erste Zeile. Solange Shift gehalten wird, gehen
+    Pfeil hoch und runter Zeile für Zeile. Strg zusätzlich springt zur nächsten
+    Überschrift hoch oder runter, so findet man den richtigen Abschnitt und
+    liest dann darunter weiter. Loslassen von Shift rollt das Fenster zu.
+    Nur per Tastatur, für die Maus gesperrt, für Blinde gedacht. Der Fokus
+    wandert sichtbar mit, Sehende können mitlesen.
+    Hat ein Eintrag keinen Inhalt, geht der Tooltip gar nicht auf.
+
+  Info-Fenster (Strg und I oder Doppelklick):
+    Dasselbe Fenster, bleibt aber offen. Schließen-Schaltfläche oben,
+    Scrollbalken, Mausrad. Mit den Pfeiltasten geht der Zeilenfokus durch, das
+    Fenster scrollt mit. Escape oder die Schaltfläche schließen.
+
+Die Info-Texte sind dafür in Überschriften und Zeilen gegliedert. Überschriften
+bekommen: Vorteile, Talente, Eigenheiten, Regeln und der Vorlagen-Steckbrief.
+Zwischen ihnen springt Strg und Pfeil. Alte einfache Texte werden weiter
+unterstützt, dort gibt es nur keine Sprungmarken.
+
+
+Neu: Überschriften-Sprung im Charakterbogen
+
+Der Charakterbogen ist in Abschnitte gegliedert: Charakter, Attribute,
+Abgeleitete Werte, Fertigkeiten, Übernatürliches, Vorteile, Freie
+Fertigkeiten, Waffen, Rüstungen. Mit Strg und Pfeil hoch oder runter springt
+man direkt zwischen diesen Überschriften, statt jede Zeile einzeln
+durchzugehen.
+
+
+Neu: mehr Schaltflächen unten im freien Editor
+
+Unter Charakter speichern stehen jetzt:
+  Charakter speichern und schließen
+  Charakterbogen-Ansicht, zeigt alle Werte wie am Spieltisch
+  Charakter schließen, mit Rückfrage
+Die Charakterbogen-Ansicht nutzt dasselbe Modul wie der Spieltisch und die
+Vorlagen-Vorschau, überall dieselbe Ansicht.
+
+
+Neu: dritte Art der Charaktererstellung, Aus Vorlage
+
+Neben der assistierten und der freien Erstellung gibt es jetzt Aus Vorlage. Die
+Sephrasto-Dateien enthalten 28 fertige Beispielhelden, von der Garether
+Kriegerin bis zur Krötenhexe Gwendel. Aus einem von ihnen wird mit wenigen
+Schritten ein eigener Charakter.
+
+Der Weg:
+  Aus Vorlage wählen, dann eine Erfahrungsstufe:
+    Unerfahren   2000 Erfahrungspunkte, ein junger Held
+    Erprobt      2500 Erfahrungspunkte
+    Erfahren     3000 Erfahrungspunkte
+  Darin die Helden dieser Stufe. Shift und Pfeil-runter liest einen Steckbrief.
+  Eingabetaste öffnet den Helden mit zwei Wegen:
+    Vorlage wählen           führt in einen kurzen Assistenten
+    Charakterbogen betrachten zeigt alle Werte, genau wie am Spieltisch
+
+Der kurze Assistent hat vier Seiten und nutzt dieselben Fenster wie der große:
+Name, Aussehen, Familie und Hintergrund, dann speichern. Der eigene Name macht
+aus der Vorlage einen eigenen Helden; alle Werte, Vorteile, Talente und die
+Ausrüstung der Vorlage bleiben erhalten. Das letzte Weiter speichert den neuen
+Helden unter Meine Charaktere und öffnet ihn im Editor. Die Vorlage selbst
+bleibt unverändert und lässt sich erneut verwenden.
+
+
+Der Steckbrief
+
+Zu jedem Helden gibt es einen Text, der bei Shift und Pfeil-runter vorgelesen
+wird und im Info-Fenster mit Strg und I steht. Er beginnt mit zwei, drei Sätzen
+Einleitung: die Kurzbeschreibung der Vorlage, dazu eine Einordnung aus den
+Werten, ob Kämpfer, magiebegabt oder gesegnet, wo die Stärke liegt und wo die
+Schwäche. Danach folgt eine gegliederte Liste: stärkste Attribute, beste Waffe
+mit Attacke und Verteidigung, abgeleitete Werte, Vorteile, Eigenheiten und das
+Übernatürliche. Bei den langen Punkten steht die Zahl voran, etwa
+"Übernatürliches, 11 Zauber", damit das Wichtige zuerst gehört wird und die
+Aufzählung abbrechbar ist, bevor elf Zaubernamen kommen.
+
+
+Modular: ein Charakterbogen für alle
+
+Der Charakterbogen der Vorlagen-Ansicht ist derselbe, den man am Spieltisch
+sieht, wenn man mit dem Charakter spielt. Die Ansicht ist jetzt eine
+wiederverwendbare Funktion (baueCharakterbogen), die jeden Charakter anzeigt.
+So bleibt die Bedienung überall gleich, und Verbesserungen am Bogen wirken an
+jeder Stelle zugleich.
+
+
+Version 0.07 Alpha, 23. Juli 2026
+
+
+Neu: Ausrüstung ist in drei Bereiche gegliedert
+
+Die Ausrüstung war eine einzige lange Liste. Jetzt gibt es drei Bereiche, alle
+nach demselben Muster aufgebaut:
+
+  Waffen
+    Waffe kaufen oder selbst gestalten
+    Waffenliste, jede Waffe einzeln zum Öffnen und Ändern
+    Setverwaltung mit Haupthand, Nebenhand und Fernkampf
+  Rüstung
+    Rüstung kaufen oder frei anlegen
+    Rüstungsliste mit Zonen und Behinderung
+    Setverwaltung für die Teile, die zusammen getragen werden
+  Gegenstände
+    Gegenstand hinzufügen
+    Gegenstandsliste, Ort mit einem Tastendruck wechseln
+    Inventar am Mann
+    Inventar im Rucksack
+
+Eine Waffe lässt sich nach dem Kauf umbenennen und in allen Werten ändern:
+Würfel, Würfelseiten, Schadensbonus, Härte, Reichweite, Waffenmodifikator und
+Kampfstil. So entstehen eigene Waffen.
+
+
+Neu: Waffensets
+
+Ein Set fasst zusammen, was gleichzeitig geführt wird. Skularis hält die Sets
+von selbst in Ordnung:
+  Das Set "Waffenlos" gibt es immer, als Vergleichspunkt und für den Faustkampf.
+  Jede Waffe, die in keinem Set steht, bekommt eines. Fernkampfwaffen kommen auf
+  den Fernkampfplatz, alles andere in die Haupthand. Nach dem Kauf der ersten
+  Waffe steht also sofort ein brauchbares Set bereit, ohne dass man etwas
+  einstellen muss.
+
+Am Spieltisch stehen die Sets unter Live-Spiel, Kampfwerte, jedes einzeln mit
+Attacke und Verteidigung je Platz.
+
+
+Wie das gespeichert wird, ohne Sephrasto zu verlieren
+
+Sephrasto kennt weder Sets noch Haupthand und Nebenhand noch "am Mann" gegen
+"im Rucksack". Seine Waffen tragen feste Attribute, und beim Speichern baut
+Sephrasto jedes Element aus seinem eigenen Modell neu auf — ein zusätzliches
+Attribut wäre nach einmal Speichern in Sephrasto verschwunden.
+
+Das einzige Feld, das Sephrasto wortgetreu durchreicht, ist die Ausrüstungsliste
+mit ihren Ausrüstungsstück-Texten. Sets und Inventarorte stehen deshalb als
+eigene, lesbare Zeilen darin:
+
+  Waffenset: Kampfset 1; Haupthand: Säbel; Nebenhand: Buckler
+  Rüstungsset: Reise; Teile: Lederharnisch, Kappe
+  Im Rucksack: Seil, 10 Schritt
+
+Keine Steuerzeichen, sondern deutsche Wörter: wer die Datei in Sephrasto öffnet,
+sieht die Zeilen im Inventar und versteht sie. Wer sie dort ändert oder löscht,
+verliert höchstens die Zuordnung, nie einen Gegenstand. Gegenstände ohne Vorsatz
+gelten als am Mann getragen, alte Dateien lesen sich also unverändert.
+
+Eine Grenze, die man kennen muss: eigene Waffen entstehen immer aus einem
+Datenbankeintrag, dessen Name und Werte man danach ändert. Sephrasto sucht beim
+Laden die Vorlage in seiner Datenbank und verwirft die Waffe, wenn es sie nicht
+findet. Bei Rüstungen ist das anders, dort legt Sephrasto unbekannte Namen selbst
+an — frei erfundene Rüstungen überleben also.
+
+
+Neu: Kampfwerte am Spieltisch
+
+Unter Live-Spiel gibt es den Punkt Kampfwerte: die abgeleiteten Werte, die
+Probenwerte der Kampffertigkeiten mit und ohne Talent, und darunter jedes
+Waffenset mit Attacke und Verteidigung je Platz. Alles mit Filter und Vollinfo.
+
+
+Geändert: Gegenstände haben ein eigenes Untermenü
+
+Gemeldet beim Testen: Gegenstände ließen sich nicht aus der Liste heraus
+verschieben, sie blieben am Mann. Am Datenmodell lag es nicht, das Verschieben
+rechnet nachweislich richtig. Die Bedienung war das Problem: ein einzelner
+Tastendruck auf die Zeile hat den Ort umgeschaltet, ohne dass irgendwo stand,
+dass die Zeile das überhaupt tut.
+
+Jetzt öffnet die Eingabetaste ein Untermenü mit drei klaren Punkten:
+  Verschieben in den Rucksack, beziehungsweise an den Mann
+  Umbenennen
+  Löschen
+Dasselbe Untermenü hängt an jedem Gegenstand, egal ob man ihn über die
+Gegenstandsliste, über Inventar am Mann oder über Inventar im Rucksack erreicht.
+
+Beim Anlegen fragt Skularis jetzt ausdrücklich "Wo soll Fackel hin?" mit den
+beiden Schaltflächen "Am Mann" und "In den Rucksack", statt der früheren Frage
+nach Anlegen oder Inventar.
+
+
+Geändert: Ablauf beim Hinzufügen
+
+Erst die Rückfrage, ob wirklich hinzugefügt werden soll, dann die Frage "Anlegen
+oder ins Inventar legen" mit zwei Schaltflächen. Bei Rüstungen kommt danach die
+Abfrage der Behinderung; sie steht auf 0 und wird mit OK bestätigt. Danach
+landet der Gegenstand dort, wo er hin soll. Der Hinweis auf die Datenbank ist
+aus dem Tooltip der Rüstungsauswahl verschwunden.
+
+
+Geändert: Menüs neu geordnet
+
+  Das Regelnachschlagewerk ist aus dem Abenteuer-Tisch auf die Hauptebene
+  gewandert, direkt unter den Meister-Tisch. Zusätzlich steht es unten im
+  Meister-Tisch und unten im laufenden Abenteuer, dort jeweils mit Bezug auf die
+  Helden.
+  Der Charakterstatus ist aus dem Live-Spiel eine Ebene höher gerückt und steht
+  jetzt direkt unter Live-Spiel.
+  Der Meister-Tisch hat ein eigenes Menü bekommen: Helden der Runde mit ihren
+  Werten, Helden neu einlesen, dazu Platzhalter für Abenteuer vorbereiten,
+  Abenteuer leiten, Gegner und Kreaturen, Proben stellen sowie Beute und
+  Belohnung.
+
+
+Version 0.06 Alpha, 23. Juli 2026
+
+Diese Version bringt die Regelumsetzung an vier Stellen auf den Stand von
+Sephrasto. Alle vier fielen bei einem Vergleich des Sephrasto-Quelltextes mit
+Skularis auf; die Zahlen dahinter sind jeweils nachgemessen.
+
+
+Neu: Kampfwerte und Kampfstile
+
+Skularis hat Waffen bisher nur mit Schaden und Reichweite geführt. Attacke und
+Verteidigung gab es gar nicht, obwohl die Datenbank alles dafür mitbringt: jede
+Waffe nennt ihre Kampffertigkeit, ihr Waffentalent und die Kampfstile, die sie
+zulässt.
+
+  Attacke und Verteidigung sind jetzt der Probenwert der Kampffertigkeit plus
+  Waffenmodifikator. Ob der volle oder der halbe Fertigkeitswert zählt,
+  entscheidet das Waffentalent: mit Einhandklingenwaffen führt man den Säbel
+  geübt, ohne nur mit dem halben Wert. Das steht auch so in der Zeile:
+  "Waffe Säbel, Attacke 12, Verteidigung 12, entfernen".
+
+  Waffen ohne Verteidigung sind berücksichtigt. Bögen, Armbrüste, Blasrohre,
+  Diskusse, Schleudern, Wurfspeere, kurze Wurfwaffen und die Lanze melden
+  "Verteidigung nicht möglich" (Einstellung "Waffen: Talente VT verboten").
+
+  Kampfstile lassen sich je Waffe einstellen. Angeboten werden nur Stile, die
+  die Waffe zulässt und für die der Charakter den Vorteil hat — eine beliebige
+  Stufe genügt, "Schildkampf I" schaltet den Stil "Schildkampf" frei.
+  Die zwölf Vorteile mit modifyKampfstil wirken jetzt: Beidhändiger Kampf,
+  Kraftvoller Kampf, Schildkampf, Schneller Kampf und Reiterkampf, jeweils in
+  drei Stufen. Reiterkampf II gibt zum Beispiel Attacke plus 1, Verteidigung
+  plus 1, Schaden plus 1 und Behinderung minus 1.
+
+Die Kampfwerte stehen im Editor unter Ausrüstung, im Charakterstatus des
+Abenteuer-Tischs, im Charakterbogen und im HTML-Export.
+
+Noch offen aus diesem Bereich: addWaffeneigenschaft, bisher nur beim Vorteil
+Waffenloser Kampf gebraucht.
+
+
+Geändert: Behinderung der Rüstungen wird eingegeben
+
+Skularis hat die Behinderung bisher aus dem Rüstungsschutz geschätzt, nämlich
+als dessen Mittelwert. Das war frei erfunden: die Regeldatenbank hat für
+Rüstungen gar kein Behinderungsfeld, der Wert steht in der Rüstungstabelle des
+Regelwerks und gehört zum Charakter. Sephrasto lässt ihn deshalb eingeben.
+
+Jetzt ist es genauso. Unter jeder Rüstung steht eine Zeile "Behinderung von
+Amazonenrüstung: 3", die den Wert abfragt. Neue Rüstungen starten bei 0.
+Bestehende Charaktere behalten ihren gespeicherten Wert, es ändert sich also
+nichts an schon gebauten Helden.
+
+
+Geändert: Klänge für Bildschirmwechsel und Würfeln
+
+Der Klang beim Zurückgehen hatte mit dem beim Vorgehen nichts zu tun, beide
+waren kurz und trocken. Drei neue Klänge sind dazugekommen:
+
+  Eine Ebene vor: zwei Töne aufwärts, H nach Fis, weich anklingend, mit langem
+  Ausklang über eine Sekunde.
+
+  Eine Ebene zurück: genau dieselben zwei Töne, nur abwärts. Gleiche Klangfarbe,
+  gleiche Länge, gespiegelte Richtung — man hört ohne Hinsehen, ob es vor oder
+  zurück ging. Beide sind gleich laut eingestellt.
+
+  Würfeln: ein Würfel, der aufkommt, mehrfach springt und ausrollt. Bisher kam
+  beim Wurf nur der allgemeine Klickton.
+
+Die Töne sind bewusst obertonarm und leise gehalten, weil sie bei jedem
+Bildschirmwechsel erklingen und die Sprachausgabe nicht überdecken dürfen.
+Erzeugt werden sie von _test/klaenge-erzeugen.mjs; wer sie anders haben will,
+ändert dort Tonhöhe, Länge und Ausklang und lässt das Skript neu laufen.
+
+
+Neu: Ergebnis des Würfelwurfs steht in der Zeile
+
+Gemeldet beim Testen: nach einem Schnellwurf sagt Skularis das Ergebnis an, für
+Sehende war aber nichts zu sehen. Das Ergebnis steht jetzt rechts in derselben
+Zeile, aus der gewürfelt wurde, gut lesbar und in Ziffern gleicher Breite. Es
+bleibt dort stehen, bis erneut gewürfelt wird, und wandert zusätzlich in die
+Beschriftung des Schalters — wer später wieder auf die Zeile kommt, hört den
+letzten Wurf mit.
+
+
+Neu: Regelnachschlagewerk
+
+Die Datenbank enthält 123 Regeltexte, im Schnitt zwei bis drei Sätze, in 13
+Kategorien von Nahkampfmanövern über Gesundheit bis zu den Modifikationen für
+Zauber und Liturgien. 71 davon nennen eine Probe, etwa "Ausweichen, Probe
+VT -2-BE". Skularis hat sie bisher nicht einmal eingelesen.
+
+Jetzt sind sie an drei Stellen erreichbar, alle aus demselben Modul:
+
+  Meister-Tisch, erster Punkt: das Regelnachschlagewerk. Alle Regeln
+  alphabetisch, mit Filter obenauf. Hinter jedem Regelnamen steht, welche der
+  geladenen Helden sie haben, zum Beispiel "Befreiungsschlag, bei Alrik, Gwendel".
+  Als geladene Helden gelten die Charaktere aus Meine Charaktere; sie werden
+  beim Öffnen eingelesen und lassen sich über einen zweiten Menüpunkt neu
+  einlesen. Der Meister-Tisch ist damit kein Platzhalter mehr.
+
+  Abenteuer-Tisch, "Regeln nachschlagen": dieselbe vollständige Liste, aber
+  Regeln, die der Charakter des offenen Abenteuers hat, stehen vorn mit
+  "Verfügbar" gekennzeichnet. Vorn deshalb, damit der Screenreader es zuerst
+  liest.
+
+  In der Vollinfo von Vorteilen und Talenten, ganz am Ende. Erst die
+  Beschreibung, dann die Regeln dazu — bei Shift und Pfeil-runter wie im
+  Info-Fenster mit Strg und I.
+
+Eine Regel hängt auf zwei Wegen an einem Element: über ihre Voraussetzung
+(64 Regeln verlangen einen Vorteil, 12 eine Waffeneigenschaft, einige ein
+Talent) und über die Querverweise (165 Verweise der Form Regel zu Name). Beide
+Wege werden ausgewertet.
+
+In der Liste öffnet die Eingabetaste die Regel als navigierbares Feld, Satz für
+Satz. Die Regelliste ist bewusst immer vollständig: auch ein Manöver, das man
+noch nicht gekauft hat, will man am Spieltisch nachlesen können.
+
+
+Behoben: die Regeltexte waren für einen Screenreader unbrauchbar
+
+Die Regeldatenbank stammt aus Sephrasto und ist für eine Oberfläche gedacht, die
+Auszeichnungen darstellen kann. In den Beschreibungen stecken 7638 Fettmarken und
+468 Kursivmarken; Skularis hat sie unverändert weitergereicht, sodass NVDA sie
+mitgelesen hat. Dazu kamen eckige Klammern um Platzhalter, typografische
+Anführungszeichen und Gedankenstriche.
+
+Jeder Text der Datenbank wird jetzt einmal beim Laden aufbereitet
+(core/regeltext.js), damit er überall sauber ankommt, in der Ansage wie im
+Info-Fenster:
+  Auszeichnungen entfallen, der Inhalt bleibt
+  eckige Klammern entfallen, der Inhalt bleibt: aus "für [Unternehmen]" wird
+    "für Unternehmen"
+  typografische Anführungszeichen entfallen
+  Gedankenstriche werden zu Kommas
+  Zeilenumbrüche werden zu Satzenden, damit die Ansage Pausen bekommt
+  "S. 141" wird zu "Seite 141"
+Der Schrägstrich bleibt: er trägt Bedeutung, etwa in "IN/KL/KL" oder "20/28".
+
+Außerdem sind die Beschriftungen und Ansagen von Skularis selbst durchgesehen
+worden. Entfernt wurden Gedankenstriche und runde Klammern, die ein Screenreader
+mitliest:
+  "Waffe Säbel — entfernen"            wird zu "Waffe Säbel, entfernen"
+  "Talent hinzufügen (22 verfügbar)"   wird zu "Talent hinzufügen, 22 verfügbar"
+  "A: Ein Kind der Großstadt — löschen" wird zu "A, Ein Kind der Großstadt, löschen"
+  "Filter (tippen zum Suchen)"          wird zu "Filter, tippen zum Suchen"
+  "Spezies (z. B. Mensch, Elf, Zwerg)"  wird zu "Spezies, zum Beispiel Mensch, Elf oder Zwerg"
+Auch die Semikolons in Aufzählungen sind zu Kommas geworden.
+
+
+Neu: Seitenzahl, Art und Nachkauf in der Vollinfo
+
+Die Datenbank führt zu jedem Eintrag mehr, als Skularis bisher gezeigt hat. Das
+steht jetzt in der Vollinfo, also bei Shift und Pfeil-runter und im Info-Fenster
+mit Strg und I. In den Zeilen selbst steht es bewusst nicht, damit die Listen
+kurz bleiben.
+
+Bei Talenten:
+  die Art: Zauber, Liturgie oder Anrufung statt schlicht "Talent".
+    Die Datenbank kennt 555 Zauber, 261 Liturgien und 51 Anrufungen.
+  die Fundstelle: "Nachzulesen in Ilaris, Seite 141". 867 der 938 Talente
+    tragen eine Seitenzahl, die bisher ungenutzt blieb.
+  zu welchen Fertigkeiten das Talent sonst noch zählt
+  der Stand der Voraussetzungen
+In der Auswahlliste steht die Art zusätzlich in der Zeile, also
+"Ignifaxius Flammenstrahl, Zauber, 40 EP".
+
+Bei Vorteilen:
+  die Kosten
+  was noch fehlt und was schon erfüllt ist
+  der Nachkauf: "Nachkauf im Spiel ist häufig möglich" bis "Ein Nachkauf im
+    Spiel ist nicht möglich, dieser Vorteil muss bei der Erschaffung gewählt
+    werden". Alle 341 Vorteile tragen diese Angabe.
+  Querverweise auf verwandte Regeln, bei 192 Vorteilen vorhanden
+
+
+Behoben: Vorteile, die Talente verschenken, wirkten gar nicht
+
+Neunzehn Tiergeist-Vorteile tragen ein Skript, das dem Charakter vier bis sechs
+Zauber kostenlos gibt, zum Beispiel:
+  for t in ['Adlerauge Luchsenohr', ...]: addTalent(t + ' (Tiergeist)', 0, 'Gaben des Blutgeists')
+Die Null darin ist der Preis. Skularis hat das Skript nie ausgewertet: die
+Talente fehlten, und wer sie von Hand nachtrug, zahlte 20 bis 40 EP je Stück —
+bis zu 200 EP zu viel pro Tiergeist. Jetzt trägt Skularis sie beim Kauf des
+Vorteils selbst ein, zum Preis null, und nimmt sie wieder heraus, wenn der
+Vorteil geht. In der Talentliste stehen sie als "kostenlos durch einen Vorteil"
+und lassen sich nicht einzeln entfernen.
+
+
+Behoben: dreizehn Vorteile veränderten die abgeleiteten Werte nicht
+
+Skularis kannte von den Skript-Befehlen nur fünf. Damit blieben wirkungslos:
+  Willensstark I und II      je 4 Magieresistenz
+  Unbeugsamkeit              Magieresistenz um die Hälfte des Mutes, aufgerundet
+  Flink I und II             je 1 Geschwindigkeit
+  Unverwüstlich              1 Wundschwelle
+  Abgehärtet II              2 Durchhaltevermögen
+  Kampfreflexe               4 Initiative
+  Rüstungsgewöhnung          1 bzw. 2 weniger Behinderung
+  Gefäß der Sterne           Astralpunkte um Charisma plus 4
+Die Auswertung steht jetzt in core/skripte.js und rechnet auch verschachtelte
+Ausdrücke wie int(getMU()/2+0.5) aus. Kampfstile und Waffeneigenschaften bleiben
+vorerst außen vor, die gehören zu den Kampfwerten.
+
+
+Behoben: der Probenwert war falsch beschriftet
+
+Ilaris kennt zwei Probenwerte, und die Datenbank gibt beide vor:
+  ohne passendes Talent   Basiswert plus halber Fertigkeitswert, aufgerundet
+  mit passendem Talent    Basiswert plus voller Fertigkeitswert
+Skularis zeigte nur den zweiten und nannte ihn "Probenwert". Bei Fertigkeitswert
+6 sind das 3 Punkte Unterschied. Jetzt nennt die Vollinfo beide Werte, überall:
+Fertigkeiten, Übernatürliches und Charakterbogen im Abenteuer.
+
+
+Geändert: Talente stehen in einer Liste, nicht je Fertigkeit
+
+474 der 938 Talente gehören zu mehr als einer Fertigkeit. "Apport des Stabs"
+etwa zu Stabzauber und Umwelt, so steht es auch im Regelwerk auf Seite 172.
+Sephrasto führt Talente deshalb in einer einzigen Liste und zeigt sie unter
+jeder passenden Fertigkeit. Skularis speicherte sie je Fertigkeit, mit drei
+Folgen: ein unter Stabzauber gekaufter Zauber wurde unter Umwelt erneut zum Kauf
+angeboten, er ließ sich doppelt eintragen, und beim Öffnen einer
+Sephrasto-Datei landete jedes Talent nur unter seiner ersten Fertigkeit.
+
+Jetzt gilt auch hier das Sephrasto-Modell: eine Liste, angezeigt unter jeder
+zugehörigen Fertigkeit, einmal gekauft und einmal bezahlt. Beim Hinzufügen und
+Entfernen sagt Skularis dazu, zu welchen anderen Fertigkeiten das Talent noch
+zählt. Am Preis ändert sich nichts: alle 867 übernatürlichen Talente haben feste
+Kosten, und die 71 profanen gehören zu je genau einer Fertigkeit.
+
+
+Prüfung gegen Sephrastos eigene Zahlen
+
+Die mitgelieferten Erschaffungspakete tragen die von Sephrasto berechneten
+Erfahrungspunkte in sich. Der neue Test pakete.html vergleicht damit:
+  70 von 70 Paketen mit EP-Angabe stimmen auf den Punkt
+  82 von 82 Paketen kommen nach Lesen und Schreiben zeichengenau wieder heraus
+Die einzige Ausnahme ist das Paket "Hesindegeweihte - Deinomache", das einen
+Vorteil doppelt enthält; dort wird wie in Sephrasto zusammengefasst und der
+Charakter kostet 2973 statt 2993 EP.
+
+Damit ersetzt dieser Test den bisherigen Vergleich gegen die Vorversion, der
+seit dem Umbau der Talenthaltung nicht mehr aussagekräftig war.
+
+
+Version 0.05 Alpha, 22. Juli 2026
+
+Neu: assistierte Charaktererstellung mit zehn Seiten
+
+Die geführte Erstellung hat jetzt zehn Seiten statt drei. Jede Seite ist gleich
+aufgebaut, die Reihenfolge ist zugleich die Reihenfolge der Pfeil-Navigation:
+  1. Überschrift, hier landet der Fokus beim Öffnen
+  2. Info, der erklärende Text
+  3. ein Schritt zurück
+  4. ein Schritt vor
+  5. Seite zurücksetzen, mit Rückfrage
+  6. Filterfeld, nur wo es eine lange Liste gibt
+  7. die Auswahlliste oder die Eingabefelder
+
+Der Bildschirmtitel meldet immer "Assistierte Charaktererstellung, Schritt N von 10",
+danach liest der Screenreader die Überschrift. Shift und Pfeil-runter liest zu jedem
+Punkt die Vollinfo, Strg und I öffnet sie als navigierbares Feld. Bei Status, Finanzen,
+Eigenheiten und Vorteilen ist das die ausführliche Ilaris-Erklärung.
+
+Die Eingaben einer Seite werden beim Seitenwechsel gespeichert, in beide Richtungen.
+
+Die Seiten im Einzelnen:
+  1  Spezies wählen        wie bisher, jetzt im neuen Rahmen und mit echtem Filterfeld
+  2  Kultur wählen         dito
+  3  Profession wählen     dito
+  4  Aussehen              Geschlecht, Geburtsdatum, Größe, Gewicht, Haarfarbe,
+                           Augenfarbe, Titel und darunter sechs freie Zeilen,
+                           genau die Felder von Sephrasto und vom Charakterbogen
+  5  Status festlegen      Abschaum, Unterschicht (Standard), Mittelschicht,
+                           Oberschicht, Elite. Erklärung und Beispiele aus dem
+                           Ilaris-Regelwerk
+  6  Finanzen wählen       fünf Stufen von Sehr Arm bis Sehr Reich, Standard Normal
+  7  Eigenheiten           drei Felder je Eigenheit (Eigenheit, positive Aspekte,
+                           negative Aspekte), Schalter "Eigenheit speichern", darunter
+                           die gespeicherten Eigenheiten als A, B, C mit Löschen-
+                           Schalter und Rückfrage. Weiter geht es ab 2 Eigenheiten.
+  8  Attribute verteilen   die acht Attribute, darunter "Vergebene Punkte insgesamt"
+                           und "Ausgegebene Erfahrungspunkte für Attribute", beide live
+  9  Vorteile wählen       die bekannte Vorteile-Seite mit Ilaris-Erklärung darüber
+  10 Abschluss             Zusammenfassung. "ein Schritt vor" speichert den Charakter
+                           und öffnet Fertigkeiten und Talente im freien Editor
+
+Zurückgehen ist jetzt gefahrlos. Wählst du auf Seite 1 bis 3 ein anderes Paket, rechnet
+Skularis den Charakter wie bisher komplett neu, aber alles selbst Eingetragene bleibt
+erhalten und wird wieder aufgesetzt: Aussehen, Eigenheiten, Status, Finanzen, eigene
+Attributspunkte, eigene Vorteile, eigene Fertigkeitspunkte und Talente.
+
+
+Neu: vier Bereiche im freien Editor
+
+Aussehen, Familie und Hintergrund, Status und Finanzen sowie Eigenheiten gibt es im
+freien Editor als eigene Bereiche. Aussehen, Status und Finanzen und Eigenheiten haben
+dieselben Inhalte wie im Assistenten.
+
+Der Bereich Familie, Hintergrund und Herkunft ist neu und im Assistenten bewusst nicht
+enthalten, weil er in den Änderungswünschen nicht vorgesehen war. Er lässt sich als
+elfter Schritt nachrüsten, wenn du das möchtest.
+
+Nicht verwechseln: Eigenheiten sind eine Regelmechanik und bringen Schicksalspunkte;
+der Hintergrund ist reine Beschreibung ohne Regelwirkung. Beide haben in der
+Charakterdatei ihren eigenen Platz.
+
+
+Neu: Rückfrage vor dem Verwerfen
+
+Escape auf der obersten Ebene der Charaktererstellung fragt nach:
+"Charaktererstellung wirklich beenden? Nicht gespeicherte Änderungen gehen verloren."
+Eingabetaste verwirft, Escape bricht die Rückfrage ab. Mehrfaches Escape verwirft also
+nie versehentlich, es landet immer wieder auf "weiter bearbeiten". Dasselbe gilt für den
+sichtbaren Zurück-Schalter.
+
+
+Geändert: Reihenfolge im freien Editor
+
+Die Bereiche folgen jetzt dem Aufbau des Charakterbogens:
+  Beschreibung
+  Aussehen
+  Familie, Hintergrund und Herkunft
+  Status und Finanzen
+  Eigenheiten
+  Attribute
+  Fertigkeiten und Talente
+  Vorteile
+  Übernatürliches
+  Ausrüstung
+  Erfahrungspunkte
+  Charakter speichern
+Die Erfahrungspunkte sind wie gewünscht auf die vorletzte Position über
+"Charakter speichern" gerückt. Der automatische Punkt "Filtern" ist in diesem festen
+Menü abgeschaltet, damit Pfeil-runter sofort auf "Beschreibung" landet.
+
+
+Geändert: Sephrasto wird in den Programmtexten nicht mehr genannt
+
+Skularis vertritt das Ilaris-Regelwerk, Sephrasto ist nur das Hintergrund-Format.
+Umgestellt wurden: "Neuen Charakter erstellen" (sagt jetzt "Startet die Charakter-
+Generierung, frei oder assistiert. Erstelle einen Charakter nach Ilaris Regeln"),
+Charakter importieren, Charakter exportieren, Charakter speichern, die Fehlermeldung
+beim Import, der Datei-Dialog und der Text unter "Über Skularis".
+Im Quelltext, in Kommentaren und Dateinamen steht Sephrasto weiter, weil das Format
+so heißt.
+
+
+Geändert: Speicherformat, Kompatibilität mit Sephrasto in beide Richtungen
+
+Das war die größte Änderung in 0.05. Ausgangspunkt war ein Fund an zwei echten,
+von Sephrasto erzeugten Charakterdateien: Skularis 0.04 las von einem solchen
+Charakter 0 von 14 Vorteilen und 0 von 17 Talenten und rechnete ihn um 1088
+Erfahrungspunkte falsch. Beim Speichern verschwanden über zwanzig Felder.
+
+Der Grund: Sephrasto hat sein Dateiformat mehrfach geändert und rechnet alte
+Dateien beim Laden hoch. Skularis las und schrieb nur die alte Fassung von
+Sephrasto 4.1, während die echten Dateien in der Fassung CharakterVersion 6
+vorliegen. Dort stehen Vorteile als Attribut statt als Text und Talente in einem
+eigenen Block statt in der Fertigkeit.
+
+Drei Bausteine lösen das:
+
+1. Durchreichen statt Neuschreiben. Beim Speichern wird die Originaldatei
+   geparst und nur ersetzt, was Skularis wirklich verwaltet. Alles andere bleibt
+   Zeichen für Zeichen stehen: Notiz, Einstellungen, Plugins, Hausregeln,
+   Geschlecht, Titel, Hintergrund 0 bis 8, das Charakterbild und alles, was
+   künftige Sephrasto-Versionen dazunehmen. Auch innerhalb der Listen bleiben
+   fremde Attribute erhalten, etwa der Preis eines Talents mit variablen Kosten.
+
+2. Alle Formatgenerationen lesen, in der ankommenden zurückschreiben. Erkannt
+   und unterstützt werden die Fassungen bis 4 (Sephrasto 4.1 und die
+   mitgelieferten Erschaffungspakete), 5, 6, 7 und 8. Eine Datei kommt in
+   derselben Fassung wieder heraus, in der sie hereinkam. Ein neuer Charakter
+   wird in Fassung 6 angelegt, weil das die Fassung des hier verwendeten
+   Sephrasto ist; neuere Sephrasto-Versionen rechnen sie beim Laden selbst hoch.
+
+3. Skularis hat jetzt genau die Beschreibungsfelder von Sephrasto, mit denselben
+   Namen und in derselben Reihenfolge. Es gibt keine erfundenen Feldnamen mehr.
+   Sephrasto zeigt in seiner Oberfläche: neun beschriftete Einzelfelder, darunter
+   die Überschrift "Aussehen" mit sechs freien Zeilen ohne eigene Beschriftung,
+   darunter "Familie/Hintergrund/Herkunft" mit neun ebensolchen Zeilen.
+   Skularis bildet das eins zu eins ab:
+     Geschlecht, Geburtsdatum, Größe, Gewicht, Haarfarbe, Augenfarbe, Titel
+       jeweils ein beschriftetes Feld im Bereich Aussehen
+     Aussehen, Zeile 1 bis 6      die sechs freien Zeilen
+     Hintergrund, Zeile 1 bis 9   die neun freien Zeilen, eigener Bereich
+     Kultur, Profession           setzt der Assistent
+     Eigenheiten                  Beschreibung/Eigenheiten/Eigenheit
+
+   Zwischenzeitlich hatte 0.05 hier eigene Feldnamen wie "Frisur und Bart" und
+   "Besondere Merkmale" und legte sie still in Aussehen1 und Aussehen2 ab. Das
+   war irreführend: in Sephrasto und auf dem Bogen sind das freie Zeilen ohne
+   Bedeutung. Die Namen sind wieder draußen, die Beispiele stehen jetzt nur noch
+   in der Ansage zur jeweiligen Zeile ("Zeile 1, zum Beispiel Frisur und Bart").
+   Wer die Zeilen in Sephrasto anders belegt, bekommt sie in Skularis genau so
+   wieder zu sehen.
+
+   Sephrasto speichert eine Eigenheit als einen einzigen Freitext. Die drei
+   Skularis-Felder werden deshalb in eine Zeile zusammengelegt:
+     Ein Kind der Großstadt | Positiv: kennt jede Gasse | Negativ: verirrt sich
+   Skularis zerlegt sie beim Lesen wieder. Wird die Zeile in Sephrasto von Hand
+   umgeschrieben, landet sie vollständig im Feld Eigenheit — verloren geht nichts.
+
+   Der eigene <Aussehen>-Block, den 0.05 zwischenzeitlich geschrieben hat, wird
+   nicht mehr erzeugt. Dateien, die ihn noch enthalten, werden weiter gelesen und
+   beim nächsten Speichern umgestellt. Das gilt auch für die Eigenheiten, die
+   kurzzeitig als Attribute positiv und negativ gespeichert wurden.
+
+Die drei Felder Hintergrund 0 bis 8 rührt Skularis nicht an. Sie sind in Ilaris
+für den Hintergrund des Charakters gedacht, nicht für Eigenheiten, und bleiben
+für Sephrasto frei.
+
+
+Neu: Voraussetzungen werden durchgesetzt, wie in Sephrasto
+
+Gemeldet aus dem Test: beim Magier standen unter den Talenten einer Fertigkeit
+alle Zauber der Kategorie, auch die, die einem Gildenmagier gar nicht zustehen.
+Die Prüfung des Sephrasto-Quelltextes hat bestätigt, dass Skularis hier bisher
+überhaupt nicht filterte, und dass der Unterschied größer ist als vermutet.
+
+Die Zahlen für einen Gildenmagier nach dem mitgelieferten Paket:
+  übernatürliche Fertigkeiten zur Auswahl   vorher 73, jetzt 20
+  Talente in diesen 20 Fertigkeiten         vorher 750, jetzt 360
+  zusätzlich angebotene, regelwidrige       vorher 53 Fertigkeiten mit 794
+    Fertigkeiten                              Talenten, jetzt keine
+Gegenprobe: die echte Sephrasto-Datei eines Gildenmagiers enthält genau diese
+20 Fertigkeiten, und zwar dieselben.
+
+Vier Änderungen stecken dahinter:
+
+1. Die Voraussetzungsprüfung beherrscht jetzt die volle Sephrasto-Grammatik
+   (core/voraussetzungen.js, nachgebaut aus VoraussetzungenListe.py und
+   Hilfsmethoden.voraussetzungenPrüfen): Vorteil und Kein Vorteil mit
+   Platzhaltern, Attribut, MeisterAttribut, Talent, Fertigkeit,
+   Übernatürliche-Fertigkeit, Waffeneigenschaft und Spezies.
+   Bisher fehlten davon mehrere, und unbekannte Bedingungen galten als erfüllt.
+   Dadurch griff zum Beispiel die Regel "nur ein Tiergeist" gar nicht, weil sie
+   als "Kein Vorteil Tiergeist (*)" geschrieben ist, und die 42 Vorteile mit
+   MeisterAttribut galten immer als erfüllt.
+
+2. Die Talentliste einer Fertigkeit zeigt nur noch, was der Charakter lernen
+   darf. Was fehlt, steht in der Vollinfo, nach fehlender Voraussetzung
+   gruppiert: "Mit Tradition der Hexen eins kämen 14 dazu: ...".
+
+3. Übernatürliche Fertigkeiten werden nicht mehr von Hand gewählt, sondern
+   folgen den Vorteilen — genau wie in Sephrasto (Charakter.py,
+   checkVoraussetzungen). Wer die Tradition der Gildenmagier kauft, bekommt die
+   20 zugehörigen Fertigkeiten von selbst; fällt die Tradition weg,
+   verschwinden sie wieder, solange kein Talent und kein gesteigerter Wert
+   daran hängt. Der Schalter "Übernatürliche Fertigkeit hinzufügen" entfällt.
+
+4. Der Editor-Punkt "Übernatürliches" erscheint nur noch, wenn der Charakter
+   übernatürliche Fertigkeiten hat. Ein nichtmagischer Charakter sieht ihn gar
+   nicht mehr, statt eines Hinweises auf einen leeren Bereich.
+
+Hausregeln: Sephrasto hat dafür die Einstellung VoraussetzungenPrüfen, die in
+jeder Charakterdatei steht. Skularis liest und schreibt sie jetzt. Steht sie auf
+0, bleibt die Automatik aus und alles ist wieder frei wählbar.
+
+
+Neu: nicht verfügbare Vorteile werden gezeigt statt versteckt
+
+Sephrasto blendet Vorteile mit fehlenden Voraussetzungen nicht aus, sondern
+stellt sie in Fehlerfarbe dar und lässt sie trotzdem wählbar. Skularis macht das
+jetzt genauso, mit zwei Ergänzungen für die Bedienung ohne Bildschirm:
+
+  Die Beschriftung beginnt mit "Nicht verfügbar:", damit der Screenreader das
+  zuerst liest und man nicht bis zum Zeilenende warten muss. Die Farbe allein
+  trägt also keine Information.
+
+  Die Vollinfo nennt getrennt, was noch fehlt und was bereits erfüllt ist.
+  Die Bedingungen werden dabei lesbar gemacht: aus "Kein Vorteil Tiergeist (*)"
+  wird "kein anderer Tiergeist". Die Ersetzungen stammen aus der Regeldatenbank.
+
+  Der Schalter nennt beide Zahlen: "Vorteil hinzufügen (128 verfügbar, 71 noch
+  nicht)".
+
+Wird ein nicht verfügbarer Vorteil trotzdem gewählt, fragt Skularis mit der
+konkreten fehlenden Bedingung nach.
+
+
+Neu: Rückfrage nennt, was beim Entfernen verloren geht
+
+Wie in Sephrasto (findUnerfüllteVoraussetzungen) listet die Rückfrage vor dem
+Entfernen eines Vorteils auf, welche Vorteile, Talente und übernatürlichen
+Fertigkeiten dadurch ihre Voraussetzung verlieren.
+
+
+Neu: Übersichtstext an jeder Fertigkeit
+
+Im Detailfeld einer Fertigkeit steht jetzt zuerst, was sie umfasst, und erst
+danach die Probenrechnung — beim Hören kommt damit das Wichtige zuerst:
+"Einfluss umfasst bei dir 3 von 22 verfügbaren Talenten: ... Noch offen: ...
+14 weitere Talente setzen Vorteile voraus, die dir fehlen."
+Gilt für profane wie übernatürliche Fertigkeiten.
+
+
+Behoben: der Fokus konnte in der Barrierefreiheits-Box hängenbleiben
+
+Gemeldet aus der laufenden geführten Erstellung: mit Tabulator nach unten hinaus
+gerät man in die Barrierefreiheits-Box der Kopfzeile. Sie steht im Dokument vor
+dem Inhalt, deshalb landet man dort und nicht wieder am Anfang der Seite. In der
+Box waren die Pfeiltasten wirkungslos, weil die Pfeil-Navigation nur innerhalb
+des aktuellen Bildschirms arbeitet — man saß fest und hörte nur noch "Schalter
+Schrift verkleinern".
+
+  Pfeil hoch und runter sowie Position 1 und Ende holen den Fokus jetzt aus der
+  Kopfzeile zurück in den Bildschirm, und zwar auf den Punkt, an dem man ihn
+  verlassen hat. Links und rechts bleiben unangetastet, damit der
+  Lautstärkeregler weiter bedienbar ist.
+
+  Zweite Ursache: Wird ein Bildschirm zweimal kurz hintereinander neu aufgebaut,
+  zeigte der noch offene Fokus-Auftrag des ersten Aufbaus auf ein Element, das es
+  nicht mehr gab. Der Fokus landete dann im Nichts und alle Pfeiltasten waren
+  tot. Ein neuer Aufbau verwirft jetzt den offenen Auftrag, prüft vor dem Setzen,
+  ob das Ziel noch im Dokument steht, und greift sonst auf den ersten Punkt des
+  Bildschirms zurück.
+
+
+Geändert: Status und Finanzen schalten bei der Wahl weiter
+
+Auf den Seiten Spezies, Kultur und Profession wählt die Eingabetaste und geht
+direkt eine Seite weiter. Bei Status und Finanzen blieb die Seite stehen, man
+musste zusätzlich auf "ein Schritt vor". Das war uneinheitlich und wurde
+angeglichen: eine Wahl schaltet auf allen Auswahlseiten weiter. Im freien Editor
+bleibt die Seite wie bisher stehen, dort wählt man ja gezielt einen Wert.
+
+
+Behoben: zwei Fehler im Rechenkern
+
+Beide fielen erst beim Vergleich mit echten Sephrasto-Dateien auf und beide sind
+gegen den Quelltext von Sephrasto abgeglichen.
+
+  Leere Zeilen bei den freien Fertigkeiten wurden bezahlt. Sephrasto legt in der
+  Oberfläche leere Zeilen an (name="" wert="1"), die nichts kosten und trotzdem
+  in der Datei stehen. Skularis berechnete dafür je 4 EP. Bei der Testdatei waren
+  das 12 EP zu viel. Sephrasto überspringt sie (Charakter.py, epZaehlen:
+  "if not fer.name: continue"), Skularis jetzt auch.
+
+  Talente mit variablen Kosten verloren ihren Preis. 13 Talente der Datenbank
+  haben veränderliche Kosten, zum Beispiel Adlerschwinge Wolfsgestalt: wer
+  mehrere Tiere wählt, zahlt entsprechend mehr. Dieser Preis steht am Charakter,
+  nicht in der Datenbank. Skularis hat ihn beim Laden weggeworfen und immer den
+  Datenbankwert gerechnet. Jetzt werden Preis und Kommentar gelesen, in der
+  EP-Rechnung verwendet und wieder mitgeschrieben.
+
+  Zusätzlich: ein doppelt eingetragener Vorteil zählt jetzt wie in Sephrasto nur
+  einmal. Sephrasto führt Vorteile in einem Wörterbuch je Name. Das betrifft das
+  mitgelieferte Paket "Hesindegeweihte - Deinomache", das den Vorteil Tradition
+  der Hesindegeweihten I zweimal enthält; es kostet dadurch 2973 statt 2993 EP.
+
+
+Geändert: HTML-Export
+
+Das HTML-Charakterblatt zeigt zusätzlich Aussehen, Eigenheiten und den Status.
+
+
+Abweichung von der Vorlage: Finanzen
+
+In den Änderungswünschen standen zwei Zeilen:
+  Unterschicht 4 Schicksalspunkte und 15 Dukaten (Standard)
+  Mittelschicht 3 Schicksalspunkte und 50 Dukaten
+
+Diese Zahlen stehen so weder im Ilaris-Regelwerk noch in der Regeldatenbank. Regelwerk
+Seite 14 (Schritt 4, Glück und Geld) und die Einstellung "Finanzen" der datenbank.xml
+sagen übereinstimmend:
+  Sehr Arm     4 Dukaten,   6 Schicksalspunkte
+  Arm         16 Dukaten,   5 Schicksalspunkte
+  Normal      32 Dukaten,   4 Schicksalspunkte   (Standard)
+  Reich      128 Dukaten,   2 Schicksalspunkte
+  Sehr Reich 256 Dukaten,   0 Schicksalspunkte
+
+Dazu kommt: die Schicksalspunkte rechnet die Engine aus dem Finanzen-Wert der Datei aus,
+das Skript steht so in der datenbank.xml. Ein Eintrag mit 3 Schicksalspunkten ließe sich
+nicht abbilden, ohne die Rechen-Engine zu verlassen und damit die Regeltreue aufzugeben.
+
+Gebaut wurden deshalb die fünf echten Ilaris-Stufen, Standard "Normal" mit 32 Dukaten
+und 4 Schicksalspunkten. Damit stimmen die 4 Schicksalspunkte des gewünschten Standards,
+nur das Startkapital ist 32 statt 15 Dukaten.
+Offen: falls das eine Hausregel der Runde ist, wird sie als eigene Auswahl mit einem
+Vermerk in der Charakterdatei nachgereicht.
+
+Beim Status wurden die gewünschten Beschriftungen direkt übernommen, dort passen sie zu
+den Ilaris-Stufen: Abschaum, Unterschicht (die Armen, Mehrheit Bauern), Mittelschicht,
+Oberschicht, Elite.
+
+Das Eigenheiten-Beispiel ist wie gewünscht ein Original aus dem Regelwerk: "Ein Kind der
+Großstadt" von Valeria, Seite 15, Kapitel Eigenheiten einsetzen und Eigenheiten
+ausnutzen. Die Aspekte dazu sind aus den beiden Beispielszenen abgeleitet, wörtlich
+aufgelistet sind sie im Buch nicht.
+
+
+Offene Punkte nach 0.05
+
+  Gegenprobe in Sephrasto: einen in Skularis erstellten Charakter in Sephrasto öffnen,
+  dort etwas ändern, speichern und wieder in Skularis öffnen. Sephrasto liegt auf diesem
+  Rechner nicht, deshalb ist das der einzige Schritt, der nicht automatisch geprüft
+  werden konnte. Alles andere ist abgesichert: eine neu angelegte Datei hat denselben
+  Bauplan wie eine echte Sephrasto-Datei, Block für Block, und beide echten Testdateien
+  kommen nach dem Durchlauf durch Skularis zeichengenau gleich wieder heraus.
+
+  Falls Sephrasto in einer Version ab 7 oder 8 zum Einsatz kommt: Skularis liest und
+  schreibt diese Fassungen, legt neue Charaktere aber in Fassung 6 an. Das lässt sich in
+  einer Zeile umstellen (NEUE_CHARAKTER_VERSION in core/sephrasto-xml.js).
+
+  Ansage mit NVDA und Braillezeile ist nicht automatisch prüfbar und braucht einen
+  Durchgang von Hand.
+
+  Untergruppen im Editor, Vorschlag zur Abstimmung, noch nicht gebaut. Ab etwa zwölf
+  Einträgen wird eine flache Liste unübersichtlich, deshalb vier Untergruppen in der
+  Reihenfolge des Charakterbogens:
+    1. Person       Beschreibung, Aussehen, Status und Finanzen, Eigenheiten
+    2. Werte        Attribute, Abgeleitete Werte (nur Anzeige), Fertigkeiten und
+                    Talente, Freie Fertigkeiten
+    3. Fähigkeiten  Vorteile, Übernatürliches
+    4. Besitz       Waffen, Rüstungen, Gegenstände
+    danach direkt im Editor-Menü: Erfahrungspunkte, Charakter speichern
+  Vorteil: sechs Punkte im Hauptmenü statt elf. Nachteil: ein Tastendruck mehr bis zu
+  jedem Bereich.
+
+  Weiterhin offen aus 0.04: Meister-Tisch, Charakterblatt als PDF, Spielfeld im
+  Abenteuer-Tisch.
+
+
+Technisches zu 0.05
+
+Neue Dateien im Renderer:
+  core/voraussetzungen.js     Voraussetzungen zerlegen, prüfen und lesbar machen
+  core/xml-dokument.js        XML lesen und im Sephrasto-Format wieder schreiben
+  editor/hintergrund.js       Familie, Hintergrund und Herkunft
+  editor/assistent-seite.js   der gemeinsame Rahmen einer Assistenten-Seite
+  editor/texte.js             alle Ilaris-Erklärtexte an einer Stelle
+  editor/aussehen.js          Aussehen, als Seite und als Editor-Bereich
+  editor/status-finanzen.js   Status und Finanzen, als Seiten und als Editor-Bereich
+  editor/eigenheiten.js       Eigenheiten, als Seite und als Editor-Bereich
+
+Geändert: core/sephrasto-xml.js (neu geschrieben), core/regeln.js, core/character.js,
+core/db.js, core/paket.js, core/export-html.js, assistent.js (neu geschrieben),
+editor.js, attribute.js, vorteile.js, ui/screen.js (neue Funktion zurueck() mit Wächter
+onBack), ui/menu-screen.js (filter false möglich), app.js, screens/charakterverwaltung.js,
+screens/meine-charaktere.js, screens/optionen.js, main/main.js, main/file-operations.js,
+css/skularistool.css, package.json.
+
+Prüfungen: "Tests ausfuehren.bat" im Programmordner, es muss nichts installiert werden.
+Der ganze Durchlauf dauert rund 15 Sekunden und meldet am Ende seine Dauer. Skularis darf
+dabei ruhig geöffnet bleiben, die Tests starten ein eigenes unsichtbares Fenster.
+Die Tests laufen mit der Node-Laufzeit, die in Skularis.exe steckt. Geprüft werden:
+
+  Syntax aller Quelldateien sowie alle Importe und benannten Exporte.
+
+  Rechenkern: Schicksalspunkte je Finanzstufe, EP-Formeln, gratis Gebräuche der Heimat,
+  die Regel für freie Fertigkeiten, Talente mit variablen Kosten, HTML-Export.
+
+  Durchreichen: die beiden echten Sephrasto-Dateien werden gelesen und wieder
+  geschrieben und müssen zeichengenau gleich herauskommen.
+
+  Kompatibilität in beide Richtungen: aus den echten Dateien müssen alle Vorteile,
+  Talente und Waffen ankommen und die Erfahrungspunkte auf den Punkt mit Sephrastos
+  eigener Angabe übereinstimmen. Werden Skularis-Felder eingetragen, müssen alle
+  fremden Felder unangetastet bleiben. Alle 82 Erschaffungspakete werden gelesen,
+  wieder geschrieben und mit der Vorversion verglichen. Ein neu angelegter Charakter
+  muss denselben Bauplan haben wie eine echte Sephrasto-Datei.
+
+  Bedienung: alle zehn Assistenten-Seiten und der freie Editor in einem echten
+  Bildschirm-Durchlauf, inklusive Reihenfolge der Bedienelemente und der Rückfrage
+  vor dem Verwerfen.
+
+Der Testordner ist resources\app\_test; er stört den normalen Betrieb nicht und kann vor
+dem Weitergeben zusammen mit "Tests ausfuehren.bat" gelöscht werden. Die Prüfungen gegen
+echte Sephrasto-Dateien greifen auf zwei Dateien unter Rollenspiel\0,03 Jucho Skachunow
+Ordner zu; fehlen die, meldet nur dieser Teil einen Fehler.
+
+
+Version 0.04 Alpha, 13. Juli 2026
+
+Diese Notiz ist nachträglich aus der Einweisung für Mitentwickler zusammengestellt, für
+0.04 und früher gab es noch keine laufenden Patchnotes.
+
+  Kompletter Charakter-Editor, frei und geführt über den Assistenten mit Spezies,
+  Kultur und Profession.
+  Charakterverwaltung: speichern, öffnen, importieren, HTML-Export, Abenteuerpunkte
+  hinzufügen.
+  Abenteuer-Tisch: Würfeln, Charakterstatus, Charakterbogen, Inventar, Journal,
+  Mitspieler, Protokoll, Spieltag-Abschluss.
+  Regeltreue verifiziert: gegen alle 72 mitgelieferten Beispielcharaktere stimmen die
+  Erfahrungspunkte exakt, der XML-Rundlauf ist verlustfrei.
+
+
+Wie diese Datei gepflegt wird
+
+  Sie liegt im Programmordner der jeweiligen Version und wird mit weitergegeben.
+  Bei einer neuen Version wird der Abschnitt der neuen Version oben angefügt, die alten
+  Abschnitte bleiben unverändert stehen. Die Datei wächst also nach oben.
+  Überschrift einer Version: "Version 0.06 Alpha, Datum ausgeschrieben".
+  Darunter Abschnitte in dieser Reihenfolge, nur die, die es wirklich gibt:
+  Neu, Geändert, Behoben, Abweichungen von der Vorlage, Offene Punkte, Technisches.
+  Geschrieben wird schlichter Text mit echten Umlauten, ohne Schmucklinien aus Gleichheits-
+  oder Minuszeichen, damit ein Screenreader die Datei sauber vorliest.
+  "Offene Punkte" wird beim nächsten Eintrag durchgesehen: erledigte Punkte wandern in
+  "Behoben" oder "Neu" der neuen Version, statt in der alten gestrichen zu werden.
