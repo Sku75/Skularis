@@ -7,7 +7,15 @@ Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 Version 0.11, 30. Juli 2026
 
 
-(Diese Version ist in Arbeit. Die Punkte werden hier ergänzt, sobald sie umgesetzt sind.)
+Behoben: freier Wurf, Fokus und Ergebnis
+
+Nach einem freien Wurf steht der Fokus jetzt wieder auf dem Schalter "Freier
+Wurf", und beim Erreichen des Schalters wird das Ergebnis vorgelesen, genau wie
+bei den Schnellwürfen. Die Würfeltyp-Auswahl läuft jetzt als kleiner Dialog, statt
+einen eigenen Bildschirm zu öffnen.
+
+
+(Diese Version ist in Arbeit. Weitere Punkte folgen, sobald sie umgesetzt sind.)
 
 
 Version 0.10, 29. Juli 2026

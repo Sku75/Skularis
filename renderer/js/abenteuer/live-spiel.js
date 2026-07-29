@@ -8,8 +8,7 @@ import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { wertZeile, infoZeile, abschnittTitel, verbindeDetail } from '../editor/widgets.js';
-import { zahlDialog } from '../ui/dialog.js';
-import { auswahlScreen } from '../ui/auswahl-screen.js';
+import { zahlDialog, auswahlDialog } from '../ui/dialog.js';
 import { abgeleiteteWerte, waffenwerte, waffenwerteText, fertigkeitProbenwert, wundabzug } from '../core/regeln.js';
 import { getDb } from '../core/db-laden.js';
 import { leseInventar, setText, SLOTS } from '../core/ausruestung.js';
@@ -108,15 +107,18 @@ export function kampfwerteScreen() {
 async function freierWurf() {
   const anzahl = await zahlDialog({ titel: 'Freier Wurf', label: 'Anzahl der Würfel', wert: 1, min: 1, max: 50 });
   if (anzahl === null) return;
-  auswahlScreen({
-    titel: 'Würfeltyp wählen',
-    eintraege: [{ label: 'W6', wert: 6 }, { label: 'W20', wert: 20 }],
-    onWahl: async (seiten) => {
-      const mod = await zahlDialog({ titel: 'Modifikator', label: 'Modifikator, 0 wenn keiner', wert: 0, min: -100, max: 100 });
-      if (mod === null) return;
-      wuerfeln(anzahl, seiten, mod, 'frei');
-    },
-  });
+  // Würfeltyp als modaler Dialog (nicht als eigener Bildschirm), damit der
+  // Live-Bildschirm samt "Freier Wurf"-Schalter stehen bleibt.
+  const seiten = await auswahlDialog({ titel: 'Würfeltyp wählen', eintraege: [{ label: 'W6', wert: 6 }, { label: 'W20', wert: 20 }] });
+  if (seiten === null) return;
+  const mod = await zahlDialog({ titel: 'Modifikator', label: 'Modifikator, 0 wenn keiner', wert: 0, min: -100, max: 100 });
+  if (mod === null) return;
+  // Stumm würfeln (Ergebnis landet in der Beschriftung des Schalters), dann Fokus
+  // zurück auf "Freier Wurf" — beim Erreichen liest der Screenreader das Ergebnis,
+  // genau wie bei den Schnellwürfen.
+  wuerfeln(anzahl, seiten, mod, 'frei', true);
+  const btn = document.querySelector('[data-ergebnis-ziel="frei"]');
+  if (btn) btn.focus();
 }
 
 /**
@@ -133,7 +135,7 @@ function zeigeErgebnis(id, kurz, ansage) {
   if (schalter) schalter.setAttribute('aria-label', ansage);
 }
 
-function wuerfeln(anzahl, seiten, mod, id) {
+function wuerfeln(anzahl, seiten, mod, id, stumm) {
   const a = getAbenteuer();
   const wuerfe = [];
   for (let i = 0; i < anzahl; i++) wuerfe.push(1 + Math.floor(Math.random() * seiten));
@@ -149,7 +151,8 @@ function wuerfeln(anzahl, seiten, mod, id) {
   // Kurzform für die Anzeige: die Augen, bei Modifikator zusätzlich die Summe.
   zeigeErgebnis(id, mod ? `${wuerfe.join(' ')} = ${summe}` : wuerfe.join(' '), ansage);
   // Bleibt im Würfelmenü; nur eine kurze Ansage, kein neuer Bildschirm.
-  sprache.sage(ansage);
+  // Beim freien Wurf (stumm) kommt die Ansage über den Fokus auf den Schalter.
+  if (!stumm) sprache.sage(ansage);
 }
 
 export function charakterstatusScreen() {
