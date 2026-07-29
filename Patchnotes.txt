@@ -4,6 +4,39 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.10, 29. Juli 2026
+
+
+Neu: portable Struktur mit getrenntem Updater
+
+Skularis ist jetzt portabel aufgebaut. Nach dem Entpacken der ZIP gibt es den
+Ordner "Skularis Portable". Darin liegen der Programmordner "Skularis 0.10", die
+Ordner Charakter-Dateien und Abenteuer-Daten sowie die zwei Dateien "Skularis
+Starten" und "Skularis Updaten". Deine Daten liegen damit neben dem Programm,
+nicht darin. So kann ein Update den Programmordner austauschen, ohne die Daten je
+zu berühren. Vorhandene Charaktere und Abenteuer aus einer älteren Version werden
+beim ersten Start automatisch übernommen.
+
+
+Neu: Skularis Updaten, ein eigenständiger Updater
+
+Das Aktualisieren übernimmt jetzt ein eigenes Werkzeug, "Skularis Updaten", das
+neben dem Programm liegt. Es prüft auf eine neue Version, lädt sie in einen
+Zwischenordner und tauscht nur den Programmordner aus. Deine Charaktere,
+Abenteuer und Einstellungen bleiben unberührt. Während der Arbeit ertönt alle
+zehn Sekunden ein Warteton, am Ende wird die neue Versionsnummer angesagt. Der
+frühere Update-Knopf in Skularis ist damit entfallen. Grund für den Umbau: der
+alte, in Skularis eingebaute Updater musste seinen eigenen Ordner austauschen,
+was unter Windows an Dateisperren scheitern konnte.
+
+
+Neu: Über Skularis Zeile für Zeile
+
+Unter Optionen öffnet "Über Skularis" jetzt eine eigene Seite, die man mit den
+Pfeiltasten Zeile für Zeile liest. Sie nennt Version und Entwickler, beschreibt
+das Programm und führt die rechtlichen Hinweise als Fan-Projekt auf.
+
+
 Version 0.09, 29. Juli 2026
 
 

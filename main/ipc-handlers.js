@@ -5,7 +5,6 @@ const { ipcMain, app } = require('electron');
 const path = require('path');
 const fileOps = require('./file-operations');
 const settings = require('./settings');
-const updater = require('./updater');
 
 ipcMain.handle('skularis:datei-oeffnen', (event) => {
   const { getMainWindow, getCharOrdner } = require('./main');
@@ -69,28 +68,6 @@ ipcMain.handle('skularis:oeffne-regelwerk', () => {
 ipcMain.handle('skularis:app-info', () => {
   const { getAppPfad, VERSION } = require('./main');
   return { version: VERSION, basisPfad: getAppPfad() };
-});
-
-// --- Selbst-Update ---
-ipcMain.handle('skularis:update-pruefen', () => {
-  const { VERSION } = require('./main');
-  return updater.pruefe(VERSION);
-});
-
-ipcMain.handle('skularis:update-ausfuehren', async () => {
-  const { getBasisPfad, getMainWindow } = require('./main');
-  const win = getMainWindow();
-  const onProgress = (pct) => {
-    if (win && !win.isDestroyed()) win.webContents.send('skularis:update-fortschritt', pct);
-  };
-  return updater.ladeUndInstalliere({ installPfad: getBasisPfad(), exePfad: process.execPath, onProgress });
-});
-
-ipcMain.handle('skularis:update-beenden', () => {
-  // Kurze Pause, damit die Ansage "startet neu" noch gesprochen wird, dann hart
-  // beenden, damit das Hilfsskript die Dateien tauschen kann.
-  setTimeout(() => { app.exit(0); }, 1500);
-  return true;
 });
 
 // --- Charakter-Bibliothek ---
