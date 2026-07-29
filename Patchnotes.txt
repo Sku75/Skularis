@@ -4,6 +4,27 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.16, 30. Juli 2026
+
+
+Datenübertragung zwischen Abenteuer und Charakterbogen
+
+Wenn du ein neues Abenteuer mit einem Charakter beginnst, werden jetzt seine
+Münzbörse und sein Spielinventar aus dem Charakterbogen übernommen. Während des
+Spiels änderst du beides im Abenteuer. Beim Spieltag-Abschluss werden dann
+Abenteuerpunkte, Münzbörse und Inventar zurück in den Charakterbogen geschrieben.
+So bleibt der Charakterbogen im Charakter-Dateien-Ordner immer der eine aktuelle
+Stand: Du öffnest ihn, fügst Erfahrungspunkte hinzu und steigerst, und beim
+nächsten Abenteuer ist alles beisammen.
+
+Der Skularis-Charakterbogen bekommt eigene Felder
+
+Für die Münzbörse und das Spielinventar gibt es jetzt eigene Felder in der
+Charakterdatei, die gespeichert und wieder geladen werden. Sie stehen in einem
+eigenen Skularis-Block der Datei; eine mit Sephrasto geöffnete Datei ignoriert
+ihn einfach, die Sephrasto-Werte bleiben unangetastet.
+
+
 Version 0.15, 30. Juli 2026
 
 

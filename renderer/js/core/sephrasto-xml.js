@@ -133,6 +133,16 @@ export function parse(xml, db) {
   // Im Format ab Version 5 leer, dort gibt es nur den einen Talente-Block.
   c._talenteJeFertigkeit = {};
 
+  // Eigene Skularis-Felder (Münzbörse, Spielinventar) aus dem SkularisDaten-Block.
+  const sd = kind(root, 'SkularisDaten');
+  if (sd && sd.textContent && sd.textContent.trim()) {
+    try {
+      const d = JSON.parse(sd.textContent);
+      if (d.geldboerse) c.geldboerse = d.geldboerse;
+      if (d.spielinventar) c.spielinventar = d.spielinventar;
+    } catch { /* defekte eigene Daten ignorieren, Sephrasto-Teil bleibt gültig */ }
+  }
+
   // Beschreibung
   const besch = kind(root, 'Beschreibung');
   c.name = textVon(besch, 'Name');
@@ -429,6 +439,7 @@ export function serialisiere(c, db) {
   schreibeObjekte(root, c, f);
   schreibeErfahrung(root, c);
   schreibeBeschreibungDetails(root, c);
+  schreibeSkularisDaten(root, c);
 
   const xml = schreibeDokument(dok);
   // Die eigene Quelle nachziehen, damit ein zweites Speichern auf dem
@@ -666,6 +677,20 @@ function schreibeBeschreibungDetails(root, c) {
   for (let i = 0; i < HINTERGRUND_ZEILEN.length; i++) {
     setzeText(bd, `Hintergrund${i}`, (c.hintergrund && c.hintergrund[i]) || '');
   }
+}
+
+/**
+ * Eigene Skularis-Felder, die es in Sephrasto nicht gibt und die über Abenteuer
+ * hinweg erhalten bleiben sollen: die Münzbörse und das Spielinventar. Als ein
+ * JSON-Block in einem eigenen Element abgelegt; Sephrasto ignoriert es beim
+ * Öffnen, unsere eigene parse-Funktion liest es wieder ein.
+ */
+function schreibeSkularisDaten(root, c) {
+  const el = kindOderNeu(root, 'SkularisDaten');
+  const daten = {};
+  if (c.geldboerse) daten.geldboerse = c.geldboerse;
+  if (c.spielinventar) daten.spielinventar = c.spielinventar;
+  el.textContent = JSON.stringify(daten);
 }
 
 // --- Vorlage für einen neuen Charakter ------------------------------------

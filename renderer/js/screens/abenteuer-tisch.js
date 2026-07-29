@@ -18,7 +18,7 @@ import { auswahlScreen } from '../ui/auswahl-screen.js';
 import { textDialog, zahlDialog } from '../ui/dialog.js';
 import { ladeDb } from '../core/db-laden.js';
 import { parse, serialisiere } from '../core/sephrasto-xml.js';
-import { createAbenteuer, parseAbenteuer, protokolliere } from '../core/abenteuer.js';
+import { createAbenteuer, parseAbenteuer, protokolliere, uebernehmeAbenteuerdaten } from '../core/abenteuer.js';
 import { getAbenteuer, setAbenteuer, speichere } from '../abenteuer/state.js';
 
 const ipc = window.skularis?.ipc;
@@ -170,8 +170,11 @@ async function spieltagAbschliessen() {
   const ap = await zahlDialog({ titel: 'Spieltag abschließen', label: 'Erhaltene Abenteuerpunkte', wert: 0, min: 0, max: 100000 });
   if (ap === null) return;
 
+  // Beim Abschluss den Charakterbogen aktualisieren: Abenteuerpunkte,
+  // Münzbörse und Spielinventar. Der Bogen wird frisch von der Platte geladen,
+  // damit zwischenzeitliche Editor-Änderungen (Steigern) nicht verloren gehen.
   let charOk = true;
-  if (ap > 0 && a.charakterName) {
+  if (a.charakterName) {
     try {
       const db = await ladeDb();
       let c;
@@ -181,24 +184,26 @@ async function spieltagAbschliessen() {
       } else {
         c = a.charakter;
       }
-      c.erfahrung.gesamt = (c.erfahrung.gesamt || 0) + ap;
+      if (ap > 0) c.erfahrung.gesamt = (c.erfahrung.gesamt || 0) + ap;
+      uebernehmeAbenteuerdaten(c, a);
       await ipc.bibliothekSpeichern({ name: a.charakterName, inhalt: serialisiere(c, db) });
     } catch (e) {
-      console.error('AP an Charakter schreiben:', e);
+      console.error('Charakter aktualisieren:', e);
       charOk = false;
     }
   }
 
   a.apGesamt += ap;
-  protokolliere(a, `Spieltag ${a.spieltag} abgeschlossen, ${ap} Abenteuerpunkte an ${a.charakterName} übertragen.`);
+  protokolliere(a, `Spieltag ${a.spieltag} abgeschlossen. ${ap} Abenteuerpunkte, Finanzen und Inventar an ${a.charakterName} übertragen.`);
   a.spieltag += 1;
   await speichere();
   sounds.playSpeichern();
 
   // Zurück zum Hauptmenü, dann die Bestätigung ansagen (überschreibt die Menü-Ansage).
   screen.zuWurzel();
+  const apText = ap > 0 ? `${ap} Abenteuerpunkte, ` : '';
   const meldung = charOk
-    ? `${ap} Abenteuerpunkte an ${a.charakterName} gespeichert. Abenteuer gespeichert, nächster Spieltag ist ${a.spieltag}. Zurück im Hauptmenü.`
-    : `Abenteuer gespeichert. Achtung, die Abenteuerpunkte konnten nicht am Charakter gespeichert werden. Zurück im Hauptmenü.`;
+    ? `Charakterbogen aktualisiert: ${apText}Finanzen und Inventar gespeichert. Abenteuer gespeichert, nächster Spieltag ist ${a.spieltag}. Zurück im Hauptmenü.`
+    : `Abenteuer gespeichert. Achtung, der Charakterbogen konnte nicht aktualisiert werden. Zurück im Hauptmenü.`;
   setTimeout(() => sprache.sage(meldung), 150);
 }

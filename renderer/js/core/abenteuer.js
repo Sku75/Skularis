@@ -28,6 +28,35 @@ export function ressourcenAusCharakter(char) {
   return res;
 }
 
+/**
+ * Inventar aus dem Charakter übernehmen: Münzbörse und Spielinventar stammen
+ * aus den eigenen Skularis-Feldern des Charakterbogens (char.geldboerse,
+ * char.spielinventar). Fehlen sie (älterer Bogen), beginnt das Abenteuer leer.
+ */
+export function inventarAusCharakter(char) {
+  const g = (char && char.geldboerse) || {};
+  const si = (char && char.spielinventar) || {};
+  return {
+    geldboerse: { dukaten: g.dukaten || 0, silber: g.silber || 0, kupfer: g.kupfer || 0 },
+    rucksack: Array.isArray(si.rucksack) ? si.rucksack.map(x => ({ ...x })) : [],
+    guertel: Array.isArray(si.guertel) ? si.guertel.map(x => ({ ...x })) : [],
+  };
+}
+
+/**
+ * Beim Spieltag-Abschluss zurück in den Charakterbogen: die im Abenteuer
+ * veränderte Münzbörse und das Spielinventar werden übernommen. So bleibt der
+ * Charakterbogen der eine aktuelle Stand für das nächste Abenteuer.
+ */
+export function uebernehmeAbenteuerdaten(char, a) {
+  const inv = (a && a.inventar) || {};
+  char.geldboerse = { ...(inv.geldboerse || { dukaten: 0, silber: 0, kupfer: 0 }) };
+  char.spielinventar = {
+    rucksack: Array.isArray(inv.rucksack) ? inv.rucksack.map(x => ({ ...x })) : [],
+    guertel: Array.isArray(inv.guertel) ? inv.guertel.map(x => ({ ...x })) : [],
+  };
+}
+
 export function createAbenteuer(char, name, charakterName, charakterPfad) {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -37,11 +66,7 @@ export function createAbenteuer(char, name, charakterName, charakterPfad) {
     charakterPfad: charakterPfad || '',
     charakter: char,
     ressourcen: ressourcenAusCharakter(char),
-    inventar: {
-      geldboerse: { dukaten: 0, silber: 0, kupfer: 0 },
-      rucksack: [],
-      guertel: [],
-    },
+    inventar: inventarAusCharakter(char),
     mitspieler: [],
     // Gemeinsamer, chronologischer Strom aus Notizen und Tagebuch-Einträgen.
     // Jeder Eintrag: { typ:'notiz'|'tagebuch', titel, inhalt, spieltag }.
