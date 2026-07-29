@@ -13,9 +13,11 @@ import * as sounds from '../sounds.js';
 import { abschnittTitel, infoZeile, aktionZeile, verbindeDetail } from './widgets.js';
 import { textFeld } from './assistent-seite.js';
 import { jaNeinDialog } from '../ui/dialog.js';
+import { auswahlScreen } from '../ui/auswahl-screen.js';
 import { eigenheitBuchstabe } from '../core/character.js';
 import { bauInfo } from '../core/infotext.js';
 import { EIGENHEITEN_KURZ, EIGENHEITEN_LANG } from './texte.js';
+import { EIGENHEITEN_VORLAGE } from '../daten/eigenheiten-vorlage.js';
 
 const MINDESTENS = 2;
 
@@ -26,6 +28,15 @@ function beschreibe(e, i) {
     e.positiv ? ['Positive Aspekte', e.positiv + '.'] : null,
     e.negativ ? ['Negative Aspekte', e.negativ + '.'] : null,
   ].filter(Boolean));
+}
+
+/** Tooltip einer Vorlage-Eigenheit: Name, positive und negative Aspekte. */
+function vorlageDetail(v) {
+  return bauInfo([
+    [v.name, 'Beispiel-Eigenheit aus der Vorlage.'],
+    ['Positive Aspekte', v.positiv + '.'],
+    ['Negative Aspekte', v.negativ + '.'],
+  ]);
 }
 
 /**
@@ -68,6 +79,33 @@ export function eigenheitenInhalt(box) {
   box.appendChild(aktionZeile('Eigenheit speichern', speichern,
     'legt die drei Felder als neue Eigenheit ab',
     'Speichert die oben eingetragene Eigenheit. Danach sind die Felder wieder leer für die nächste.'));
+
+  // Eigenheit aus Vorlage: eine durchsuchbare Liste fertiger Beispiele mit
+  // positiven und negativen Aspekten, hinzufügbar wie ein Vorteil. Danach steht
+  // die Eigenheit ganz normal in der Liste und ist löschbar.
+  box.appendChild(aktionZeile('Eigenheit aus Vorlage hinzufügen', () => {
+    const haben = new Set(char.eigenheiten.map(e => e.name));
+    const eintraege = EIGENHEITEN_VORLAGE.filter(v => !haben.has(v.name)).map(v => ({
+      label: v.name,
+      wert: v.name,
+      detail: vorlageDetail(v),
+    }));
+    if (eintraege.length === 0) { sounds.playError(); sprache.sage('Alle Vorlage-Eigenheiten sind bereits gewählt.'); return; }
+    auswahlScreen({
+      titel: 'Eigenheit aus Vorlage wählen',
+      eintraege,
+      onWahl: (gewaehlt) => {
+        const v = EIGENHEITEN_VORLAGE.find(x => x.name === gewaehlt);
+        if (!v) return;
+        char.eigenheiten.push({ name: v.name, positiv: v.positiv, negativ: v.negativ });
+        const buchstabe = eigenheitBuchstabe(char.eigenheiten.length - 1);
+        screen.refresh();
+        sprache.sage(`Eigenheit ${buchstabe} hinzugefügt, ${v.name}. Positiv: ${v.positiv}. Negativ: ${v.negativ}. Insgesamt ${char.eigenheiten.length} Eigenheiten.`);
+      },
+    });
+  },
+    'öffnet eine durchsuchbare Liste mit Beispiel-Eigenheiten zum Auswählen',
+    'Fertige Beispiel-Eigenheiten mit positiven und negativen Aspekten. Oben filtern, Shift und Pfeil-runter liest die Aspekte, Eingabetaste fügt hinzu. Danach ist die Eigenheit wie eine selbst erstellte löschbar.'));
 
   // Bereits gespeicherte Eigenheiten
   if (char.eigenheiten.length === 0) {

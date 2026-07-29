@@ -4,6 +4,24 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.14, 30. Juli 2026
+
+
+Eigenheiten aus Vorlage
+
+Beim Erstellen eines Charakters, im freien Editor wie im Assistenten, gibt es bei
+den Eigenheiten jetzt den Punkt Eigenheit aus Vorlage hinzufügen. Er öffnet eine
+durchsuchbare Liste fertiger Beispiel-Eigenheiten. Oben filtern, mit Pfeiltasten
+wählen, Shift und Pfeil-runter liest die positiven und negativen Aspekte,
+Eingabetaste fügt hinzu, genau wie bei einem Vorteil. Danach steht die Eigenheit
+ganz normal in deiner Liste und ist löschbar.
+
+Aspekte im Tooltip
+
+Jede Eigenheit, ob selbst erstellt oder aus der Vorlage, zeigt im Tooltip ihre
+positiven und negativen Aspekte.
+
+
 Version 0.13, 30. Juli 2026
 
 
