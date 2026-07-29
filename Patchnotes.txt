@@ -4,6 +4,12 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.11, 30. Juli 2026
+
+
+(Diese Version ist in Arbeit. Die Punkte werden hier ergänzt, sobald sie umgesetzt sind.)
+
+
 Version 0.10, 29. Juli 2026
 
 
