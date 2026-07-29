@@ -1,7 +1,7 @@
 /**
  * Skularistool — Charakter als lesbares, barrierefreies HTML-Blatt exportieren.
  */
-import { abgeleiteteWerte, waffenwerteText } from './regeln.js';
+import { abgeleiteteWerte, waffenKurz } from './regeln.js';
 import { BESCHREIBUNG_FELDER, eigenheitBuchstabe } from './character.js';
 
 function esc(s) {
@@ -43,7 +43,7 @@ export function exportHtml(char, db) {
   const freie = (char.freieFertigkeiten || []).filter(f => f.name)
     .map(f => `<li>${esc(f.name)} ${f.wert}</li>`).join('') || '<li>keine</li>';
 
-  const waffen = (char.waffen || []).filter(x => x.name).map(x => `<li>${esc(x.name)}: ${esc(waffenwerteText(char, db, x))}</li>`).join('') || '<li>keine</li>';
+  const waffen = (char.waffen || []).filter(x => x.name).map(x => `<li>${esc(x.name)}: ${esc(waffenKurz(char, db, x))}</li>`).join('') || '<li>keine</li>';
   const ruestungen = (char.ruestungen || []).filter(x => x.name).map(x => `<li>${esc(x.name)} (RS ${esc(x.rs)}, BE ${x.be})</li>`).join('') || '<li>keine</li>';
   const gegenstaende = (char.ausruestung || []).map(x => `<li>${esc(x)}</li>`).join('') || '<li>keine</li>';
 

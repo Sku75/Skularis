@@ -41,13 +41,9 @@ export function talentDetail(char, db, name, sf) {
     [name, `${art}, ${geschenkt ? 'kostenlos durch einen Vorteil' : `${kosten} EP`}.`],
   ];
 
-  const kopf = [];
-  if (def.referenzseite) {
-    const buch = (db.referenzbuecher && db.referenzbuecher[def.referenzbuch]) || 'Ilaris';
-    kopf.push(`Nachzulesen in ${buch}, Seite ${def.referenzseite}.`);
-  }
-  if (def.fertigkeiten.length > 1) kopf.push(`Zählt zu den Fertigkeiten ${def.fertigkeiten.join(', ')}.`);
-  if (kopf.length) abschnitte.push(['Einordnung', ...kopf]);
+  // Standard-Reihenfolge: zuerst die Beschreibung (was es tut), dann die
+  // Voraussetzungen, erst danach die Herkunft (Buchseite, Fertigkeiten).
+  if (def.text || def.info) abschnitte.push(['Beschreibung', def.text, def.info]);
 
   if (def.voraussetzungen) {
     const d = pruefeDetail(char, db, def.voraussetzungen);
@@ -56,7 +52,13 @@ export function talentDetail(char, db, name, sf) {
       : `Erfüllt: ${lesbar(db, def.voraussetzungen)}.`]);
   }
 
-  if (def.text || def.info) abschnitte.push(['Beschreibung', def.text, def.info]);
+  const kopf = [];
+  if (def.referenzseite) {
+    const buch = (db.referenzbuecher && db.referenzbuecher[def.referenzbuch]) || 'Ilaris';
+    kopf.push(`Nachzulesen in ${buch}, Seite ${def.referenzseite}.`);
+  }
+  if (def.fertigkeiten.length > 1) kopf.push(`Zählt zu den Fertigkeiten ${def.fertigkeiten.join(', ')}.`);
+  if (kopf.length) abschnitte.push(['Herkunft', ...kopf]);
 
   const regeln = regelAnhangText(db, 'Talent', name, '');
   if (regeln) abschnitte.push(['Regeln', regeln]);

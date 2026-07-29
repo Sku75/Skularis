@@ -20,8 +20,8 @@ import { menuScreen } from '../ui/menu-screen.js';
 import { aktionZeile, abschnittTitel, infoZeile, verbindeDetail } from './widgets.js';
 import { textDialog, jaNeinDialog, zahlDialog } from '../ui/dialog.js';
 import { auswahlScreen } from '../ui/auswahl-screen.js';
-import { waffenwerte, waffenwerteText } from '../core/regeln.js';
-import { waffenErklaerung, ruestungErklaerung } from '../daten/ausruestung-texte.js';
+import { waffenwerte, waffenwerteText, waffenKurz } from '../core/regeln.js';
+import { waffenErklaerung, ruestungTooltip } from '../daten/ausruestung-texte.js';
 import {
   leseInventar, aendereInventar, ergaenzeSets, setText, istFernkampf,
   SLOTS, SET_WAFFENLOS, ORT_MANN, ORT_RUCKSACK,
@@ -219,7 +219,7 @@ function waffenlisteScreen() {
           label: `${w.name}, Attacke ${k.at === null ? 'nicht möglich' : k.at}`
             + `, Verteidigung ${k.vt === null ? 'nicht möglich' : k.vt}`,
           hint: istFernkampf(db, w) ? 'Fernkampf' : 'Nahkampf',
-          detail: waffenwerteText(char, db, w) + ` Härte ${w.haerte || 0}.`,
+          detail: waffenwerteText(char, db, w),
           onSelect: () => screen.push(waffeScreen(w)),
         };
       });
@@ -246,7 +246,7 @@ function waffeScreen(w) {
       const wrap = document.createElement('div');
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel(w.name));
-      wrap.appendChild(infoZeile(waffenwerteText(char, db, w) + ` Härte ${w.haerte || 0}.`,
+      wrap.appendChild(infoZeile(waffenKurz(char, db, w),
         `Vorlage aus der Datenbank: ${w.id || w.name}. Diese Vorlage bleibt erhalten, damit `
         + 'Sephrasto die Waffe beim Laden wiederfindet. Name und Werte darfst du frei ändern.'));
 
@@ -466,9 +466,7 @@ function ruestungHinzufuegen() {
     ...db.ruestungen.filter(r => r.name).map(r => ({
       label: r.name,
       wert: r.name,
-      detail: `${r.name}. Rüstungsschutz-Zonen ${ruestungAusDb(r).rs}, in der Reihenfolge Beine, `
-        + 'linker Arm, rechter Arm, Bauch, Brust, Kopf. Der Gesamtschutz ist ihr gerundeter '
-        + `Mittelwert. ${ruestungErklaerung(r)}`,
+      detail: ruestungTooltip(r),
     })),
   ];
   auswahlScreen({

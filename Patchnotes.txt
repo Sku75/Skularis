@@ -4,6 +4,28 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.17, 30. Juli 2026
+
+
+Einheitliche Tooltips in der ganzen Software
+
+Alle Tooltips folgen jetzt derselben Ordnung: oben der Name mit der wichtigsten
+Zahl, dann die Wirkung, dann die Werte, unten die Herkunft. Waffen und Rüstungen
+sind nun genauso gegliedert wie Zauber, Vorteile und Talente, statt eines langen
+Satzes. Bei Talenten steht die Beschreibung jetzt oben und die Buchseite unten.
+
+Münzbörse im Charakterbogen
+
+Im Editor gibt es unter Status und Finanzen jetzt eine Münzbörse mit Dukaten,
+Silbertalern und Kupferstücken. Sie gehört zum Skularis-Charakterbogen, wird
+gespeichert und beim Abenteuer übernommen und zurückgeschrieben.
+
+Ansicht Abenteuertisch
+
+Im Editor steht über den Speicheroptionen ein neuer Punkt Ansicht Abenteuertisch.
+Er zeigt, wie dein Charakter am Spieltisch aussieht, ohne etwas zu verändern.
+
+
 Version 0.16, 30. Juli 2026
 
 

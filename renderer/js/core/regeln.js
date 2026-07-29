@@ -4,7 +4,8 @@
  * in Node testbar. Datengetrieben aus der transformierten Datenbank (db.js).
  */
 
-import { waffenErklaerung } from '../daten/ausruestung-texte.js';
+import { waffenErklaerung, waffenGattungstext } from '../daten/ausruestung-texte.js';
+import { bauInfo } from './infotext.js';
 
 // --- EP-Kosten-Grundformeln ---
 // Steigerung eines Werts von 0 auf W kostet die Summe SF·v für v = 1..W.
@@ -235,23 +236,42 @@ export function waffenwerte(char, db, waffe) {
   };
 }
 
-/** Kampfwerte als lesbarer Satz für Ansage und Detailfeld. */
+function waffenSchaden(k, waffe) {
+  return `${waffe.wuerfel || 0} W ${waffe.wuerfelSeiten || 6}`
+    + (k.tp ? (k.tp > 0 ? ` plus ${k.tp}` : ` minus ${-k.tp}`) : '');
+}
+
+/** Kompakter Werte-Satz für Listen-Beschriftung und HTML-Export (ein String). */
+export function waffenKurz(char, db, waffe) {
+  const k = waffenwerte(char, db, waffe);
+  const nn = (v) => (v === null ? 'nicht möglich' : v);
+  return `Attacke ${nn(k.at)}, Verteidigung ${nn(k.vt)}, Schaden ${waffenSchaden(k, waffe)}, `
+    + `Reichweite ${k.rw || 0}, Härte ${waffe.haerte || 0}.`;
+}
+
+/**
+ * Voller Waffen-Tooltip als gegliederte Abschnitte in der Standard-Reihenfolge:
+ * Kopf mit Attacke/Verteidigung, dann Wirkung (Gattung/Schild), dann die Werte,
+ * dann Fertigkeit und Kampfstil. Gibt eine bauInfo-Zeilenliste zurück.
+ */
 export function waffenwerteText(char, db, waffe) {
   const k = waffenwerte(char, db, waffe);
-  const schaden = `${waffe.wuerfel || 0} W ${waffe.wuerfelSeiten || 6}`
-    + (k.tp ? (k.tp > 0 ? ` plus ${k.tp}` : ` minus ${-k.tp}`) : '');
-  const teile = [
-    `Attacke ${k.at === null ? 'nicht möglich' : k.at}`,
-    `Verteidigung ${k.vt === null ? 'nicht möglich' : k.vt}`,
-    `Schaden ${schaden}`,
-    `Reichweite ${k.rw}`,
-  ];
+  const nn = (v) => (v === null ? 'nicht möglich' : v);
+  const abschnitte = [[waffe.name, `Attacke ${nn(k.at)}, Verteidigung ${nn(k.vt)}.`]];
+  const wirkung = waffenGattungstext(waffe.name, k.talent);
+  if (wirkung) abschnitte.push(['Wirkung', wirkung]);
+  abschnitte.push(['Werte',
+    `Schaden ${waffenSchaden(k, waffe)}.`,
+    `Reichweite ${k.rw || 0}.`,
+    `Härte ${waffe.haerte || 0}, so viel hält die Waffe aus.`,
+  ]);
   if (k.fertigkeit) {
-    teile.push(`Fertigkeit ${k.fertigkeit}${k.talent ? `, Talent ${k.talent}` : ''}`
-      + `, ${k.geuebt ? 'geübt' : 'ungeübt, deshalb nur der halbe Fertigkeitswert'}`);
+    abschnitte.push(['Fertigkeit',
+      `${k.fertigkeit}${k.talent ? ', Talent ' + k.talent : ''}, `
+      + `${k.geuebt ? 'geübt' : 'ungeübt, deshalb nur der halbe Fertigkeitswert'}.`]);
   }
-  if (k.stil) teile.push(`Kampfstil ${k.stil}`);
-  return teile.join(', ') + '. ' + waffenErklaerung(waffe.name, k.talent);
+  if (k.stil) abschnitte.push(['Kampfstil', k.stil]);
+  return bauInfo(abschnitte);
 }
 
 // --- Abgeleitete Werte (Ilaris-Formeln) ---

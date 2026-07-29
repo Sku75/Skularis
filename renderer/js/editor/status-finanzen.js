@@ -11,7 +11,7 @@
 import * as editor from './editor.js';
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
-import { abschnittTitel, infoZeile, verbindeDetail } from './widgets.js';
+import { abschnittTitel, infoZeile, wertZeile, verbindeDetail } from './widgets.js';
 import { listenSchalter } from './assistent-seite.js';
 import { abgeleiteteWerte } from '../core/regeln.js';
 import {
@@ -92,6 +92,25 @@ export function statusFinanzenScreen() {
       const f = document.createElement('div');
       finanzenInhalt(f);
       wrap.appendChild(f);
+
+      // Münzbörse: eigenes Skularis-Feld, getrennt von der Finanz-Stufe. Wird
+      // ins Abenteuer übernommen und beim Spieltag-Abschluss zurückgeschrieben.
+      wrap.appendChild(abschnittTitel('Münzbörse'));
+      wrap.appendChild(infoZeile('Dein Bargeld zum Mitnehmen ins Abenteuer.',
+        'Dukaten, Silbertaler und Kupferstücke. Beim Erstellen eines Abenteuers wird die Münzbörse übernommen, beim Spieltag-Abschluss wieder in den Charakterbogen zurückgeschrieben. Ein Dukat sind zehn Silbertaler, ein Silbertaler sind zehn Kupferstücke.'));
+      const g = char.geldboerse || (char.geldboerse = { dukaten: 0, silber: 0, kupfer: 0 });
+      const muenzen = document.createElement('div');
+      for (const [key, label] of [['dukaten', 'Dukaten'], ['silber', 'Silbertaler'], ['kupfer', 'Kupferstücke']]) {
+        muenzen.appendChild(wertZeile({
+          label,
+          get: () => g[key] || 0,
+          set: (v) => { g[key] = v; },
+          min: 0,
+          max: 100000,
+          onChange: () => `${g[key] || 0} ${label}`,
+        }));
+      }
+      wrap.appendChild(muenzen);
 
       verbindeDetail(wrap);
       return wrap;

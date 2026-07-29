@@ -267,7 +267,7 @@ export function charakterstatusScreen() {
             ? `Attacke ${k.at === null ? 'nicht möglich' : k.at}, Verteidigung ${k.vt === null ? 'nicht möglich' : k.vt}`
             : `Schaden ${wa.wuerfel || 0} W ${wa.wuerfelSeiten || 6}`;
           wrap.appendChild(infoZeile(`${wa.name}: ${werte}`,
-            db ? waffenwerteText(char, db, wa) + ` Härte ${wa.haerte || 0}.` : `Härte ${wa.haerte || 0}.`));
+            db ? waffenwerteText(char, db, wa) : `Härte ${wa.haerte || 0}.`));
         }
       }
       verbindeDetail(wrap);

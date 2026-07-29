@@ -5,8 +5,9 @@
  * Beschreibungen für Waffen oder Rüstungen (nur Spielwerte). Diese Datei
  * ergänzt kurze, Ilaris-treue Erklärungen je Waffengattung, je Schild und je
  * Rüstungszone sowie den Sinn der Werte, damit die Tooltips die Ausrüstung
- * verständlich machen. Reine Daten und Funktionen, in Node nutzbar.
+ * verständlich machen.
  */
+import { bauInfo } from '../core/infotext.js';
 
 // Erklärung je Waffengattung (Talent der Waffe).
 const GATTUNG = {
@@ -41,14 +42,18 @@ const SCHILD = {
 const WERT_HINWEIS = 'Der Waffenmodifikator kommt auf Attacke und Verteidigung. '
   + 'Die Härte zeigt, wie viel die Waffe aushält, bevor sie beschädigt wird.';
 
-/** Klartext-Erklärung einer Waffe: Gattung oder Schild plus Sinn der Werte. */
-export function waffenErklaerung(name, talent) {
+/** Nur der Gattungs- oder Schild-Satz (ohne den Werte-Hinweis). */
+export function waffenGattungstext(name, talent) {
   const roh = String(name || '').replace(/\s*\(.*\)\s*$/, '').trim();
-  const teile = [];
-  if (SCHILD[roh]) teile.push(SCHILD[roh]);
-  else if (GATTUNG[talent]) teile.push(GATTUNG[talent]);
-  teile.push(WERT_HINWEIS);
-  return teile.join(' ');
+  if (SCHILD[roh]) return SCHILD[roh];
+  if (GATTUNG[talent]) return GATTUNG[talent];
+  return '';
+}
+
+/** Klartext-Erklärung einer Waffe: Gattung oder Schild plus Sinn der Werte (ein String). */
+export function waffenErklaerung(name, talent) {
+  const g = waffenGattungstext(name, talent);
+  return g ? `${g} ${WERT_HINWEIS}` : WERT_HINWEIS;
 }
 
 /** Klartext-Erklärung einer Rüstung aus ihren Zonenwerten. */
@@ -63,4 +68,17 @@ export function ruestungErklaerung(def) {
   else wo = 'einen Körperbereich';
   return `Schützt ${wo}. Der Rüstungsschutz senkt eingehenden Schaden und hebt die Wundschwelle; `
     + 'die Behinderung verringert Geschwindigkeit und Durchhaltevermögen. Mehrere Teile ergänzen sich zum vollen Schutz.';
+}
+
+/** Voller Rüstungs-Tooltip als gegliederte Abschnitte (Standard-Reihenfolge). */
+export function ruestungTooltip(def) {
+  const zonen = [
+    ['Beine', def.rsBeine], ['linker Arm', def.rsLArm], ['rechter Arm', def.rsRArm],
+    ['Bauch', def.rsBauch], ['Brust', def.rsBrust], ['Kopf', def.rsKopf],
+  ].filter(([, v]) => Number(v) > 0).map(([n, v]) => `${n} ${v}`);
+  return bauInfo([
+    [def.name, 'Rüstung.'],
+    ['Wirkung', ruestungErklaerung(def)],
+    ['Werte', `Rüstungsschutz je Zone: ${zonen.length ? zonen.join(', ') : 'keiner'}.`],
+  ]);
 }

@@ -257,6 +257,18 @@ const hub = {
         onSelect: () => aendereGesamtEP(),
       },
       {
+        label: 'Charakterbogen-Ansicht',
+        hint: 'Der vollständige Charakterbogen zum Durchlesen',
+        detail: 'Zeigt alle Werte des Charakters zum Durchlesen. Nichts wird dabei verändert.',
+        onSelect: () => zeigeBogen(),
+      },
+      {
+        label: 'Ansicht Abenteuertisch',
+        hint: 'So sieht dein Charakter am Spieltisch aus',
+        detail: 'Dieselbe Ansicht, die du am Abenteuer-Tisch beim Spielen siehst. Nichts wird dabei verändert.',
+        onSelect: () => zeigeBogen(),
+      },
+      {
         label: 'Charakter speichern',
         hint: 'In Meine Charaktere ablegen',
         onSelect: () => speichere(),
@@ -265,13 +277,6 @@ const hub = {
         label: 'Charakter speichern und schließen',
         hint: 'Speichern und den Editor verlassen',
         onSelect: () => speichernUndSchliessen(),
-      },
-      {
-        label: 'Charakterbogen-Ansicht',
-        hint: 'Alle Werte ansehen, wie am Spieltisch',
-        detail: 'Zeigt den vollständigen Charakterbogen zum Durchlesen, dieselbe Ansicht wie am '
-          + 'Spieltisch. Nichts wird dabei verändert.',
-        onSelect: () => zeigeBogen(),
       },
       {
         label: 'Charakter schließen',
