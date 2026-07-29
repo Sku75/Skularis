@@ -7,15 +7,45 @@ Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 Version 0.11, 30. Juli 2026
 
 
+Das Live-Spiel ist jetzt ein vollständiger Begleiter für die Initiativerunde:
+Aktionen, Kampfwerte, Manöver und Zauber, jeweils mit Filter und Tooltips.
+
+Kampfwerte neu: je Waffe würfelbare Proben
+
+Statt der Waffenset-Zeilen gibt es jetzt pro Waffe eigene Schalter für Attacke,
+Verteidigung (im Fernkampf nur Attacke) und Schaden auswürfeln. Enter startet die
+Probe: erst die Wahl 1 Würfel (Konflikt im Kampf) oder 3 Würfel (entspannte Probe,
+der mittlere zählt), dann die Erschwernis. Der zuletzt eingegebene Erschwernis-Wert
+bleibt vorbelegt. Das Ergebnis wird vorgelesen und steht danach hinter dem Schalter.
+Der Schaden würfelt Waffenwürfel plus Waffenbonus plus Schadensbonus.
+
+Neu: Aktionen
+
+Alle Aktionen der Initiativephase, nach einfachen, vollen und freien Aktionen
+geordnet, jede mit einer kurzen Regelerklärung.
+
+Neu: Manöver
+
+Die Nahkampf-Manöver als Basismanöver, eingeschränkte Basismanöver und aufbauende
+Manöver, mit ihrer Probenänderung und einer kurzen Wirkungserklärung.
+
+Neu: Zauber und Rituale
+
+Wenn dein Charakter zaubern kann, erscheint die Kategorie mit dem Namen deiner
+Tradition. Die bekannten Zauber sind nach Fertigkeit geordnet und zeigen ihren
+Probenwert. Enter startet die Zauberprobe: Würfelwahl, dann die spontanen
+Modifikationen zum Umschalten (Mächtige Magie und weitere), dann die Erschwernis.
+
 Behoben: freier Wurf, Fokus und Ergebnis
 
-Nach einem freien Wurf steht der Fokus jetzt wieder auf dem Schalter "Freier
-Wurf", und beim Erreichen des Schalters wird das Ergebnis vorgelesen, genau wie
-bei den Schnellwürfen. Die Würfeltyp-Auswahl läuft jetzt als kleiner Dialog, statt
-einen eigenen Bildschirm zu öffnen.
+Nach einem freien Wurf steht der Fokus wieder auf dem Schalter "Freier Wurf", und
+beim Erreichen wird das Ergebnis vorgelesen. Die Würfeltyp-Auswahl läuft als
+kleiner Dialog statt als eigener Bildschirm.
 
+Genauer: modifizierte Wundschwelle
 
-(Diese Version ist in Arbeit. Weitere Punkte folgen, sobald sie umgesetzt sind.)
+Die angezeigte Wundschwelle enthält den Rüstungsschutz der getragenen Rüstung.
+Die Erklärungen sagen das jetzt überall klar.
 
 
 Version 0.10, 29. Juli 2026
