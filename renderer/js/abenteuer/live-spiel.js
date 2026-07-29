@@ -62,7 +62,7 @@ export function kampfwerteScreen() {
   const eintrag = (label, detail) => items.push({ label, detail: detail || '', onSelect: () => {} });
 
   eintrag(`Initiative: ${w.INI}`, 'Gleich dem Attribut Intuition. Wird zu Beginn des Kampfes gewürfelt.');
-  eintrag(`Wundschwelle: ${w.WS}`, 'Ab dieser Schadenshöhe gibt es eine Wunde. 4 plus Konstitution durch 4, plus Rüstungsschutz.');
+  eintrag(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Grundwert ohne Rüstung: 4 plus Konstitution durch 4. Ab dieser Schadenshöhe erleidet man eine Wunde.');
   eintrag(`Magieresistenz: ${w.MR}`, '4 plus Mut durch 4.');
   eintrag(`Geschwindigkeit: ${w.GS}`, '4 plus Gewandtheit durch 4, minus Behinderung.');
   eintrag(`Durchhaltevermögen: ${w.DH}`, 'Konstitution minus zweimal Behinderung.');
@@ -225,7 +225,7 @@ export function charakterstatusScreen() {
       for (const k of ['KO', 'MU', 'GE', 'KK', 'IN', 'KL', 'CH', 'FF']) {
         wrap.appendChild(infoZeile(`${ATTR_NAME[k]} ${k}: ${char.attribute[k] || 0}`));
       }
-      wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, '4 plus Konstitution durch 4, plus Rüstungsschutz.'));
+      wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Grundwert ohne Rüstung: 4 plus Konstitution durch 4. Ab dieser Schadenshöhe erleidet man eine Wunde.'));
       wrap.appendChild(infoZeile(`Magieresistenz: ${w.MR}`, '4 plus Mut durch 4.'));
       wrap.appendChild(infoZeile(`Geschwindigkeit: ${w.GS}`, '4 plus Gewandtheit durch 4, minus Behinderung.'));
       wrap.appendChild(infoZeile(`Initiative: ${w.INI}`, 'Gleich dem Attribut Intuition.'));

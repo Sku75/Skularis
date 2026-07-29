@@ -67,7 +67,7 @@ export function baueCharakterbogen(char, db, titel = 'Charakterbogen') {
     eintrag(`${ATTR_NAME[k]} ${k}: ${char.attribute[k] || 0}`);
   }
   kopf('Abgeleitete Werte');
-  eintrag(`Wundschwelle: ${w.WS}`);
+  eintrag(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Grundwert ohne Rüstung: 4 plus Konstitution durch 4. Ab dieser Schadenshöhe erleidet man eine Wunde.');
   eintrag(`Magieresistenz: ${w.MR}`);
   eintrag(`Geschwindigkeit: ${w.GS}`);
   eintrag(`Initiative: ${w.INI}`);
