@@ -13,7 +13,7 @@ import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import * as screen from '../ui/screen.js';
 import { menuScreen } from '../ui/menu-screen.js';
-import { zahlDialog, auswahlDialog } from '../ui/dialog.js';
+import { zahlDialog, knopfDialog } from '../ui/dialog.js';
 import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
 
@@ -75,9 +75,9 @@ async function erschwernisAbfrage(id) {
 }
 
 async function wuerfelWahl(titel) {
-  return auswahlDialog({
+  return knopfDialog({
     titel: titel ? `${titel}, Würfel wählen` : 'Würfel wählen',
-    eintraege: [
+    knoepfe: [
       { label: '1 Würfel, Konflikt im Kampf', wert: 1 },
       { label: '3 Würfel, entspannte Probe', wert: 3 },
     ],
@@ -157,12 +157,14 @@ export async function kampfProbe(o) {
   const anzahl = await wuerfelWahl(o.titel);
   if (anzahl === null) return;
 
-  let extraMod = 0;
+  // Fester Modifikator (z. B. Manöver-Aufschlag) plus optional gewählte
+  // Zauber-Modifikatoren.
+  let extraMod = o.extraMod || 0;
   let modNamen = [];
   if (o.modListe && o.modListe.length) {
     const wahl = await modifikatorenWahl(o.modListe, `Modifikatoren, ${o.titel}`);
     if (wahl === null) return;
-    extraMod = wahl.summe;
+    extraMod += wahl.summe;
     modNamen = wahl.namen;
   }
 
@@ -187,7 +189,11 @@ export async function kampfProbe(o) {
   protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${erschText}, Ergebnis ${ew}.${modNamenText}`);
   speichere();
   zeigeErgebnis(o.id, `Ergebnis ${ew}`, ansage);
+  // Fokus liegt nach dem Schließen der Dialoge schon wieder auf dem Schalter
+  // (das ergibt keinen Fokuswechsel und damit keine Vorlesung), deshalb die
+  // Ansage zuverlässig per aria-live. Der Schalter trägt das Ergebnis danach.
   fokusAufZiel(o.id);
+  sprache.sage(ansage);
 }
 
 /**

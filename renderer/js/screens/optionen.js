@@ -43,6 +43,25 @@ async function zeigeUeber() {
   }));
 }
 
+// "Neuerungen" — die Patchnotes aus dem Programmordner, Absatz für Absatz mit
+// Pfeiltasten lesbar. Kommt aus der laufenden Version, also immer aktuell.
+async function zeigePatchnotes() {
+  let text = '';
+  try { text = await window.skularis.ipc.patchnotes(); } catch (_e) { /* leer weiter */ }
+  const bloecke = String(text || '')
+    .split(/\r?\n\s*\r?\n/)
+    .map(b => b.replace(/\s*\r?\n\s*/g, ' ').trim())
+    .filter(Boolean);
+  const items = bloecke.length
+    ? bloecke.map(b => ({ label: b, onSelect: () => {} }))
+    : [{ label: 'Keine Patchnotes gefunden.', onSelect: () => {} }];
+  screen.push(menuScreen({
+    title: 'Neuerungen',
+    subtitle: 'Die Änderungen je Version, Absatz für Absatz lesbar. Escape kehrt zurück.',
+    items, filter: false,
+  }));
+}
+
 function setFont(neu) {
   neu = Math.max(-4, Math.min(8, neu));
   einstellungen.setWert('schrift_offset', neu);
@@ -107,6 +126,11 @@ export function build() {
       {
         label: 'Schrift auf Normalgröße',
         onSelect: () => setFont(0),
+      },
+      {
+        label: 'Neuerungen',
+        hint: 'Was sich in dieser und den letzten Versionen geändert hat',
+        onSelect: () => zeigePatchnotes(),
       },
       {
         label: 'Über Skularis',

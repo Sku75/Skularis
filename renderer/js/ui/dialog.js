@@ -129,6 +129,54 @@ export function jaNeinDialog({ titel, frage, jaLabel = 'Ja', neinLabel = 'Nein' 
 }
 
 /**
+ * Schlichte Knopf-Auswahl OHNE Filter: ein paar Möglichkeiten als Schalter,
+ * Pfeil rauf/runter, Eingabetaste wählt, Escape bricht ab. Für kurze Auswahlen
+ * (z. B. 1 oder 3 Würfel), wo ein Tippfilter nur stören würde.
+ * @param {object} o
+ * @param {string} o.titel
+ * @param {string} [o.frage]
+ * @param {Array<{label:string, wert:any}>} o.knoepfe
+ * @returns Promise<any|null>  (der gewählte wert)
+ */
+export function knopfDialog({ titel, frage, knoepfe }) {
+  return new Promise((resolve) => {
+    sounds.playClick();
+    const dlg = baueDialog(titel);
+    const knopfHtml = knoepfe
+      .map((k, i) => `<button class="db-btn${i === 0 ? ' db-btn--primary' : ''} db-dialog__wahl" data-i="${i}">${k.label}</button>`)
+      .join('');
+    dlg.insertAdjacentHTML('beforeend', `
+      <div class="db-dialog__header"><span class="db-dialog__title">${titel}</span></div>
+      ${frage ? `<div class="db-dialog__body"><p class="db-dialog__label">${frage}</p></div>` : ''}
+      <div class="db-dialog__footer db-dialog__footer--spalte">
+        ${knopfHtml}
+        <button class="db-btn" id="dlg-ab">Abbrechen</button>
+      </div>`);
+    document.body.appendChild(dlg);
+    const fertig = (val) => { dlg.close(); dlg.remove(); resolve(val); };
+    const knopfEls = Array.from(dlg.querySelectorAll('.db-dialog__wahl'));
+    knopfEls.forEach((b) => b.addEventListener('click', () => fertig(knoepfe[+b.dataset.i].wert)));
+    dlg.querySelector('#dlg-ab').addEventListener('click', () => fertig(null));
+    let idx = 0;
+    const fokus = (i) => { idx = Math.max(0, Math.min(knopfEls.length - 1, i)); knopfEls[idx].focus(); };
+    dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); fertig(null); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); fokus(idx + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); fokus(idx - 1); }
+      else if (e.key === 'Enter') {
+        e.preventDefault();
+        const b = document.activeElement;
+        if (b && b.dataset && b.dataset.i !== undefined) fertig(knoepfe[+b.dataset.i].wert);
+        else fertig(knoepfe[idx].wert);
+      }
+    });
+    dlg.showModal();
+    fokus(0);
+    melde(dlg, `${titel}.${frage ? ' ' + frage + '.' : ''} ${knoepfe.length} Möglichkeiten. Pfeil rauf und runter, Eingabetaste wählt, Escape bricht ab.`);
+  });
+}
+
+/**
  * Auswahl aus einer Liste, mit Tipp-Filter.
  * Fokus wandert auf die Einträge (NVDA liest sie nativ vor).
  * @param {object} o

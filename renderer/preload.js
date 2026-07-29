@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('skularis', {
     letzteDateiMerken:  (pfad)      => ipcRenderer.invoke('skularis:letzte-datei-merken', { pfad }),
     oeffneRegelwerk:    ()          => ipcRenderer.invoke('skularis:oeffne-regelwerk'),
     appInfo:            ()          => ipcRenderer.invoke('skularis:app-info'),
+    patchnotes:         ()          => ipcRenderer.invoke('skularis:patchnotes'),
     bibliothekListe:      ()        => ipcRenderer.invoke('skularis:bibliothek-liste'),
     bibliothekSpeichern:  (data)    => ipcRenderer.invoke('skularis:bibliothek-speichern', data),
     bibliothekLoeschen:   (pfad)    => ipcRenderer.invoke('skularis:bibliothek-loeschen', { pfad }),

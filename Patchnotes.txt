@@ -4,6 +4,44 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.12, 30. Juli 2026
+
+
+Behoben: Kampf- und Zauberproben
+
+Die Ansage des Ergebnisses kommt jetzt zuverlässig, und das Ergebnis steht danach
+hinter dem Schalter. Die Auswahl 1 oder 3 Würfel hat keinen Filter mehr, sondern
+bietet einfach die beiden Möglichkeiten; Escape bricht ab. Die zuletzt
+eingegebene Erschwernis bleibt für den nächsten Wurf vorbelegt.
+
+Korrigiert: Wundschwelle
+
+Erst Schaden, der über der Wundschwelle liegt, verursacht eine Wunde; über dem
+Doppelten zwei, über dem Dreifachen drei, und so weiter.
+
+Menüs übersichtlicher verschachtelt
+
+Aktionen, Manöver und Zauber zeigen zuerst ihre Kategorien als Untermenüs; erst
+darin stehen die einzelnen Einträge. Das Menü Aktionen trägt die Grundregel der
+Initiativephase im Tooltip.
+
+Manöver mit Würfelfunktion
+
+Jedes Manöver rechnet den passenden Attacke- oder Verteidigungswert deines
+Charakters aus, zeigt die echte Zahl statt der Formel und würfelt mit Enter die
+Probe. Variable Anteile trägst du bei der Erschwernis nach.
+
+Ausführlichere Tooltips
+
+Geschwindigkeit, Initiative, Magieresistenz, Durchhaltevermögen, Schadensbonus
+und Rüstung erklären jetzt, was sie bedeuten, statt nur die Formel zu nennen.
+
+Neuerungen im Programm
+
+Unter Optionen gibt es den Punkt Neuerungen: Er zeigt diese Patchnotes direkt in
+Skularis, immer passend zur laufenden Version.
+
+
 Version 0.11, 30. Juli 2026
 
 

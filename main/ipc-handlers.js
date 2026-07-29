@@ -70,6 +70,15 @@ ipcMain.handle('skularis:app-info', () => {
   return { version: VERSION, basisPfad: getAppPfad() };
 });
 
+// Patchnotes aus dem Programmordner (wird beim Update mitgetauscht, also immer
+// zur laufenden Version passend).
+ipcMain.handle('skularis:patchnotes', () => {
+  const { getAppPfad } = require('./main');
+  const fs = require('fs');
+  try { return fs.readFileSync(path.join(getAppPfad(), 'Patchnotes.txt'), 'utf-8'); }
+  catch { return ''; }
+});
+
 // --- Charakter-Bibliothek ---
 ipcMain.handle('skularis:bibliothek-liste', () => {
   const { getCharOrdner } = require('./main');

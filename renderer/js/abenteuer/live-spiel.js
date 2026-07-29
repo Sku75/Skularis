@@ -6,14 +6,14 @@
 import * as screen from '../ui/screen.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { wertZeile, infoZeile, abschnittTitel, verbindeDetail } from '../editor/widgets.js';
-import { zahlDialog, auswahlDialog } from '../ui/dialog.js';
+import { zahlDialog, knopfDialog } from '../ui/dialog.js';
 import { abgeleiteteWerte, waffenwerte, waffenwerteText, fertigkeitProbenwert, wundabzug } from '../core/regeln.js';
 import { getDb } from '../core/db-laden.js';
 import { leseInventar, istFernkampf, SLOTS, SET_WAFFENLOS } from '../core/ausruestung.js';
 import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
 import { wuerfeln, kampfProbe, schadenWurf } from './wuerfel-kern.js';
-import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel } from './kampf-menues.js';
+import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, GRUNDREGEL_AKTIONEN } from './kampf-menues.js';
 
 const RES_NAME = {
   Wunden: 'Wunden', Erschoepfung: 'Erschöpfung', SchiP: 'Schicksalspunkte',
@@ -37,7 +37,7 @@ export function liveSpielScreen() {
     { label: 'Schnellwurf 1 W20', ergebnisId: 'w20', onSelect: () => wuerfeln(1, 20, 0, 'w20') },
     { label: 'Schnellwurf 3 W20', ergebnisId: 'w20x3', onSelect: () => wuerfeln(3, 20, 0, 'w20x3') },
     { label: 'Freier Wurf', hint: 'Anzahl, Würfeltyp und Modifikator wählen', ergebnisId: 'frei', onSelect: freierWurf },
-    { label: 'Aktionen', hint: 'Was du in deiner Initiativephase tun kannst', onSelect: () => screen.push(aktionenScreen()) },
+    { label: 'Aktionen', hint: 'Was du in deiner Initiativephase tun kannst', detail: GRUNDREGEL_AKTIONEN, onSelect: () => screen.push(aktionenScreen()) },
     {
       label: 'Kampfwerte',
       hint: 'Proben und Schaden je Waffe, dazu die abgeleiteten Werte',
@@ -70,13 +70,13 @@ export function kampfwerteScreen() {
   const items = [];
   const eintrag = (label, detail) => items.push({ label, detail: detail || '', onSelect: () => {} });
 
-  eintrag(`Initiative: ${w.INI}`, 'Gleich dem Attribut Intuition. Wird zu Beginn des Kampfes gewürfelt.');
-  eintrag(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Grundwert ohne Rüstung: 4 plus Konstitution durch 4. Ab dieser Schadenshöhe erleidet man eine Wunde.');
-  eintrag(`Magieresistenz: ${w.MR}`, '4 plus Mut durch 4.');
-  eintrag(`Geschwindigkeit: ${w.GS}`, '4 plus Gewandtheit durch 4, minus Behinderung.');
-  eintrag(`Durchhaltevermögen: ${w.DH}`, 'Konstitution minus zweimal Behinderung.');
-  eintrag(`Schadensbonus: ${w.SB}`, 'Körperkraft durch 4, kommt auf jeden Waffenschaden.');
-  eintrag(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, 'Aus der ersten angelegten Rüstung.');
+  eintrag(`Initiative: ${w.INI}`, 'Bestimmt die Reihenfolge im Kampf: wer den höheren Wert hat, handelt zuerst. Zu Kampfbeginn wird 1 W20 plus Initiative gewürfelt. Wert: gleich dem Attribut Intuition.');
+  eintrag(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Schaden, der über diesem Wert liegt, verursacht eine Wunde; über dem Doppelten zwei, über dem Dreifachen drei, und so weiter. Grundwert ohne Rüstung: 4 plus Konstitution durch 4.');
+  eintrag(`Magieresistenz: ${w.MR}`, 'Schwierigkeit, dich mit schädlicher Magie zu treffen. Bei Zaubern gegen die Magieresistenz wird der Wurf des Zaubernden dagegen verglichen. Wert: 4 plus Mut durch 4.');
+  eintrag(`Geschwindigkeit: ${w.GS}`, `So viele Schritt kannst du dich mit einer einfachen Aktion Bewegung fortbewegen, hier also ${w.GS} Schritt. Geradeaus vorwärts das Doppelte, ganz ohne Gepäck und Rüstung das Vierfache; auf unsicherem Boden die Hälfte, kniend ein Viertel. Wert: 4 plus Gewandtheit durch 4, minus Behinderung.`);
+  eintrag(`Durchhaltevermögen: ${w.DH}`, 'Deine Reserve gegen Erschöpfung durch Anstrengung, Hitze oder Kälte. Wert: Konstitution minus zweimal Behinderung.');
+  eintrag(`Schadensbonus: ${w.SB}`, 'Kommt zu jedem Waffenschaden hinzu. Wert: Körperkraft durch 4.');
+  eintrag(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, 'Rüstungsschutz senkt eingehenden Schaden und hebt die Wundschwelle. Behinderung verringert Geschwindigkeit und Durchhaltevermögen. Beides stammt aus der ersten angelegten Rüstung.');
 
   // Kampffertigkeiten mit ihren Probenwerten
   if (db) {
@@ -165,16 +165,15 @@ function bestimmeSlotWaffen(char, db, inv) {
 async function freierWurf() {
   const anzahl = await zahlDialog({ titel: 'Freier Wurf', label: 'Anzahl der Würfel', wert: 1, min: 1, max: 50 });
   if (anzahl === null) return;
-  // Würfeltyp als modaler Dialog (nicht als eigener Bildschirm), damit der
+  // Würfeltyp als schlichte Knopf-Auswahl (kein Filter), damit der
   // Live-Bildschirm samt "Freier Wurf"-Schalter stehen bleibt.
-  const seiten = await auswahlDialog({ titel: 'Würfeltyp wählen', eintraege: [{ label: 'W6', wert: 6 }, { label: 'W20', wert: 20 }] });
+  const seiten = await knopfDialog({ titel: 'Würfeltyp wählen', knoepfe: [{ label: 'W6', wert: 6 }, { label: 'W20', wert: 20 }] });
   if (seiten === null) return;
   const mod = await zahlDialog({ titel: 'Modifikator', label: 'Modifikator, 0 wenn keiner', wert: 0, min: -100, max: 100 });
   if (mod === null) return;
-  // Stumm würfeln (Ergebnis landet in der Beschriftung des Schalters), dann Fokus
-  // zurück auf "Freier Wurf" — beim Erreichen liest der Screenreader das Ergebnis,
-  // genau wie bei den Schnellwürfen.
-  wuerfeln(anzahl, seiten, mod, 'frei', true);
+  // Fokus liegt nach dem Dialog schon wieder auf "Freier Wurf"; die Ansage kommt
+  // zuverlässig per aria-live (wuerfeln, nicht stumm), das Ergebnis bleibt am Schalter.
+  wuerfeln(anzahl, seiten, mod, 'frei');
   const btn = document.querySelector('[data-ergebnis-ziel="frei"]');
   if (btn) btn.focus();
 }
@@ -249,7 +248,7 @@ export function charakterstatusScreen() {
       for (const k of ['KO', 'MU', 'GE', 'KK', 'IN', 'KL', 'CH', 'FF']) {
         wrap.appendChild(infoZeile(`${ATTR_NAME[k]} ${k}: ${char.attribute[k] || 0}`));
       }
-      wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Grundwert ohne Rüstung: 4 plus Konstitution durch 4. Ab dieser Schadenshöhe erleidet man eine Wunde.'));
+      wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Schaden, der über diesem Wert liegt, verursacht eine Wunde; über dem Doppelten zwei, über dem Dreifachen drei, und so weiter. Grundwert ohne Rüstung: 4 plus Konstitution durch 4.'));
       wrap.appendChild(infoZeile(`Magieresistenz: ${w.MR}`, '4 plus Mut durch 4.'));
       wrap.appendChild(infoZeile(`Geschwindigkeit: ${w.GS}`, '4 plus Gewandtheit durch 4, minus Behinderung.'));
       wrap.appendChild(infoZeile(`Initiative: ${w.INI}`, 'Gleich dem Attribut Intuition.'));
