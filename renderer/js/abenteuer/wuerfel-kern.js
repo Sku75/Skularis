@@ -184,9 +184,16 @@ export async function kampfProbe(o) {
   const modText = extraMod ? (extraMod > 0 ? `, Modifikatoren plus ${extraMod}` : `, Modifikatoren minus ${-extraMod}`) : '';
   const erschText = ersch ? (ersch > 0 ? `, Erschwernis minus ${ersch}` : `, Erleichterung plus ${-ersch}`) : '';
   const modNamenText = modNamen.length ? ` Modifikatoren: ${modNamen.join(', ')}.` : '';
-  const ansage = `${o.titel}. ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}. Probenergebnis ${ew}.${modNamenText}`;
+  // Bei fester Schwierigkeit gleich Erfolg oder Misserfolg ansagen; sonst der
+  // vom Aufrufer mitgegebene Zusatz (z. B. vergleichende Probe, Kosten).
+  let erfolgText = '';
+  if (typeof o.schwierigkeit === 'number') {
+    erfolgText = ` Gegen Schwierigkeit ${o.schwierigkeit}: ${ew >= o.schwierigkeit ? 'gelungen' : 'misslungen'}.`;
+  }
+  const zusatzText = o.zusatz ? ` ${o.zusatz}` : '';
+  const ansage = `${o.titel}. ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}. Probenergebnis ${ew}.${erfolgText}${zusatzText}${modNamenText}`;
 
-  protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${erschText}, Ergebnis ${ew}.${modNamenText}`);
+  protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${erschText}, Ergebnis ${ew}.${erfolgText}${modNamenText}`);
   speichere();
   zeigeErgebnis(o.id, `Ergebnis ${ew}`, ansage);
   // Fokus liegt nach dem Schließen der Dialoge schon wieder auf dem Schalter

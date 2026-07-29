@@ -4,6 +4,45 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.13, 30. Juli 2026
+
+
+Zaubern repariert und vereinfacht
+
+Zaubern würfelt jetzt wie ein Kampfangriff: Würfelwahl, Erschwernis, Wurf. Der
+erzwungene Modifikatoren-Bildschirm ist weg; damit gibt es auch keinen stummen
+Abbruch mehr, wenn man ihn mit Escape verlassen wollte.
+
+Ein Muster für alles: filterbare Listen
+
+Aktionen, Manöver und Zauber sind jetzt jeweils eine einzige lange Liste mit
+Filter, keine Untermenüs mehr. Überall dasselbe: oben filtern, mit Pfeiltasten
+wählen, Enter würfelt bei Manövern und Zaubern mit deinen echten Werten.
+
+Zauber-Tooltips zeigen zuerst die Spielwerte
+
+Ganz oben stehen Probe, Kosten, Reichweite, Wirkungsdauer, Ziel und
+Vorbereitungszeit, darunter die Wirkung und die zauberspezifischen
+Modifikationen, ganz unten die Herkunft mit Fertigkeiten und Buchseite. Die
+Werte werden direkt aus dem Regeltext gezogen.
+
+Zauberprobe sagt das Ergebnis vollständig an
+
+Bei einer festen Schwierigkeit hörst du, ob die Probe gelungen oder misslungen
+ist. Geht der Zauber gegen die Magieresistenz, wird die vergleichende Probe
+angesagt. Die Astralkosten werden mitgenannt.
+
+Manöver mit echten Zahlen und Wert X
+
+Jedes Manöver rechnet deinen Attacke- oder Verteidigungswert aus. Manöver mit
+variablem Anteil fragen den Wert X kurz ab, die Behinderung wird automatisch
+berücksichtigt.
+
+Mehr Tooltips in der Charakterübersicht
+
+Die abgeleiteten Werte in der Übersicht erklären jetzt, was sie bedeuten.
+
+
 Version 0.12, 30. Juli 2026
 
 

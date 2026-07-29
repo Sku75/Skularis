@@ -68,14 +68,14 @@ export function baueCharakterbogen(char, db, titel = 'Charakterbogen') {
   }
   kopf('Abgeleitete Werte');
   eintrag(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Schaden, der über diesem Wert liegt, verursacht eine Wunde; über dem Doppelten zwei, über dem Dreifachen drei, und so weiter. Grundwert ohne Rüstung: 4 plus Konstitution durch 4.');
-  eintrag(`Magieresistenz: ${w.MR}`);
-  eintrag(`Geschwindigkeit: ${w.GS}`);
-  eintrag(`Initiative: ${w.INI}`);
-  eintrag(`Schadensbonus: ${w.SB}`);
-  eintrag(`Durchhaltevermögen: ${w.DH}`);
-  eintrag(`Rüstungsschutz: ${w.RS}`);
-  eintrag(`Behinderung: ${w.BE}`);
-  eintrag(`Schicksalspunkte: ${w.SchiP}`);
+  eintrag(`Magieresistenz: ${w.MR}`, 'Schwierigkeit, dich mit schädlicher Magie zu treffen. Bei Zaubern gegen die Magieresistenz zählt der Wurf des Zaubernden dagegen. Wert: 4 plus Mut durch 4.');
+  eintrag(`Geschwindigkeit: ${w.GS}`, `So viele Schritt kannst du dich mit einer Aktion Bewegung fortbewegen, hier ${w.GS}. Geradeaus vorwärts das Doppelte, ohne Gepäck und Rüstung das Vierfache; auf unsicherem Boden die Hälfte. Wert: 4 plus Gewandtheit durch 4, minus Behinderung.`);
+  eintrag(`Initiative: ${w.INI}`, 'Bestimmt die Reihenfolge im Kampf: wer den höheren Wert hat, handelt zuerst. Wert: gleich dem Attribut Intuition.');
+  eintrag(`Schadensbonus: ${w.SB}`, 'Kommt zu jedem Waffenschaden hinzu. Wert: Körperkraft durch 4.');
+  eintrag(`Durchhaltevermögen: ${w.DH}`, 'Reserve gegen Erschöpfung durch Anstrengung, Hitze oder Kälte. Wert: Konstitution minus zweimal Behinderung.');
+  eintrag(`Rüstungsschutz: ${w.RS}`, 'Senkt eingehenden Schaden und hebt die Wundschwelle. Aus der ersten angelegten Rüstung.');
+  eintrag(`Behinderung: ${w.BE}`, 'Verringert Geschwindigkeit und Durchhaltevermögen. Aus der ersten angelegten Rüstung.');
+  eintrag(`Schicksalspunkte: ${w.SchiP}`, 'Vorrat, um Proben zu beeinflussen. Grundwert 4, verändert durch die Finanzen des Charakters.');
 
   const fertMitInhalt = Object.entries(char.fertigkeiten || {})
     .filter(([name, fe]) => (fe.wert || 0) > 0 || talenteVon(name).length);
