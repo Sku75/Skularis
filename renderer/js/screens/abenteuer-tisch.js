@@ -123,7 +123,7 @@ function hubScreen(modus) {
         .catch((e) => { console.error(e); sprache.sage('Bereich wird gerade gebaut.'); });
 
       const items = [
-        { label: 'Live-Spiel', hint: 'Würfeln und Kampfwerte', onSelect: () => push('live-spiel', 'liveSpielScreen') },
+        { label: 'Meine Initiative-Phase', hint: 'Würfeln, Aktionen, Kampfwerte, Manöver und Zauber', onSelect: () => push('live-spiel', 'liveSpielScreen') },
         { label: 'Charakterstatus', hint: 'Wunden, Energien, Werte zum Lesen', onSelect: () => push('live-spiel', 'charakterstatusScreen') },
         { label: 'Charakterbogen', hint: 'Werte ansehen, Schnellauskunft', onSelect: () => push('charakterbogen', 'charakterbogenScreen') },
         { label: 'Inventar', hint: 'Geldbörse, Rucksack, am Gürtel', onSelect: () => push('inventar', 'inventarScreen') },

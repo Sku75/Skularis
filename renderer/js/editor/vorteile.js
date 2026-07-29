@@ -42,6 +42,8 @@ function vorteilDetail(char, db, v) {
   const abschnitte = [
     [v.name, v.variableKosten ? 'Kosten variabel.' : `${v.kosten} EP.`],
   ];
+  // Beschreibung steht bewusst oben, direkt nach dem Namen.
+  if (v.text || v.info) abschnitte.push(['Beschreibung', v.text, v.info]);
 
   if (v.voraussetzungen) {
     const d = pruefeDetail(char, db, v.voraussetzungen);
@@ -55,7 +57,6 @@ function vorteilDetail(char, db, v) {
   }
 
   if (v.nachkauf && NACHKAUF_TEXT[v.nachkauf]) abschnitte.push(['Nachkauf', NACHKAUF_TEXT[v.nachkauf]]);
-  if (v.text || v.info) abschnitte.push(['Beschreibung', v.text, v.info]);
 
   if (v.querverweise) {
     const ziele = String(v.querverweise).split('|')

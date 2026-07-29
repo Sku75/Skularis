@@ -51,7 +51,7 @@ export function liveSpielScreen() {
     items.push({ label: zauberKategorieLabel(char, db), hint: 'Deine bekannten Zauber würfeln', onSelect: () => screen.push(zauberScreen()) });
   }
   return menuScreen({
-    title: 'Live-Spiel',
+    title: 'Meine Initiative-Phase',
     subtitle: 'Würfeln, Aktionen, Kampfwerte, Manöver und Zauber. Escape zurück.',
     items,
   });

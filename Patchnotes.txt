@@ -4,6 +4,27 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.15, 30. Juli 2026
+
+
+Waffen und Rüstungen werden erklärt
+
+Waffen und Rüstungen hatten bisher keine Beschreibung, nur Zahlen. Jetzt erklärt
+der Tooltip in Klartext, was die Werte bedeuten, dazu eine kurze Erklärung je
+Waffengattung und je Schild. So weiß man endlich, was ein Buckler oder ein Bock
+ist und wie sich Holz-, Leder- und Großschild unterscheiden. Hinweis: Ilaris
+kennt keinen eigenen Metallschild; die harten Schilde sind Holz- und Großschild.
+
+Beschreibung steht oben
+
+Bei Zaubern und Vorteilen steht die Beschreibung jetzt ganz oben im Tooltip,
+vor den übrigen Angaben.
+
+Neuer Name: Meine Initiative-Phase
+
+Der Bereich Live-Spiel im Abenteuer-Tisch heißt jetzt Meine Initiative-Phase.
+
+
 Version 0.14, 30. Juli 2026
 
 

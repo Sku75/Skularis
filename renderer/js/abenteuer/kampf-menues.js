@@ -183,6 +183,8 @@ function parseZauberText(text) {
 /** Tooltip eines Zaubers: Spielwerte oben, Wirkung, dann Herkunft unten. */
 function zauberTooltip(def, pw, felder, beschreibung) {
   const abschnitte = [[def.name, `Zauber, Probenwert ${pw}.`]];
+  // Beschreibung/Wirkung steht bewusst oben, direkt nach dem Namen.
+  if (beschreibung) abschnitte.push(['Wirkung', beschreibung]);
   const werte = [
     ['Probe', felder['Probenschwierigkeit']],
     ['Kosten', felder['Kosten']],
@@ -192,7 +194,6 @@ function zauberTooltip(def, pw, felder, beschreibung) {
     ['Vorbereitungszeit', felder['Vorbereitungszeit']],
   ];
   for (const [titel, wert] of werte) if (wert) abschnitte.push([titel, wert]);
-  if (beschreibung) abschnitte.push(['Wirkung', beschreibung]);
   if (felder['Modifikationen']) abschnitte.push(['Modifikationen', felder['Modifikationen']]);
   const herkunft = [];
   if (felder['Fertigkeiten']) herkunft.push(`Fertigkeiten: ${felder['Fertigkeiten']}.`);

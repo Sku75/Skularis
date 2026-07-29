@@ -21,6 +21,7 @@ import { aktionZeile, abschnittTitel, infoZeile, verbindeDetail } from './widget
 import { textDialog, jaNeinDialog, zahlDialog } from '../ui/dialog.js';
 import { auswahlScreen } from '../ui/auswahl-screen.js';
 import { waffenwerte, waffenwerteText } from '../core/regeln.js';
+import { waffenErklaerung, ruestungErklaerung } from '../daten/ausruestung-texte.js';
 import {
   leseInventar, aendereInventar, ergaenzeSets, setText, istFernkampf,
   SLOTS, SET_WAFFENLOS, ORT_MANN, ORT_RUCKSACK,
@@ -180,7 +181,7 @@ function waffeHinzufuegen() {
     wert: w.name,
     detail: `${w.name}. Schaden ${w['würfel'] || 0} W ${w['würfelSeiten'] || 6} plus ${w.plus || 0}, `
       + `Reichweite ${w.rw || 0}, Härte ${w['härte'] || 0}. Fertigkeit ${w.fertigkeit || 'keine'}, `
-      + `Talent ${w.talent || 'keines'}.`,
+      + `Talent ${w.talent || 'keines'}. ${waffenErklaerung(w.name, w.talent)}`,
   }));
   auswahlScreen({
     titel: 'Waffe wählen',
@@ -467,7 +468,7 @@ function ruestungHinzufuegen() {
       wert: r.name,
       detail: `${r.name}. Rüstungsschutz-Zonen ${ruestungAusDb(r).rs}, in der Reihenfolge Beine, `
         + 'linker Arm, rechter Arm, Bauch, Brust, Kopf. Der Gesamtschutz ist ihr gerundeter '
-        + 'Mittelwert.',
+        + `Mittelwert. ${ruestungErklaerung(r)}`,
     })),
   ];
   auswahlScreen({

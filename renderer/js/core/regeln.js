@@ -4,6 +4,8 @@
  * in Node testbar. Datengetrieben aus der transformierten Datenbank (db.js).
  */
 
+import { waffenErklaerung } from '../daten/ausruestung-texte.js';
+
 // --- EP-Kosten-Grundformeln ---
 // Steigerung eines Werts von 0 auf W kostet die Summe SF·v für v = 1..W.
 export function summenKosten(sf, wert) {
@@ -249,7 +251,7 @@ export function waffenwerteText(char, db, waffe) {
       + `, ${k.geuebt ? 'geübt' : 'ungeübt, deshalb nur der halbe Fertigkeitswert'}`);
   }
   if (k.stil) teile.push(`Kampfstil ${k.stil}`);
-  return teile.join(', ') + '.';
+  return teile.join(', ') + '. ' + waffenErklaerung(waffe.name, k.talent);
 }
 
 // --- Abgeleitete Werte (Ilaris-Formeln) ---
