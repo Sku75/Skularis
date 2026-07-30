@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.24, 30. Juli 2026
+
+
+Manoever zeigt nur, was du kannst
+
+In der Initiative-Phase zeigt Manoever jetzt standardmaessig nur die Manoever, die
+du wirklich ausfuehren kannst: die Basismanoever, die allen offenstehen, und die,
+die dein Charakter als Kampf-Talent gelernt hat. Oben ein Umschalter blendet bei
+Bedarf auch die nicht gelernten ein; die sind dann als "Nicht gelernt"
+gekennzeichnet. Die Aktionen bleiben unveraendert, denn die Grundaktionen kann
+ohnehin jeder ausfuehren.
+
+
 Version 0.23, 30. Juli 2026
 
 
