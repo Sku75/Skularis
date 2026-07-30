@@ -4,6 +4,48 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.21, 30. Juli 2026
+
+
+Szenen und Szenenpacks
+
+Der Meister-Tisch hat einen neuen Bereich Szenen und Spieltisch (F3). Darin:
+Meine Szenenpacks (vorbereitete Kartensets, nach Abenteuer geordnet), Szenen
+spielen (die Szenen dieses Abenteuers) und der freie Spieltisch.
+
+Meine Szenenpacks: oben "Neues Szenenpack erstellen", darunter deine Abenteuer als
+Kategorien. In jedem Abenteuer liegen die Szenenpacks; auf einem Pack gibt es
+bearbeiten, loeschen, verschieben und umbenennen. Bearbeiten fuehrt zur
+Kartenliste: Held, Gegner, freundlichen NPC oder eine freie Karte hinzufuegen.
+Alles wird userindividuell im neuen Ordner "Meister Daten" gespeichert, der bei
+Updates erhalten bleibt und wie die Charaktere auf einen anderen Rechner
+transportierbar ist.
+
+Szenen spielen: oben "Szene erstellen", darunter die Szenen durchnummeriert S-1,
+S-2, und so weiter. Auf einer Szene gibt es spielen, bearbeiten und loeschen.
+
+Das Spielbrett
+
+Oeffnest du eine Szene mit Spielen, liegt ein Brett wie bei einem Kartenspiel vor
+dir: oben die Gegner, unten die Freunde. Pfeil hoch und runter wechselt die Reihe,
+Pfeil links und rechts die Karte. Die Eingabetaste tippt eine Karte an; tippst du
+danach eine Karte der anderen Reihe an, kaempfen beide gegeneinander. Auf einer
+Karte wird zuerst gesagt, ob sie kaempft oder frei ist, dann Name und Werte. So
+weist du im Kampf jedem Helden seine Gegner zu und behaeltst den Ueberblick.
+
+Verlassen kehrt zum Anfang zurueck
+
+Verlaesst du den Meister-Tisch oder den Abenteuertisch, landest du wieder am
+Einstieg (erstellen, oeffnen, spielen), nicht mehr in einem Zwischenmenue. Die
+Abfrage hat jetzt drei Antworten: Speichern und schliessen, Schliessen ohne
+Speichern, Abbrechen.
+
+F-Tasten sagen Fenster und Feld an
+
+Wechselst du mit einer F-Taste, wird jetzt zuerst der Name des Menues angesagt, in
+dem du gelandet bist, und dann das Feld, auf dem der Fokus steht.
+
+
 Version 0.20, 30. Juli 2026
 
 

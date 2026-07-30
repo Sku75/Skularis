@@ -128,6 +128,17 @@ export function reiterSegmentZeigen(anker, segment) {
   _render({ sound: false, restore: true });
 }
 
+/** Bis zu einem bestimmten Bildschirm zurueck (dieser wird oberster). */
+export function zurueckBis(zielScreen) {
+  const i = _stack.indexOf(zielScreen);
+  if (i < 0) return false;
+  const cur = current();
+  if (cur) cur._focusIndex = _aktuellerFokusIndex();
+  _stack.length = i + 1;
+  _render({ sound: false, restore: true });
+  return true;
+}
+
 /** Reiter-Hub verlassen: den Anker und alles darueber entfernen, einmal rendern. */
 export function entferneAb(screen) {
   const i = _stack.indexOf(screen);

@@ -163,6 +163,18 @@ ipcMain.handle('skularis:gegnerbib-speichern', (_event, data) => {
   return fileOps.gegnerBibSpeichern(gegnerBibPfad(), data.inhalt);
 });
 
+// --- Szenenpacks (Ordner "Meister Daten") ---
+function szenenpacksPfad() {
+  const { getMeisterDatenOrdner } = require('./main');
+  return path.join(getMeisterDatenOrdner(), 'Szenenpacks.json');
+}
+ipcMain.handle('skularis:szenenpacks-laden', () => {
+  return fileOps.jsonLaden(szenenpacksPfad());
+});
+ipcMain.handle('skularis:szenenpacks-speichern', (_event, data) => {
+  return fileOps.jsonSpeichern(szenenpacksPfad(), data.inhalt);
+});
+
 // --- Erschaffungspakete ---
 ipcMain.handle('skularis:pakete-liste', (_event, data) => {
   const { getDatenPfad } = require('./main');

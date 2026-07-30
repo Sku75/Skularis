@@ -26,6 +26,7 @@ import { gruppenrechercheScreen, gruppenprobeScreen } from '../meister/gruppenre
 import { gegnerkarteiScreen } from '../meister/gegnerkartei.js';
 import { gegnerBibliothekScreen } from '../meister/gegner-bibliothek.js';
 import { spieltischScreen } from '../meister/spieltisch.js';
+import { szenenBereichScreen } from '../meister/szenen-spielen.js';
 import { texteScreen } from '../meister/texte.js';
 import { meisterNotizenScreen } from '../meister/notizen.js';
 import { verdeckterWurf } from '../meister/wuerfel.js';
@@ -33,8 +34,13 @@ import { regelnScreen } from './regeln.js';
 
 const ipc = window.skularis?.ipc;
 
+// Einstiegs-Bildschirm des Meister-Tisches; beim Verlassen des Hubs kehrt der
+// Fokus hierher zurueck (nicht in ein Zwischenmenue).
+let _einstieg = null;
+
 export function oeffne() {
-  screen.push(einstiegScreen());
+  _einstieg = einstiegScreen();
+  screen.push(_einstieg);
 }
 
 function einstiegScreen() {
@@ -145,7 +151,7 @@ function oeffneHub(modus) {
   const punkte = [
     { label: 'Gruppenrecherche', hint: 'Werte der Gruppe abfragen und verdeckt wuerfeln', factory: () => gruppenrechercheScreen() },
     { label: 'Gruppenprobe', hint: 'die ganze Gruppe gegen eine Schwierigkeit', factory: () => gruppenprobeScreen() },
-    { label: 'Spieltisch', hint: 'Karten, Wunden und Zuweisung im Kampf', factory: () => spieltischScreen() },
+    { label: 'Szenen und Spieltisch', hint: 'Szenenpacks vorbereiten, Szenen spielen, freier Tisch', factory: () => szenenBereichScreen() },
     { label: 'Gegner-Bibliothek', hint: 'Gesamtliste und Kategorien, Gegner in die Auswahl uebernehmen', factory: () => gegnerBibliothekScreen() },
     { label: 'Freundliche NPC', hint: 'Meister-NPC verwalten', factory: () => gegnerkarteiScreen('freund') },
     { label: 'Charakterboegen der Gruppe', hint: 'Boegen ansehen', factory: () => gruppenboegenScreen() },
@@ -165,10 +171,18 @@ function oeffneHub(modus) {
 
   hub = reiterHub.oeffneHub({
     titel, subtitle: 'Mit F1 bis F12 direkt zum Menue. Escape verlaesst den Bereich.', punkte,
+    zurueckAuf: _einstieg,
     beimVerlassen: async () => {
-      const ja = await jaNeinDialog({ titel: 'Meister-Tisch verlassen', frage: 'Meisterabenteuer speichern?' });
-      if (ja) { await speichere(); sounds.playSpeichern(); }
-      return true;
+      const w = await knopfDialog({
+        titel: 'Meister-Tisch verlassen',
+        knoepfe: [
+          { label: 'Speichern und schliessen', wert: 'ja' },
+          { label: 'Schliessen ohne Speichern', wert: 'nein' },
+          { label: 'Abbrechen', wert: 'abbrechen' },
+        ],
+      });
+      if (w === 'ja') { await speichere(); sounds.playSpeichern(); }
+      return w || 'abbrechen';
     },
   });
 }

@@ -15,7 +15,7 @@ import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { auswahlScreen } from '../ui/auswahl-screen.js';
-import { textDialog, zahlDialog, jaNeinDialog } from '../ui/dialog.js';
+import { textDialog, zahlDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
 import { ladeDb, getDb } from '../core/db-laden.js';
 import { parse, serialisiere } from '../core/sephrasto-xml.js';
 import { createAbenteuer, parseAbenteuer, protokolliere, uebernehmeAbenteuerdaten } from '../core/abenteuer.js';
@@ -30,8 +30,12 @@ import { regelnScreen } from './regeln.js';
 
 const ipc = window.skularis?.ipc;
 
+// Einstiegs-Bildschirm; beim Verlassen des Hubs kehrt der Fokus hierher zurück.
+let _einstieg = null;
+
 export function oeffne() {
-  screen.push(einstiegScreen());
+  _einstieg = einstiegScreen();
+  screen.push(_einstieg);
 }
 
 function einstiegScreen() {
@@ -189,10 +193,18 @@ function oeffneHubSpieler(modus) {
 
   hub = reiterHub.oeffneHub({
     titel, subtitle: 'Mit F1 bis F12 direkt zum Menü. Escape verlässt das Abenteuer.', punkte,
+    zurueckAuf: _einstieg,
     beimVerlassen: async () => {
-      const ja = await jaNeinDialog({ titel: 'Abenteuer verlassen', frage: 'Abenteuer speichern?' });
-      if (ja) { await speichere(); sounds.playSpeichern(); }
-      return true;
+      const w = await knopfDialog({
+        titel: 'Abenteuer verlassen',
+        knoepfe: [
+          { label: 'Speichern und schließen', wert: 'ja' },
+          { label: 'Schließen ohne Speichern', wert: 'nein' },
+          { label: 'Abbrechen', wert: 'abbrechen' },
+        ],
+      });
+      if (w === 'ja') { await speichere(); sounds.playSpeichern(); }
+      return w || 'abbrechen';
     },
   });
 }

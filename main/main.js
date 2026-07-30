@@ -5,7 +5,7 @@ const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron')
 const path = require('path');
 const fs = require('fs');
 
-const VERSION = 'Skularis 0.20';
+const VERSION = 'Skularis 0.21';
 let mainWindow = null;
 
 // Single Instance Lock
@@ -61,7 +61,7 @@ function migriereNutzerdaten() {
   const neu = getBasisPfad();
   if (path.resolve(alt) === path.resolve(neu)) return;
   try {
-    for (const name of ['Charakter-Dateien', 'Abenteuer-Daten', 'Meisterabenteuer']) {
+    for (const name of ['Charakter-Dateien', 'Abenteuer-Daten', 'Meisterabenteuer', 'Meister Daten']) {
       const q = path.join(alt, name), z = path.join(neu, name);
       if (fs.existsSync(q) && !fs.existsSync(z)) fs.cpSync(q, z, { recursive: true });
     }
@@ -91,6 +91,12 @@ function getAbenteuerOrdner() {
 // Ordner für Meisterabenteuer (eigener Ordner, getrennt vom Spielertisch)
 function getMeisterOrdner() {
   return path.join(getBasisPfad(), 'Meisterabenteuer');
+}
+
+// Ordner für Meister-Daten (Szenenpacks, eigene Gegner): bleibt bei Updates
+// erhalten und ist wie die Charaktere auf einen anderen Rechner transportierbar.
+function getMeisterDatenOrdner() {
+  return path.join(getBasisPfad(), 'Meister Daten');
 }
 
 // Verzeichnis mit Regeldaten (datenbank.xml + CharakterAssistent)
@@ -158,5 +164,5 @@ app.on('window-all-closed', () => { app.quit(); });
 // Expose for ipc-handlers
 module.exports = {
   getMainWindow: () => mainWindow,
-  getBasisPfad, getAppPfad, getCharOrdner, getAbenteuerOrdner, getMeisterOrdner, getDatenPfad, VERSION,
+  getBasisPfad, getAppPfad, getCharOrdner, getAbenteuerOrdner, getMeisterOrdner, getMeisterDatenOrdner, getDatenPfad, VERSION,
 };
