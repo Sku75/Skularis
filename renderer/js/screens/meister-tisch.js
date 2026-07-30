@@ -156,7 +156,7 @@ function oeffneHub(modus) {
     { label: 'Freundliche NPC', hint: 'Meister-NPC verwalten', factory: () => gegnerkarteiScreen('freund') },
     { label: 'Charakterboegen der Gruppe', hint: 'Boegen ansehen', factory: () => gruppenboegenScreen() },
     { label: 'Abenteuertexte', hint: 'txt-Dokumente lesen, mit Lesezeichen', factory: () => texteScreen() },
-    { label: 'Meister-Notizen und Vorlesetexte', hint: 'geheime Notizen und Vorlesetexte', factory: () => meisterNotizenScreen() },
+    { label: 'Meister-Notizen und Werkzeuge', hint: 'geheime Notizen, Vorlesetexte, Zufallstabellen', factory: () => meisterNotizenScreen() },
     { label: 'Regelnachschlagewerk', hint: 'alle Regeln, mit Hinweis welcher Held sie hat', factory: () => regelnScreen({ db: getDb(), helden: regelHelden(), titel: 'Regelnachschlagewerk' }) },
     { label: 'Protokoll', hint: 'was im Abenteuer passiert ist', factory: () => protokollScreen() },
     { label: 'Gruppenzusammenstellung', hint: 'Helden hinzufuegen und entfernen', factory: () => gruppenzusammenstellungScreen() },

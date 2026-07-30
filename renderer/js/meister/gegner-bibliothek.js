@@ -94,6 +94,7 @@ export function gegnerBibliothekScreen() {
       const eigene = (_userBib && _userBib.gegner) || [];
       items.push({ label: `Eigene Gegner, ${eigene.length}`, hint: 'selbst erstellte Gegner, bearbeitbar', onSelect: () => screen.push(eigeneListeScreen()) });
       items.push({ label: 'Neuen Gegner erstellen', hint: 'eigenen Gegner anlegen und in die Bibliothek speichern', onSelect: () => neuerGegner() });
+      items.push({ label: 'Gegner generieren', hint: 'aus Gefaehrlichkeit und Art schnell erzeugen', onSelect: () => generiereGegner() });
 
       return menuScreen({
         title: this.title,
@@ -156,6 +157,44 @@ function eigenEintragScreen(index) {
       }).build();
     },
   };
+}
+
+const GEFAHR = [
+  { name: 'Schwach', ws: 4, rs: 0, at: 9, pa: 8, wuerfel: 1, bonus: 1, ini: 3 },
+  { name: 'Normal', ws: 6, rs: 1, at: 11, pa: 10, wuerfel: 1, bonus: 3, ini: 4 },
+  { name: 'Stark', ws: 8, rs: 2, at: 13, pa: 11, wuerfel: 1, bonus: 5, ini: 5 },
+  { name: 'Sehr stark', ws: 11, rs: 3, at: 14, pa: 12, wuerfel: 2, bonus: 6, ini: 5 },
+  { name: 'Legendaer', ws: 15, rs: 5, at: 16, pa: 13, wuerfel: 3, bonus: 8, ini: 6 },
+];
+const ARTEN = [
+  { name: 'Mensch', angriff: 'Waffe', hatPa: true, vorteile: [] },
+  { name: 'Tier', angriff: 'Biss', hatPa: false, vorteile: ['Flink'] },
+  { name: 'Ork oder Oger', angriff: 'Wuchtwaffe', hatPa: true, vorteile: ['Zaeh'] },
+  { name: 'Untot', angriff: 'Klauen', hatPa: true, vorteile: ['Untot', 'Schmerzlos'] },
+  { name: 'Daemon', angriff: 'Krallen', hatPa: true, vorteile: ['Daemonisch', 'Furchteinfloessend'] },
+  { name: 'Bestie oder Drache', angriff: 'Biss', hatPa: true, vorteile: ['Zaeh', 'Furchteinfloessend'] },
+];
+
+async function generiereGegner() {
+  await ladeUserBib();
+  const gefahr = await spinnerDialog({ titel: 'Gefaehrlichkeit', optionen: GEFAHR, index: 1, format: (g) => g.name });
+  if (gefahr === null) return;
+  const art = await spinnerDialog({ titel: 'Art', optionen: ARTEN, index: 0, format: (a) => a.name });
+  if (art === null) return;
+  const name = await textDialog({ titel: 'Name', label: 'Name des Gegners', wert: `${gefahr.name}er ${art.name}` });
+  if (name === null || !name.trim()) return;
+  const g = {
+    name: name.trim(),
+    kategorie: `Generiert, ${art.name}`,
+    ws: gefahr.ws, rs: gefahr.rs, ini: gefahr.ini,
+    angriffe: [{ name: art.angriff, at: gefahr.at, pa: art.hatPa ? gefahr.pa : null, wuerfel: gefahr.wuerfel, seiten: 6, bonus: gefahr.bonus }],
+    vorteile: [...art.vorteile], manoever: [], notizen: 'Generiert. Werte bei Bedarf im Editor anpassen.',
+  };
+  _userBib.gegner.push(g);
+  await speichereUserBib();
+  screen.refresh();
+  sounds.playOeffnen();
+  sprache.sage(`${g.name} generiert und in die eigene Bibliothek gelegt. Wundschwelle ${g.ws}, Angriff ${gefahr.at}.`);
 }
 
 async function neuerGegner() {

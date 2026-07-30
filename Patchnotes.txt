@@ -4,6 +4,50 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.22, 30. Juli 2026
+
+
+Das Spielbrett wird zum Kampf-Herz
+
+Auf dem Spielbrett einer Szene kannst du jetzt kaempfen, nicht nur zuordnen.
+Plus und Minus setzen die Wunden einer Karte, mit sofortiger Ansage samt
+Wundschwelle. Die Leertaste oeffnet ein Karten-Menue: Angriff und Schaden verdeckt
+auswuerfeln, Wunden setzen, Karte aus der Szene nehmen. Die Taste i geht die
+Initiative durch, hoechste zuerst, und sagt an, wer am Zug ist. Die Eingabetaste
+verbindet weiterhin Karten (wer kaempft gegen wen).
+
+Roter Faden durch den Abend
+
+Am Spielbrett fuehrt die Taste n zur naechsten Szene. Jede Szene kann eigene
+Vorlesetexte bekommen (Taste v liest sie am Brett vor) und eine Szenen-Notiz. Mit
+Szene zuruecksetzen loeschst du Wunden und Verbindungen fuer den naechsten
+Durchgang.
+
+Zufallstabellen
+
+Unter Meister-Notizen und Werkzeuge gibt es Zufallstabellen: Namen, Geruechte in
+der Taverne, Wetter, Beute und kleine Komplikationen. Eingabetaste wuerfelt einen
+Eintrag aus.
+
+Gegner schnell generieren
+
+In der Gegner-Bibliothek erzeugt Gegner generieren aus Gefaehrlichkeit und Art in
+Sekunden einen passenden Gegner mit stimmigen Kampfwerten und legt ihn in deine
+eigene Bibliothek.
+
+F-Tasten im Charakter-Editor
+
+Auch der Charakter-Editor hat jetzt die F-Tasten-Navigation: mit F1 bis F12
+springst du direkt zwischen Beschreibung, Attributen, Fertigkeiten, Vorteilen und
+den anderen Bereichen, jeder bleibt an seiner Stelle. Beim Verlassen fragt der
+Editor, ob gespeichert werden soll.
+
+Unter der Haube
+
+Eine kleine automatische Pruefung der Rechen- und Datenlogik laeuft jetzt mit,
+damit kuenftige Aenderungen nichts Stilles zerbrechen.
+
+
 Version 0.21, 30. Juli 2026
 
 
