@@ -118,6 +118,39 @@ ipcMain.handle('skularis:abenteuer-loeschen', (_event, data) => {
   return fileOps.abenteuerLoeschen(data.pfad);
 });
 
+// --- Meisterabenteuer (eigener Ordner) ---
+ipcMain.handle('skularis:meister-liste', () => {
+  const { getMeisterOrdner } = require('./main');
+  return fileOps.meisterListe(getMeisterOrdner());
+});
+
+ipcMain.handle('skularis:meister-speichern', (_event, data) => {
+  const { getMeisterOrdner } = require('./main');
+  return fileOps.meisterSpeichern(getMeisterOrdner(), data.name, data.inhalt);
+});
+
+ipcMain.handle('skularis:meister-laden', (_event, data) => {
+  return fileOps.meisterLaden(data.pfad);
+});
+
+ipcMain.handle('skularis:meister-loeschen', (_event, data) => {
+  return fileOps.meisterLoeschen(data.pfad);
+});
+
+// --- Abenteuertexte (Ordner waehlen, txt lesen) ---
+ipcMain.handle('skularis:ordner-waehlen', (_event, data) => {
+  const { getMainWindow } = require('./main');
+  return fileOps.ordnerWaehlen(getMainWindow(), data && data.titel);
+});
+
+ipcMain.handle('skularis:textdateien-liste', (_event, data) => {
+  return fileOps.textDateienListe(data.ordner);
+});
+
+ipcMain.handle('skularis:textdatei-laden', (_event, data) => {
+  return fileOps.textDateiLaden(data.pfad);
+});
+
 // --- Erschaffungspakete ---
 ipcMain.handle('skularis:pakete-liste', (_event, data) => {
   const { getDatenPfad } = require('./main');

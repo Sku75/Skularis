@@ -189,6 +189,59 @@ function abenteuerLoeschen(pfad) {
   return { ok: true };
 }
 
+// --- Meisterabenteuer (eigener Ordner, sonst wie Abenteuer) ---
+
+function meisterListe(ordner) {
+  if (!fs.existsSync(ordner)) return [];
+  return fs.readdirSync(ordner)
+    .filter(f => f.toLowerCase().endsWith('.json'))
+    .map(f => ({ name: f.replace(/\.json$/i, ''), pfad: path.join(ordner, f) }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+}
+
+function meisterSpeichern(ordner, name, inhalt) {
+  fs.mkdirSync(ordner, { recursive: true });
+  const sicher = String(name || '').replace(/[\\/:*?"<>|]/g, '_').trim() || 'Meisterabenteuer';
+  const pfad = path.join(ordner, sicher + '.json');
+  const tmp = pfad + '.tmp';
+  fs.writeFileSync(tmp, inhalt, 'utf-8');
+  fs.renameSync(tmp, pfad);
+  return { pfad, name: sicher };
+}
+
+function meisterLaden(pfad) {
+  return { inhalt: fs.readFileSync(pfad, 'utf-8') };
+}
+
+function meisterLoeschen(pfad) {
+  if (pfad && fs.existsSync(pfad)) fs.unlinkSync(pfad);
+  return { ok: true };
+}
+
+// --- Abenteuertexte: Ordner waehlen, txt-Dateien lesen ---
+
+function ordnerWaehlen(win, titel) {
+  const result = dialog.showOpenDialogSync(win, {
+    title: titel || 'Ordner mit Abenteuertexten waehlen',
+    properties: ['openDirectory'],
+  });
+  if (!result || result.length === 0) return null;
+  return { pfad: result[0] };
+}
+
+function textDateienListe(ordner) {
+  if (!ordner || !fs.existsSync(ordner)) return [];
+  return fs.readdirSync(ordner, { withFileTypes: true })
+    .filter(e => e.isFile() && /\.(txt|md)$/i.test(e.name))
+    .map(e => ({ name: e.name.replace(/\.(txt|md)$/i, ''), datei: e.name, pfad: path.join(ordner, e.name) }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+}
+
+function textDateiLaden(pfad) {
+  try { return { inhalt: fs.readFileSync(pfad, 'utf-8') }; }
+  catch (e) { return { inhalt: '', fehler: e.message }; }
+}
+
 module.exports = {
   dateiOeffnenDialog,
   dateiSpeichern,
@@ -208,4 +261,11 @@ module.exports = {
   abenteuerSpeichern,
   abenteuerLaden,
   abenteuerLoeschen,
+  meisterListe,
+  meisterSpeichern,
+  meisterLaden,
+  meisterLoeschen,
+  ordnerWaehlen,
+  textDateienListe,
+  textDateiLaden,
 };
