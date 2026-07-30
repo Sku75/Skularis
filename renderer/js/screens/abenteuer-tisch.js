@@ -15,7 +15,7 @@ import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { auswahlScreen } from '../ui/auswahl-screen.js';
-import { textDialog, zahlDialog } from '../ui/dialog.js';
+import { textDialog, zahlDialog, jaNeinDialog } from '../ui/dialog.js';
 import { ladeDb, getDb } from '../core/db-laden.js';
 import { parse, serialisiere } from '../core/sephrasto-xml.js';
 import { createAbenteuer, parseAbenteuer, protokolliere, uebernehmeAbenteuerdaten } from '../core/abenteuer.js';
@@ -95,26 +95,66 @@ async function oeffnen(modus) {
   let liste = [];
   try { liste = await ipc.abenteuerListe(); } catch { liste = []; }
   if (!liste.length) { sprache.sage('Noch keine gespeicherten Abenteuer.'); return; }
+  screen.push(abenteuerListeScreen(modus, liste));
+}
 
-  const eintraege = liste.map(a => ({ label: a.name, wert: a.pfad }));
-  auswahlScreen({
-    titel: modus === 'spielen' ? 'Abenteuer zum Spielen wählen' : 'Abenteuer zum Bearbeiten wählen',
-    eintraege,
-    onWahl: async (pfad) => {
-      try {
-        await ladeDb(); // für Basiswerte im Charakterbogen
-        const r = await ipc.abenteuerLaden(pfad);
-        const a = parseAbenteuer(r.inhalt);
-        a._pfad = pfad;
-        setAbenteuer(a);
-        sounds.playOeffnen();
-        oeffneHubSpieler(modus);
-      } catch (e) {
-        console.error('Abenteuer laden:', e);
-        sprache.sage('Abenteuer konnte nicht geladen werden.');
-      }
+/** Liste der Abenteuer; Enter oeffnet ein Untermenue (oeffnen/loeschen). */
+function abenteuerListeScreen(modus, liste) {
+  return {
+    title: modus === 'spielen' ? 'Abenteuer zum Spielen' : 'Abenteuer zum Bearbeiten',
+    build() {
+      const items = liste.map(a => ({
+        label: a.name,
+        hint: 'Enter: oeffnen oder loeschen',
+        onSelect: () => screen.push(abenteuerEintragScreen(modus, a, liste)),
+      }));
+      return menuScreen({ title: this.title, subtitle: 'Escape zurück.', items, leer: 'Noch keine Abenteuer.' }).build();
     },
-  });
+  };
+}
+
+function abenteuerEintragScreen(modus, eintrag, liste) {
+  const oeffnenLabel = modus === 'spielen' ? 'Zum Spielen öffnen' : 'Zum Bearbeiten öffnen';
+  return {
+    title: eintrag.name,
+    build() {
+      return menuScreen({
+        title: eintrag.name,
+        subtitle: 'Escape zurück.',
+        items: [
+          {
+            label: oeffnenLabel,
+            onSelect: async () => {
+              try {
+                await ladeDb(); // für Basiswerte im Charakterbogen
+                const r = await ipc.abenteuerLaden(eintrag.pfad);
+                const a = parseAbenteuer(r.inhalt);
+                a._pfad = eintrag.pfad;
+                setAbenteuer(a);
+                sounds.playOeffnen();
+                oeffneHubSpieler(modus);
+              } catch (e) {
+                console.error('Abenteuer laden:', e);
+                sprache.sage('Abenteuer konnte nicht geladen werden.');
+              }
+            },
+          },
+          {
+            label: 'Löschen',
+            onSelect: async () => {
+              if (!await jaNeinDialog({ titel: 'Löschen', frage: `Abenteuer ${eintrag.name} wirklich löschen?` })) return;
+              try { await ipc.abenteuerLoeschen(eintrag.pfad); } catch (e) { console.error('löschen:', e); }
+              const i = liste.indexOf(eintrag);
+              if (i >= 0) liste.splice(i, 1);
+              screen.pop();
+              screen.refresh();
+              sprache.sage(`${eintrag.name} gelöscht.`);
+            },
+          },
+        ],
+      }).build();
+    },
+  };
 }
 
 // --- Hub (modusabhängig) ---
@@ -147,7 +187,14 @@ function oeffneHubSpieler(modus) {
     punkte.push({ label: 'Abenteuer speichern und zurück', aktion: () => speichernUndZurueck(hub) });
   }
 
-  hub = reiterHub.oeffneHub({ titel, subtitle: 'Mit F1 bis F12 direkt zum Menü. Escape verlässt das Abenteuer.', punkte });
+  hub = reiterHub.oeffneHub({
+    titel, subtitle: 'Mit F1 bis F12 direkt zum Menü. Escape verlässt das Abenteuer.', punkte,
+    beimVerlassen: async () => {
+      const ja = await jaNeinDialog({ titel: 'Abenteuer verlassen', frage: 'Abenteuer speichern?' });
+      if (ja) { await speichere(); sounds.playSpeichern(); }
+      return true;
+    },
+  });
 }
 
 function protokollScreenSpieler() {

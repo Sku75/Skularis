@@ -54,9 +54,25 @@ async function init() {
 
 // --- Escape = zurück ---
 
+/** Echtes Texteingabefeld? Dort loescht die Ruecktaste ein Zeichen, statt zurueck zu gehen. */
+function istTextfeld(el) {
+  if (!el) return false;
+  if (el.isContentEditable) return true;
+  if (el.tagName === 'TEXTAREA') return true;
+  if (el.tagName === 'INPUT') {
+    const t = (el.type || 'text').toLowerCase();
+    return ['text', 'search', 'email', 'url', 'tel', 'password', 'number'].includes(t);
+  }
+  return false;
+}
+
 function registriereEscape() {
   document.addEventListener('keydown', async (e) => {
-    if (e.key !== 'Escape') return;
+    // Die Ruecktaste wirkt wie Escape (einen Schritt zurueck) — ausser in einem
+    // echten Texteingabefeld, wo sie ein Zeichen loescht.
+    const istZurueck = e.key === 'Escape' || e.key === 'Backspace';
+    if (!istZurueck) return;
+    if (e.key === 'Backspace' && istTextfeld(e.target)) return;
     // Offener Dialog? Dann Dialog-eigenes Escape wirken lassen. Das gilt auch
     // für die Rückfrage aus onBack — mehrfaches Escape verwirft also nichts.
     if (document.querySelector('dialog[open]')) return;

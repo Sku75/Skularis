@@ -42,20 +42,9 @@ export function texteScreen() {
     build() {
       const a = getMeister();
       const items = [];
-      items.push({
-        label: a.textOrdner ? `Ordner wechseln, aktuell ${ordnerName(a.textOrdner)}` : 'Ordner waehlen und bestaetigen',
-        hint: 'einen Ordner mit txt-Dokumenten waehlen',
-        onSelect: async () => {
-          const r = await ipc.ordnerWaehlen('Ordner mit Abenteuertexten waehlen');
-          if (!r || !r.pfad) return;
-          a.textOrdner = r.pfad;
-          scr._dateien = null;
-          await speichere();
-          await scr.ladeListe();
-          sprache.sage(`Ordner ${ordnerName(a.textOrdner)} gewaehlt.`);
-        },
-      });
 
+      // Nach dem Waehlen eines Ordners stehen die Dokumente OBEN, die
+      // Ordner-Schaltflaeche reiht sich UNTEN an.
       if (a.textOrdner && Array.isArray(scr._dateien)) {
         for (const d of scr._dateien) {
           const m = a.textLesezeichen[d.pfad];
@@ -68,9 +57,25 @@ export function texteScreen() {
         }
       }
 
+      const ordnerPunkt = {
+        label: a.textOrdner ? `Ordner wechseln, aktuell ${ordnerName(a.textOrdner)}` : 'Ordner waehlen und bestaetigen',
+        hint: 'einen Ordner mit txt-Dokumenten waehlen',
+        onSelect: async () => {
+          const r = await ipc.ordnerWaehlen('Ordner mit Abenteuertexten waehlen');
+          if (!r || !r.pfad) return;
+          a.textOrdner = r.pfad;
+          scr._dateien = null;
+          await speichere();
+          await scr.ladeListe();
+          sprache.sage(`Ordner ${ordnerName(a.textOrdner)} gewaehlt.`);
+        },
+      };
+      // Ohne gewaehlten Ordner steht der Punkt oben, sonst unten.
+      if (a.textOrdner) items.push(ordnerPunkt); else items.unshift(ordnerPunkt);
+
       return menuScreen({
         title: this.title,
-        subtitle: a.textOrdner ? 'Enter oeffnet ein Dokument. Ordner oben wechseln. Escape zurueck.' : 'Erst einen Ordner waehlen und bestaetigen. Escape zurueck.',
+        subtitle: a.textOrdner ? 'Enter oeffnet ein Dokument. Ordner unten wechseln. Escape zurueck.' : 'Erst einen Ordner waehlen und bestaetigen. Escape zurueck.',
         items,
         leer: 'Keine txt-Dokumente in diesem Ordner.',
         filter: (scr._dateien || []).length >= 10,
@@ -109,6 +114,9 @@ function dokumentScreen(d, initialPos) {
       const m = merker(a, d.pfad);
       const wrap = document.createElement('div');
       wrap.className = 'db-menu';
+      // Lesemodus: kein Klickton bei hoch und runter (nur Anschlag am Rand), und
+      // keine Rollen-Ansagen wie "Schalter" oder "Leerzeile".
+      wrap.dataset.lesemodus = '1';
 
       const kopf = document.createElement('div');
       kopf.className = 'db-menu__title';
@@ -116,7 +124,39 @@ function dokumentScreen(d, initialPos) {
       kopf.textContent = d.name;
       wrap.appendChild(kopf);
 
-      // Steuer-Schalter: Lesezeichen setzen und anspringen.
+      // Zuerst der Text, damit der Fokus beim Oeffnen direkt in einer Zeile steht
+      // und man beim Lesen keine Schaltflaechen hoert.
+      const liste = document.createElement('div');
+      liste.className = 'db-menu__list';
+      if (!state.geladen) {
+        const z = document.createElement('div');
+        z.className = 'db-row'; z.tabIndex = 0; z.textContent = 'Wird geladen...';
+        z.setAttribute('aria-label', 'Wird geladen.');
+        liste.appendChild(z);
+      } else {
+        (state.zeilen || []).forEach((zeile, i) => {
+          const row = document.createElement('div');
+          row.className = 'db-row';
+          row.id = `zeile-${i}`;
+          row.tabIndex = 0;
+          row.dataset.zeile = String(i);
+          const istMarke = m.lesezeichen === i;
+          // Leere Zeile bleibt leer (kurze Pause), kein Wort "Leerzeile".
+          const label = (istMarke ? 'Lesezeichen. ' : '') + zeile;
+          row.textContent = (istMarke ? '▶ ' : '') + zeile;
+          row.setAttribute('data-sr-label', label);
+          row.setAttribute('aria-label', label);
+          row.addEventListener('focusin', () => {
+            state.letzteZeile = i;
+            m.position = i;
+            speichereBald();
+          });
+          liste.appendChild(row);
+        });
+      }
+      wrap.appendChild(liste);
+
+      // Lesezeichen-Schalter ganz unten, damit man sie beim Lesen nicht hoert.
       const setzen = document.createElement('button');
       setzen.type = 'button';
       setzen.className = 'db-btn db-menu__item';
@@ -139,35 +179,6 @@ function dokumentScreen(d, initialPos) {
         wrap.appendChild(springen);
       }
 
-      const liste = document.createElement('div');
-      liste.className = 'db-menu__list';
-      if (!state.geladen) {
-        const z = document.createElement('div');
-        z.className = 'db-row'; z.tabIndex = 0; z.textContent = 'Wird geladen...';
-        z.setAttribute('aria-label', 'Wird geladen.');
-        liste.appendChild(z);
-      } else {
-        (state.zeilen || []).forEach((zeile, i) => {
-          const row = document.createElement('div');
-          row.className = 'db-row';
-          row.id = `zeile-${i}`;
-          row.tabIndex = 0;
-          row.dataset.zeile = String(i);
-          const istMarke = m.lesezeichen === i;
-          const text = zeile.trim() ? zeile : 'Leerzeile';
-          const label = (istMarke ? 'Lesezeichen. ' : '') + text;
-          row.textContent = (istMarke ? '▶ ' : '') + zeile;
-          row.setAttribute('data-sr-label', label);
-          row.setAttribute('aria-label', label);
-          row.addEventListener('focusin', () => {
-            state.letzteZeile = i;
-            m.position = i;
-            speichereBald();
-          });
-          liste.appendChild(row);
-        });
-      }
-      wrap.appendChild(liste);
       return wrap;
     },
     onShow() {

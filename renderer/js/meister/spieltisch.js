@@ -16,7 +16,7 @@ import { auswahlScreen } from '../ui/auswahl-screen.js';
 import { knopfDialog, jaNeinDialog } from '../ui/dialog.js';
 import { wertZeile, infoZeile, aktionZeile, abschnittTitel, verbindeDetail } from '../editor/widgets.js';
 import { getDb, ladeDb } from '../core/db-laden.js';
-import { baueSpielerKarte, protokolliere } from '../core/meister-abenteuer.js';
+import { baueSpielerKarte, protokolliere, angriffeText } from '../core/meister-abenteuer.js';
 import { getMeister, speichere } from './state.js';
 import { verdeckteProbe, verdeckterWurf } from './wuerfel.js';
 
@@ -27,20 +27,29 @@ function wundStatus(k) {
   return s;
 }
 
-function angriffText(k) {
-  return (k.angriffe || []).map(x => `${x.name} Angriff ${x.wert}, Schaden ${x.wuerfel} W ${x.seiten}${x.bonus ? ' plus ' + x.bonus : ''}`).join('. ');
-}
+function artWort(k) { return k.art === 'spieler' ? 'Held' : (k.art === 'freund' ? 'Freund' : 'Gegner'); }
 
 function karteDetail(k) {
-  return `${k.name}. Wundschwelle ${k.ws}, Ruestung ${k.rs}, Initiative ${k.ini}. ${angriffText(k) || 'Keine Angriffe.'}${k.notizen ? ' Notizen: ' + k.notizen : ''}`;
+  const faeh = [...(k.vorteile || []), ...(k.manoever || [])];
+  return [
+    `${k.name}, ${artWort(k)}${k.kategorie ? ', ' + k.kategorie : ''}.`,
+    wundStatus(k) + '.',
+    `Ruestung ${k.rs}, Initiative ${k.ini}.`,
+    angriffeText(k) || 'Keine Angriffe.',
+    faeh.length ? `Faehigkeiten: ${faeh.join(', ')}.` : '',
+    k.notizen ? `Notizen: ${k.notizen}` : '',
+  ].filter(Boolean).join(' ');
 }
 
-/** Eine Kampfkarte in den Container zeichnen. */
+/**
+ * Eine Kampfkarte in den Container zeichnen. Feste Zeilenfolge (Kartenstandard):
+ * Kopf, Status (Wunden verstellbar), Widerstand, Angriffe, Faehigkeiten, Aktionen.
+ */
 function zeichneKarte(wrap, a, k, eingerueckt) {
   const p = eingerueckt ? '    ' : '';
-  // Kopfzeile mit den festen Werten.
-  wrap.appendChild(infoZeile(`${p}${k.name}: Wundschwelle ${k.ws}, Ruestung ${k.rs}, Initiative ${k.ini}`, karteDetail(k)));
-  // Wundenstand, mit Pfeil links und rechts verstellbar.
+  // 1. Kopf: Name, Art, Kategorie.
+  wrap.appendChild(infoZeile(`${p}${k.name}, ${artWort(k)}${k.kategorie ? ', ' + k.kategorie : ''}`, karteDetail(k)));
+  // 2. Status: Wunden mit Pfeil links und rechts, Wundschwelle dahinter.
   wrap.appendChild(wertZeile({
     label: `${p}${k.name} Wunden`,
     get: () => k.wunden || 0,
@@ -50,17 +59,25 @@ function zeichneKarte(wrap, a, k, eingerueckt) {
     detail: karteDetail(k),
     onChange: () => { speichere(); return wundStatus(k); },
   }));
+  // 3. Widerstand.
+  wrap.appendChild(infoZeile(`${p}Wundschwelle ${k.ws}, Ruestung ${k.rs}, Initiative ${k.ini}`, karteDetail(k)));
 
   if (k.art !== 'spieler') {
-    // Angriffe verdeckt wuerfelbar.
+    // 4. Angriffe, je Waffe Attacke, Parade (falls vorhanden) und Schaden verdeckt.
     for (const ang of k.angriffe || []) {
-      wrap.appendChild(aktionZeile(`${p}Angriff ${ang.name} wuerfeln`, () => verdeckteProbe({ wer: k.name, was: `Angriff ${ang.name}`, probenwert: ang.wert, anzahl: 1 }), `verdeckt, Wert ${ang.wert}`));
-      wrap.appendChild(aktionZeile(`${p}Schaden ${ang.name} wuerfeln`, () => verdeckterWurf(ang.wuerfel, ang.seiten, ang.bonus, `Schaden ${ang.name}`), 'verdeckt'));
+      const at = ang.at != null ? ang.at : ang.wert || 0;
+      wrap.appendChild(aktionZeile(`${p}${ang.name}: Attacke ${at} wuerfeln`, () => verdeckteProbe({ wer: k.name, was: `Attacke ${ang.name}`, probenwert: at, anzahl: 1 }), 'verdeckt'));
+      if (ang.pa != null) wrap.appendChild(aktionZeile(`${p}${ang.name}: Parade ${ang.pa} wuerfeln`, () => verdeckteProbe({ wer: k.name, was: `Parade ${ang.name}`, probenwert: ang.pa, anzahl: 1 }), 'verdeckt'));
+      wrap.appendChild(aktionZeile(`${p}${ang.name}: Schaden wuerfeln`, () => verdeckterWurf(ang.wuerfel, ang.seiten, ang.bonus, `Schaden ${ang.name}`), 'verdeckt'));
     }
+    // 5. Faehigkeiten.
+    const faeh = [...(k.vorteile || []), ...(k.manoever || [])];
+    if (faeh.length) wrap.appendChild(infoZeile(`${p}Faehigkeiten: ${faeh.join(', ')}`, karteDetail(k)));
+    // Aktionen.
     wrap.appendChild(aktionZeile(`${p}${k.name}: einem Helden zuweisen`, () => zuweisen(k), 'ordnet diese Karte einem Helden zu'));
     wrap.appendChild(aktionZeile(`${p}${k.name}: vom Tisch nehmen`, () => vomTisch(k), 'entfernt die Karte'));
   } else {
-    if ((k.angriffe || []).length) wrap.appendChild(infoZeile(`${p}Angriffe: ${angriffText(k)}`, karteDetail(k)));
+    if ((k.angriffe || []).length) wrap.appendChild(infoZeile(`${p}Angriffe: ${angriffeText(k)}`, karteDetail(k)));
     wrap.appendChild(aktionZeile(`${p}${k.name}: vom Tisch nehmen`, () => vomTisch(k), 'entfernt die Heldenkarte'));
   }
 }

@@ -4,6 +4,80 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.20, 30. Juli 2026
+
+
+Gegner-Bibliothek mit Kategorien
+
+Eine grosse, mitgelieferte Gegner-Sammlung ist da, aus dem DSA-Kontext nach Ilaris
+uebersetzt: rund 40 Gegner in acht Kategorien (Menschen, Ork und Oger, Tiere,
+Untote, Daemonisches, Elementares, Drachen und Echsen, Ungeziefer und Pflanzen).
+Erster Punkt ist die Gesamtliste mit Filter, darunter die Kategorien. Mit der
+Eingabetaste uebernimmst du einen Gegner in deine Auswahl und legst ihn von dort
+auf den Spieltisch. Deine eigenen Gegner speicherst du in einer globalen
+Bibliothek, die ueber alle Meisterabenteuer erhalten bleibt.
+
+Gegner selbst bauen
+
+Ein eigener Gegner-Editor: Name, Kategorie, Wundschwelle, Ruestung, Initiative,
+Angriffe mit Attacke, Parade und Schaden, dazu Faehigkeiten (Vorteile und
+Manoever) und ein Freitext. Jede Karte laesst sich anpassen.
+
+Kartenlayout fuer den Spieltisch
+
+Jede Kampfkarte folgt jetzt einer festen Ordnung: Kopf mit Name, Art und
+Kategorie, dann der Wundenstand (mit Pfeil links und rechts), dann Widerstand,
+dann je Angriff eine Zeile mit Attacke, Parade und Schaden, dann die Faehigkeiten.
+
+F-Tasten merken sich die genaue Stelle
+
+Springst du mit einer F-Taste zu einem anderen Menue und wieder zurueck, landest
+du genau dort, wo du warst, auch tief in einem geoeffneten Dokument. Gehst du
+dagegen ueber das Hub-Menue mit der Eingabetaste hinein, startest du frisch oben.
+
+Untermenue beim Oeffnen
+
+Am Meister-Tisch und am Abenteuertisch zeigt die Eingabetaste auf einem Abenteuer
+jetzt ein Untermenue: zum Bearbeiten oeffnen oder loeschen.
+
+Verlassen fragt nach dem Speichern
+
+Beim Verlassen mit Escape fragt der Meister-Tisch jetzt, ob gespeichert werden
+soll, genau wie der Abenteuertisch.
+
+Verdeckter Meister-Wurf neu
+
+Klarer Ablauf mit Pfeiltasten: erst die Anzahl der Wuerfel, dann der Wuerfeltyp,
+dann die Erschwernis. Das Ergebnis steht danach hinter dem Menuepunkt und wird
+angesagt.
+
+Gruppenrecherche runder
+
+Suchst du nach einem Talent, das ein Held nicht hat, wird auf die zugehoerige
+Fertigkeit zurueckgefallen und deren Wert angeboten. Jede Ergebniszeile hat einen
+Tooltip mit den genauen Werten. Die Gruppenprobe geht jetzt auch mit einem Talent
+und zeigt je Held die Wuerfe im Tooltip. Auf jede Wertezeile kannst du verdeckt
+wuerfeln.
+
+Lesemodus fuer Abenteuertexte
+
+Ein geoeffnetes Textdokument liest sich jetzt ruhig: kein Klickton beim Zeilen-
+wechsel (nur am Anfang und Ende ein Anschlag), keine Ansage von "Schalter" oder
+"Leerzeile". Eine leere Zeile ist eine kurze Pause. Die Dokumente stehen oben, die
+Ordnerauswahl unten. Meister-Notizen: das Hinzufuegen bleibt oben, die Eintraege
+stehen nummeriert darunter.
+
+Letzter Wurf im Tooltip
+
+Nach einer Probe steht der letzte Wurf mehrzeilig im Tooltip (Probenergebnis,
+Wurf, mittlerer Wuerfel, Werte) und bleibt den Spielabend ueber erhalten.
+
+Ruecktaste wie Escape
+
+Die Ruecktaste geht jetzt einen Schritt zurueck, genau wie Escape, ausser in einem
+Textfeld.
+
+
 Version 0.19, 30. Juli 2026
 
 

@@ -15,7 +15,7 @@ import * as sprache from '../sprache.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { textDialog, zahlDialog, knopfDialog } from '../ui/dialog.js';
 import { getDb } from '../core/db-laden.js';
-import { fertigkeitProbenwert, attributProbenwert, abgeleiteteWerte } from '../core/regeln.js';
+import { fertigkeitProbenwert, fertigkeitBasiswert, attributProbenwert, abgeleiteteWerte } from '../core/regeln.js';
 import { getMeister } from './state.js';
 import { verdeckteProbe } from './wuerfel.js';
 
@@ -35,7 +35,19 @@ const ABGELEITET = [
   { key: 'SchiP', name: 'Schicksalspunkte', syn: ['schicksalspunkte', 'schip', 'sip'] },
 ];
 
-/** Begriff deuten: Attribut, abgeleiteter Wert, Fertigkeit oder Auskunft. */
+/** Index Talentname -> zugehoerige Fertigkeit (einmal je Datenbank gebaut). */
+function talentIndex(db) {
+  if (!db) return {};
+  if (db.__talentIndex) return db.__talentIndex;
+  const idx = {};
+  for (const f of db.fertigkeiten || []) for (const t of f.talente || []) {
+    if (!idx[t.name.toLowerCase()]) idx[t.name.toLowerCase()] = { name: t.name, fdef: f };
+  }
+  db.__talentIndex = idx;
+  return idx;
+}
+
+/** Begriff deuten: Attribut, abgeleiteter Wert, Fertigkeit, Talent oder Auskunft. */
 function deute(begriff, db) {
   const b = (begriff || '').trim().toLowerCase();
   if (!b) return null;
@@ -45,13 +57,35 @@ function deute(begriff, db) {
   }
   // Abgeleiteter Wert
   for (const w of ABGELEITET) if (w.syn.includes(b)) return { typ: 'abgeleitet', ...w };
-  // Fertigkeit (erst exakt, dann enthaltend)
-  if (db && db.fertigkeiten) {
-    let f = db.fertigkeiten.find(x => x.name.toLowerCase() === b);
-    if (!f) f = db.fertigkeiten.find(x => x.name.toLowerCase().includes(b));
-    if (f) return { typ: 'fertigkeit', fdef: f };
-  }
+  const tidx = talentIndex(db);
+  // Fertigkeit exakt
+  let f = (db && db.fertigkeiten || []).find(x => x.name.toLowerCase() === b);
+  if (f) return { typ: 'fertigkeit', fdef: f };
+  // Talent exakt
+  if (tidx[b]) return { typ: 'talent', talentName: tidx[b].name, fdef: tidx[b].fdef };
+  // Fertigkeit enthaltend
+  f = (db && db.fertigkeiten || []).find(x => x.name.toLowerCase().includes(b));
+  if (f) return { typ: 'fertigkeit', fdef: f };
+  // Talent enthaltend
+  const tKey = Object.keys(tidx).find(k => k.includes(b));
+  if (tKey) return { typ: 'talent', talentName: tidx[tKey].name, fdef: tidx[tKey].fdef };
   return { typ: 'auskunft', begriff: b };
+}
+
+/** Tooltip mit den genauen Werten einer Fertigkeitszeile. */
+function fertigkeitDetail(char, fdef, fw, hatTalent, talentName) {
+  const basis = fertigkeitBasiswert(char, fdef);
+  const pwOhne = fertigkeitProbenwert(char, fdef, fw, false);
+  const pwMit = fertigkeitProbenwert(char, fdef, fw, true);
+  const attrs = (fdef.attribute || []).join(', ');
+  const zeilen = [
+    talentName ? `${talentName}${hatTalent ? '' : ', Talent nicht vorhanden'}. Fertigkeit ${fdef.name}.` : `Fertigkeit ${fdef.name}.`,
+    `Basiswert ${basis}, Fertigkeitswert ${fw}.`,
+    `Probenwert ohne Talent ${pwOhne}, mit passendem Talent ${pwMit}.`,
+    attrs ? `Attribute: ${attrs}.` : '',
+    talentName ? (hatTalent ? 'Held besitzt das Talent, es zaehlt der volle Fertigkeitswert.' : 'Ohne Talent zaehlt der halbe Fertigkeitswert (Fertigkeitsgruppe).') : '',
+  ];
+  return zeilen.filter(Boolean).join(' ');
 }
 
 /** Zeilen je Held fuer einen gedeuteten Begriff. */
@@ -63,21 +97,32 @@ function zeilen(deutung, db) {
     const char = c.bogen;
     if (deutung.typ === 'attribut') {
       const pw = attributProbenwert(char, deutung.abk);
-      rows.push({ name: c.name, wert: pw, text: `Probenwert ${pw}`, probenwert: pw, was: deutung.name });
+      const av = char.attribute?.[deutung.abk] || 0;
+      rows.push({ name: c.name, wert: pw, text: `Probenwert ${pw}`, probenwert: pw, was: deutung.name,
+        detail: `${deutung.name} ${deutung.abk}. Attributwert ${av}, Probenwert ${pw} (Attribut mal zwei).` });
     } else if (deutung.typ === 'abgeleitet') {
       const w = abgeleiteteWerte(char);
       const v = w[deutung.key] || 0;
-      rows.push({ name: c.name, wert: v, text: `${v}`, probenwert: null, was: deutung.name });
+      rows.push({ name: c.name, wert: v, text: `${v}`, probenwert: null, was: deutung.name,
+        detail: `${deutung.name}: ${v}. Abgeleiteter Wert, kein direkter Wurf.` });
     } else if (deutung.typ === 'fertigkeit') {
       const f = deutung.fdef;
       const fw = char.fertigkeiten?.[f.name]?.wert || 0;
       const pw = fertigkeitProbenwert(char, f, fw, false);
       const talente = (f.talente || []).map(t => t.name).filter(n => (char.talente || []).includes(n));
       const text = `Probenwert ${pw}` + (talente.length ? `, Talente: ${talente.join(', ')}` : ', kein Talent');
-      rows.push({ name: c.name, wert: pw, text, probenwert: pw, was: f.name });
+      rows.push({ name: c.name, wert: pw, text, probenwert: pw, was: f.name, detail: fertigkeitDetail(char, f, fw, talente.length > 0, null) });
+    } else if (deutung.typ === 'talent') {
+      const f = deutung.fdef;
+      const fw = char.fertigkeiten?.[f.name]?.wert || 0;
+      const hat = (char.talente || []).includes(deutung.talentName);
+      const pw = fertigkeitProbenwert(char, f, fw, hat);
+      const text = hat ? `Talent ${deutung.talentName}, Probenwert ${pw}` : `${deutung.talentName} kein Talent. ${f.name} Probenwert ${pw}`;
+      rows.push({ name: c.name, wert: pw, text, probenwert: pw, was: hat ? deutung.talentName : f.name, detail: fertigkeitDetail(char, f, fw, hat, deutung.talentName) });
     } else {
       const tr = auskunft(char, deutung.begriff);
-      rows.push({ name: c.name, wert: tr.hat ? 1 : 0, text: tr.hat ? `ja, ${tr.treffer}` : 'nein', probenwert: null, was: deutung.begriff });
+      rows.push({ name: c.name, wert: tr.hat ? 1 : 0, text: tr.hat ? `ja, ${tr.treffer}` : 'nein', probenwert: null, was: deutung.begriff,
+        detail: tr.hat ? `${c.name} hat: ${tr.treffer}.` : `${c.name} hat nichts zu ${deutung.begriff}.` });
     }
   }
   return rows;
@@ -144,6 +189,7 @@ export function gruppenrechercheScreen() {
           id: `erg-${i}`,
           label: `${r.name}: ${r.text}`,
           hint: rollbar ? 'Enter wuerfelt verdeckt' : '',
+          detail: r.detail || '',
           onSelect: () => {
             if (rollbar) verdeckteProbe({ wer: r.name, was: r.was, probenwert: r.probenwert, anzahl: 3 });
             else sprache.sage(`${r.name}, ${r.was}: ${r.text}.`);
@@ -177,9 +223,9 @@ export function gruppenprobeScreen() {
         hint: 'Fertigkeit oder Attribut und Schwierigkeit, dann wuerfeln alle',
         onSelect: () => starteGruppenprobe(),
       }];
-      // Letztes Ergebnis nachlesbar
+      // Letztes Ergebnis nachlesbar, je Mitglied ein Tooltip mit den Wuerfen.
       if (scrErgebnis.length) {
-        for (const z of scrErgebnis) items.push({ label: z, onSelect: () => {} });
+        for (const z of scrErgebnis) items.push({ label: z.label, detail: z.detail || '', hint: 'Shift und Pfeil-runter zeigt die Wuerfe', onSelect: () => { if (z.detail) sprache.sage(z.detail); } });
       }
       return menuScreen({
         title: this.title,
@@ -200,20 +246,24 @@ async function starteGruppenprobe() {
   const begriff = await textDialog({ titel: 'Gruppenprobe', label: 'Fertigkeit oder Attribut' });
   if (begriff === null || !begriff.trim()) return;
   const deutung = deute(begriff.trim(), db);
-  if (deutung.typ === 'auskunft' || deutung.typ === 'abgeleitet') { sprache.sage('Bitte eine Fertigkeit oder ein Attribut angeben.'); return; }
+  if (deutung.typ === 'auskunft' || deutung.typ === 'abgeleitet') { sprache.sage('Bitte eine Fertigkeit, ein Talent oder ein Attribut angeben.'); return; }
   const anzahl = await knopfDialog({ titel: 'Wuerfel', knoepfe: [{ label: '1 W20, Konflikt', wert: 1 }, { label: '3 W20, entspannt', wert: 3 }] });
   if (anzahl === null) return;
   const schwierigkeit = await zahlDialog({ titel: 'Schwierigkeit', label: 'Schwierigkeit der Probe', wert: 12, min: 0, max: 40 });
   if (schwierigkeit === null) return;
 
+  // Bei einem Talent wuerfelt der Talenttraeger mit Talent, alle anderen auf die
+  // Fertigkeit ohne Talent — das leistet zeilen() bereits je Held.
   const rows = zeilen(deutung, db).filter(r => typeof r.probenwert === 'number');
   const ergebnisse = rows.map(r => {
     const res = verdeckteProbeStumm(r, schwierigkeit, anzahl);
-    return { name: r.name, ew: res.ew, gelungen: res.gelungen };
+    const wtext = res.n === 3 ? `drei W20 ${res.wuerfe.join(', ')}, mittlerer ${res.wert}` : `ein W20 ${res.wert}`;
+    const detail = `${r.name}, ${r.was}. ${wtext}, plus Probenwert ${r.probenwert}. Ergebnis ${res.ew}. Gegen Schwierigkeit ${schwierigkeit}: ${res.gelungen ? 'gelungen' : 'misslungen'}.`;
+    return { name: r.name, ew: res.ew, gelungen: res.gelungen, detail };
   });
   ergebnisse.sort((x, y) => y.ew - x.ew);
-  const was = deutung.name || deutung.fdef?.name || begriff.trim();
-  scrErgebnis = ergebnisse.map(e => `${e.name}: Ergebnis ${e.ew}, ${e.gelungen ? 'gelungen' : 'misslungen'}`);
+  const was = deutung.name || deutung.talentName || deutung.fdef?.name || begriff.trim();
+  scrErgebnis = ergebnisse.map(e => ({ label: `${e.name}: Ergebnis ${e.ew}, ${e.gelungen ? 'gelungen' : 'misslungen'}`, detail: e.detail }));
   const geschafft = ergebnisse.filter(e => e.gelungen).length;
   const zusammen = `Gruppenprobe ${was} gegen ${schwierigkeit}. ${geschafft} von ${ergebnisse.length} gelungen. `
     + ergebnisse.map(e => `${e.name} ${e.ew} ${e.gelungen ? 'gelungen' : 'misslungen'}`).join('. ') + '.';
@@ -231,5 +281,5 @@ function verdeckteProbeStumm(r, schwierigkeit, anzahl) {
   const s = [...wuerfe].sort((a, b) => a - b);
   const wert = n === 3 ? s[1] : wuerfe[0];
   const ew = wert + (r.probenwert || 0);
-  return { ew, gelungen: ew >= schwierigkeit };
+  return { ew, gelungen: ew >= schwierigkeit, wuerfe, wert, n };
 }

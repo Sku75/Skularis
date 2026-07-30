@@ -205,6 +205,22 @@ function _istInEingabefeld(el) {
   return false;
 }
 
+/** Ist der aktive Bildschirm im Lesemodus (Textbetrachter)? */
+function _lesemodus() {
+  return !!(_aktivesPanel && _aktivesPanel.dataset && _aktivesPanel.dataset.lesemodus === '1');
+}
+
+/**
+ * Ton beim Zeilenwechsel. Im Lesemodus (Textbetrachter) macht das reine Hoch und
+ * Runter KEIN Geraeusch; nur am oberen und unteren Ende kommt das
+ * Anschlaggeraeusch (siehe anschlag). Textfelder behalten ihren Eingabe-Ton.
+ */
+function _navTon(eingabe) {
+  if (eingabe) { sounds.playEingabeStart(); return; }
+  if (_lesemodus()) return;
+  sounds.playNavigation();
+}
+
 function _onKeyDown(e) {
   // Enter funktioniert ÜBERALL — auch in Dialogen, nicht nur im aktiven Panel
   // (In Python: bind_class("Button", "<Return>", e.widget.invoke()))
@@ -300,7 +316,7 @@ function _onKeyDown(e) {
       if (!el) { anschlag(); break; }
       const eingabe = el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search');
       _fokussiere(el);
-      sounds[eingabe ? 'playEingabeStart' : 'playNavigation']();
+      _navTon(eingabe);
       break;
     }
     case 'ArrowUp': {
@@ -309,7 +325,7 @@ function _onKeyDown(e) {
       if (!el) { anschlag(); break; }
       const eingabe = el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search');
       _fokussiere(el);
-      sounds[eingabe ? 'playEingabeStart' : 'playNavigation']();
+      _navTon(eingabe);
       break;
     }
     case 'Home': {

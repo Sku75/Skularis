@@ -12,7 +12,7 @@ import { getDb } from '../core/db-laden.js';
 import { leseInventar, istFernkampf, SLOTS, SET_WAFFENLOS } from '../core/ausruestung.js';
 import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
-import { wuerfeln, kampfProbe, schadenWurf } from './wuerfel-kern.js';
+import { wuerfeln, kampfProbe, schadenWurf, mitLetztemWurf } from './wuerfel-kern.js';
 import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, GRUNDREGEL_AKTIONEN } from './kampf-menues.js';
 
 const RES_NAME = {
@@ -103,7 +103,7 @@ export function kampfwerteScreen() {
         items.push({
           label: `${slot} ${waffe.name}: Attacke ${k.at}`,
           hint: 'Enter würfelt die Attacke-Probe',
-          detail: detailText,
+          detail: mitLetztemWurf(`${key}-at`, detailText),
           ergebnisId: `${key}-at`,
           onSelect: () => kampfProbe({ id: `${key}-at`, titel: `Attacke ${slot} ${waffe.name}`, vokabel: 'Attacke', probenwert: k.at }),
         });

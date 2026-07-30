@@ -242,6 +242,21 @@ function textDateiLaden(pfad) {
   catch (e) { return { inhalt: '', fehler: e.message }; }
 }
 
+// --- Globale Gegner-Bibliothek (eigene Gegner, ueber alle Meisterabenteuer) ---
+
+function gegnerBibLaden(pfad) {
+  try { return { inhalt: fs.readFileSync(pfad, 'utf-8') }; }
+  catch { return { inhalt: '' }; }
+}
+
+function gegnerBibSpeichern(pfad, inhalt) {
+  fs.mkdirSync(path.dirname(pfad), { recursive: true });
+  const tmp = pfad + '.tmp';
+  fs.writeFileSync(tmp, inhalt, 'utf-8');
+  fs.renameSync(tmp, pfad);
+  return { pfad };
+}
+
 module.exports = {
   dateiOeffnenDialog,
   dateiSpeichern,
@@ -268,4 +283,6 @@ module.exports = {
   ordnerWaehlen,
   textDateienListe,
   textDateiLaden,
+  gegnerBibLaden,
+  gegnerBibSpeichern,
 };

@@ -53,14 +53,30 @@ export function oeffneHub(o) {
   // Kurztasten F1 bis F12 von oben; weitere Punkte bleiben ohne Taste.
   const punkte = (o.punkte || []).map((p, i) => ({ ...p, taste: i < 12 ? `F${i + 1}` : '' }));
 
-  const aktiviere = (i) => {
+  let _aktiverIndex = null;
+  const aktiviere = (i, opts = {}) => {
     const p = punkte[i];
     if (!p) return;
     if (typeof p.aktion === 'function') { try { p.aktion(); } catch (e) { console.error('Hub-Aktion:', e); } return; }
-    if (typeof p.factory === 'function') {
-      if (!p.screen) p.screen = p.factory();
-      screen.reiterZeigen(anker, p.screen);
+    if (typeof p.factory !== 'function') return;
+    // Tiefe Position (Segment) des noch aktiven Reiters sichern — nur wenn wir
+    // wirklich auf einem Reiter stehen (Segment ueber dem Anker nicht leer).
+    if (_aktiverIndex != null && _aktiverIndex !== i) {
+      const seg = screen.segmentUeberAnker(anker);
+      if (seg.length) punkte[_aktiverIndex].segment = seg;
     }
+    let segment;
+    if (opts.frisch || !p.segment) {
+      // Ueber das Hub-Menue mit Enter: frisch am Anfang (oben) starten.
+      p.screen = p.factory();
+      p.segment = [p.screen];
+      segment = p.segment;
+    } else {
+      // Per F-Taste: zurueck an die zuletzt verlassene Stelle.
+      segment = p.segment;
+    }
+    _aktiverIndex = i;
+    screen.reiterSegmentZeigen(anker, segment);
   };
 
   const anker = {
@@ -77,7 +93,9 @@ export function oeffneHub(o) {
           hint: teile.join('. '),
           detail: p.detail,
           klasse: p.klasse,
-          onSelect: () => aktiviere(i),
+          ergebnisId: p.ergebnisId,
+          // Ueber das Hub-Menue mit Enter: frisch am Anfang starten (Punkt 10).
+          onSelect: () => aktiviere(i, { frisch: true }),
         };
       });
       return menuScreen({
@@ -89,6 +107,15 @@ export function oeffneHub(o) {
     },
     onShow() {
       sprache.sage('Mit den F-Tasten springst du direkt zwischen den Menues.');
+    },
+    // Escape auf der Hub-Ebene: optionale Abfrage (z. B. Speichern) vor dem
+    // Verlassen des Bereichs. o.beimVerlassen gibt true zurueck, wenn verlassen
+    // werden darf, false zum Abbrechen.
+    async onBack() {
+      if (typeof o.beimVerlassen === 'function') {
+        try { return await o.beimVerlassen(); } catch (e) { console.error('beimVerlassen:', e); return true; }
+      }
+      return true;
     },
   };
 

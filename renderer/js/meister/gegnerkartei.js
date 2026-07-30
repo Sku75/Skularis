@@ -11,7 +11,7 @@ import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { textDialog, zahlDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
-import { leererStatblock, baueStatblockKarte, protokolliere } from '../core/meister-abenteuer.js';
+import { leererStatblock, baueStatblockKarte, protokolliere, angriffText } from '../core/meister-abenteuer.js';
 import { getMeister, speichere } from './state.js';
 import { verdeckteProbe, verdeckterWurf } from './wuerfel.js';
 
@@ -60,7 +60,7 @@ export function gegnerkarteiScreen(art = 'gegner') {
 }
 
 function statblockText(sb) {
-  const angr = (sb.angriffe || []).map(x => `${x.name} Angriff ${x.wert}, Schaden ${x.wuerfel} W ${x.seiten}${x.bonus ? ' plus ' + x.bonus : ''}`).join('. ');
+  const angr = (sb.angriffe || []).map(angriffText).join('. ');
   return [`${sb.name}. Wundschwelle ${sb.ws}, Ruestung ${sb.rs}, Initiative ${sb.ini}.`, angr || 'Keine Angriffe eingetragen.', sb.notizen ? `Notizen: ${sb.notizen}` : ''].filter(Boolean).join(' ');
 }
 
@@ -100,7 +100,7 @@ function statblockScreen(art, index) {
       // Angriffe
       (sb.angriffe || []).forEach((ang, ai) => {
         items.push({
-          label: `Angriff ${ang.name}: Wert ${ang.wert}, Schaden ${ang.wuerfel} W ${ang.seiten}${ang.bonus ? ' plus ' + ang.bonus : ''}`,
+          label: `Angriff ${angriffText(ang)}`,
           hint: 'Enter: wuerfeln, bearbeiten, entfernen',
           onSelect: () => screen.push(angriffScreen(art, index, ai)),
         });
@@ -110,15 +110,17 @@ function statblockScreen(art, index) {
         onSelect: async () => {
           const name = await textDialog({ titel: 'Angriff', label: 'Name des Angriffs, z. B. Krummsaebel' });
           if (name === null || !name.trim()) return;
-          const wert = await zahlDialog({ titel: 'Angriffswert', label: 'Angriffswert (Probenwert)', wert: 12, min: 0, max: 40 });
-          if (wert === null) return;
+          const at = await zahlDialog({ titel: 'Attacke', label: 'Attacke-Wert (AT)', wert: 12, min: 0, max: 40 });
+          if (at === null) return;
+          const pa = await zahlDialog({ titel: 'Parade', label: 'Parade-Wert (PA), 0 wenn keine', wert: 0, min: 0, max: 40 });
+          if (pa === null) return;
           const wuerfel = await zahlDialog({ titel: 'Schadenswuerfel', label: 'Anzahl Wuerfel', wert: 1, min: 0, max: 20 });
           if (wuerfel === null) return;
           const seiten = await knopfDialog({ titel: 'Wuerfeltyp', knoepfe: [{ label: 'W6', wert: 6 }, { label: 'W20', wert: 20 }] });
           if (seiten === null) return;
           const bonus = await zahlDialog({ titel: 'Schadensbonus', label: 'Fester Schadensbonus, 0 wenn keiner', wert: 0, min: -20, max: 40 });
           if (bonus === null) return;
-          sb.angriffe.push({ name: name.trim(), wert, wuerfel, seiten, bonus });
+          sb.angriffe.push({ name: name.trim(), at, pa: pa || null, wuerfel, seiten, bonus });
           await speichere(); screen.refresh(); sprache.sage(`Angriff ${name.trim()} hinzugefuegt.`);
         },
       });
@@ -166,12 +168,20 @@ function angriffScreen(art, sbIndex, ai) {
       const ang = sb && sb.angriffe[ai];
       if (!ang) { screen.pop(); return document.createElement('div'); }
       this.title = `Angriff ${ang.name}`;
+      const atWert = ang.at != null ? ang.at : ang.wert || 0;
       const items = [
         {
-          label: `Angriff wuerfeln, Wert ${ang.wert}`,
-          hint: 'verdeckt, 1 W20 plus Wert',
-          onSelect: () => verdeckteProbe({ wer: sb.name, was: `Angriff ${ang.name}`, probenwert: ang.wert, anzahl: 1 }),
+          label: `Attacke wuerfeln, AT ${atWert}`,
+          hint: 'verdeckt, 1 W20 plus Attacke',
+          onSelect: () => verdeckteProbe({ wer: sb.name, was: `Attacke ${ang.name}`, probenwert: atWert, anzahl: 1 }),
         },
+      ];
+      if (ang.pa != null) items.push({
+        label: `Parade wuerfeln, PA ${ang.pa}`,
+        hint: 'verdeckt, 1 W20 plus Parade',
+        onSelect: () => verdeckteProbe({ wer: sb.name, was: `Parade ${ang.name}`, probenwert: ang.pa, anzahl: 1 }),
+      });
+      items.push(
         {
           label: `Schaden wuerfeln, ${ang.wuerfel} W ${ang.seiten}${ang.bonus ? ' plus ' + ang.bonus : ''}`,
           hint: 'verdeckt',
@@ -180,13 +190,15 @@ function angriffScreen(art, sbIndex, ai) {
         {
           label: 'Angriff bearbeiten',
           onSelect: async () => {
-            const wert = await zahlDialog({ titel: 'Angriffswert', label: 'Angriffswert', wert: ang.wert, min: 0, max: 40 });
-            if (wert === null) return;
+            const at = await zahlDialog({ titel: 'Attacke', label: 'Attacke (AT)', wert: atWert, min: 0, max: 40 });
+            if (at === null) return;
+            const pa = await zahlDialog({ titel: 'Parade', label: 'Parade (PA), 0 wenn keine', wert: ang.pa || 0, min: 0, max: 40 });
+            if (pa === null) return;
             const wuerfel = await zahlDialog({ titel: 'Schadenswuerfel', label: 'Anzahl Wuerfel', wert: ang.wuerfel, min: 0, max: 20 });
             if (wuerfel === null) return;
             const bonus = await zahlDialog({ titel: 'Schadensbonus', label: 'Schadensbonus', wert: ang.bonus, min: -20, max: 40 });
             if (bonus === null) return;
-            ang.wert = wert; ang.wuerfel = wuerfel; ang.bonus = bonus;
+            ang.at = at; ang.pa = pa || null; ang.wuerfel = wuerfel; ang.bonus = bonus; delete ang.wert;
             await speichere(); screen.refresh(); sprache.sage('Angriff geaendert.');
           },
         },
@@ -197,7 +209,7 @@ function angriffScreen(art, sbIndex, ai) {
             sb.angriffe.splice(ai, 1); await speichere(); screen.pop(); sprache.sage('Angriff entfernt.');
           },
         },
-      ];
+      );
       return menuScreen({ title: this.title, subtitle: 'Escape zurueck.', items }).build();
     },
   };

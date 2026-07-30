@@ -35,6 +35,8 @@ contextBridge.exposeInMainWorld('skularis', {
     ordnerWaehlen:        (titel)   => ipcRenderer.invoke('skularis:ordner-waehlen', { titel }),
     textDateienListe:     (ordner)  => ipcRenderer.invoke('skularis:textdateien-liste', { ordner }),
     textDateiLaden:       (pfad)    => ipcRenderer.invoke('skularis:textdatei-laden', { pfad }),
+    gegnerBibLaden:       ()        => ipcRenderer.invoke('skularis:gegnerbib-laden'),
+    gegnerBibSpeichern:   (inhalt)  => ipcRenderer.invoke('skularis:gegnerbib-speichern', { inhalt }),
 
     onMenuAktion:       (cb) => ipcRenderer.on('skularis:menu-aktion', (_e, d) => cb(d)),
     onDateiVonCli:      (cb) => ipcRenderer.on('skularis:datei-von-cli', (_e, d) => cb(d)),
