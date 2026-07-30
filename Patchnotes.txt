@@ -4,6 +4,17 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.23, 30. Juli 2026
+
+
+Szenen einzeln aus dem Menue
+
+Szenen sind eigenstaendige Kampfszenen. Du waehlst sie einzeln aus dem Menue
+(Szenen spielen, dann die Liste S-1, S-2 und so weiter), so wie deine
+Meister-Dokumente. Die Taste fuer die naechste Szene am Spielbrett faellt damit
+weg; sie war nicht noetig. Alles andere am Spielbrett bleibt unveraendert.
+
+
 Version 0.22, 30. Juli 2026
 
 
