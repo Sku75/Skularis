@@ -10,10 +10,11 @@ import * as sprache from '../sprache.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { textDialog, jaNeinDialog } from '../ui/dialog.js';
 import { getMeister, speichere } from './state.js';
+import { zufallstabellenScreen } from './zufallstabellen.js';
 
 export function meisterNotizenScreen() {
   return {
-    title: 'Meister-Notizen und Vorlesetexte',
+    title: 'Meister-Notizen und Werkzeuge',
     build() {
       return menuScreen({
         title: this.title,
@@ -21,6 +22,7 @@ export function meisterNotizenScreen() {
         items: [
           { label: 'Meister-Notizen (geheim)', hint: 'nur fuer dich', onSelect: () => screen.push(listeScreen('meisterNotizen', 'Meister-Notiz', false)) },
           { label: 'Vorlesetexte', hint: 'zum Vorlesen am Tisch', onSelect: () => screen.push(listeScreen('vorlesetexte', 'Vorlesetext', true)) },
+          { label: 'Zufallstabellen', hint: 'Namen, Geruechte, Wetter, Beute wuerfeln', onSelect: () => screen.push(zufallstabellenScreen()) },
         ],
       }).build();
     },

@@ -98,10 +98,14 @@ export function oeffneHub(o) {
     setTimeout(ansageWechsel, 150);
   };
 
+  // Titel darf eine Funktion sein (z. B. fuer eine Live-Anzeige wie die freien EP).
+  const titelText = () => (typeof o.titel === 'function' ? o.titel() : o.titel);
+
   const anker = {
-    title: o.titel,
+    title: titelText(),
     _hubAnker: true,
     build() {
+      anker.title = titelText();
       const items = punkte.map((p, i) => {
         // Ansage: Name, dann Kurztaste, dann Zusatztext.
         const teile = [];
@@ -118,7 +122,7 @@ export function oeffneHub(o) {
         };
       });
       return menuScreen({
-        title: o.titel,
+        title: anker.title,
         subtitle: o.subtitle || 'Mit F1 bis F12 direkt zum Menue springen. Escape verlaesst den Bereich.',
         items,
         filter: false,
@@ -151,7 +155,7 @@ export function oeffneHub(o) {
 
   _aktiv = { anker, punkte, aktiviere };
   installiereListener();
-  screen.push(anker);
+  if (o.ersetzen) screen.replace(anker); else screen.push(anker);
   return {
     anker,
     aktiviere,

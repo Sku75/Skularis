@@ -17,10 +17,21 @@ import * as screen from '../ui/screen.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
+import * as reiterHub from '../ui/reiter-hub.js';
 import { ladeDb } from '../core/db-laden.js';
 import { createCharakter, neuberechne, verfuegbareEP } from '../core/character.js';
 import { serialisiere } from '../core/sephrasto-xml.js';
-import { zahlDialog, jaNeinDialog } from '../ui/dialog.js';
+import { zahlDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
+import { beschreibungScreen } from './beschreibung.js';
+import { aussehenScreen } from './aussehen.js';
+import { hintergrundScreen } from './hintergrund.js';
+import { statusFinanzenScreen } from './status-finanzen.js';
+import { eigenheitenScreen } from './eigenheiten.js';
+import { attributeScreen } from './attribute.js';
+import { fertigkeitenScreen } from './fertigkeiten.js';
+import { vorteileScreen } from './vorteile.js';
+import { uebernatuerlichesScreen } from './uebernatuerliches.js';
+import { ausruestungScreen } from './ausruestung.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -33,8 +44,7 @@ export function setChar(c) { char = c; }
 
 /** Den Editor-Hub anzeigen (vom Assistenten nach der Paketauswahl genutzt). */
 export function oeffneHub() {
-  aktualisiere();
-  screen.replace(hub);
+  oeffneEditorHub(true);
 }
 
 /** Zurück auf die Einstiegsseite "Neuen Charakter erstellen". */
@@ -85,8 +95,7 @@ export async function starteNeu() {
 export async function bearbeite(vorhandenerChar) {
   db = await ladeDb();
   char = vorhandenerChar;
-  aktualisiere();
-  screen.push(hub);
+  oeffneEditorHub(false);
 }
 
 /**
@@ -117,7 +126,7 @@ function neuScreen() {
         hint: 'Alles selbst festlegen',
         detail: 'Du gibst Name und Erfahrungspunkte an und bearbeitest danach alle Bereiche frei. '
           + 'Für erfahrene Spielerinnen und Spieler, die nichts geführt bekommen möchten.',
-        onSelect: () => screen.push(stammdatenScreen('Freier Editor', () => screen.replace(hub))),
+        onSelect: () => screen.push(stammdatenScreen('Freier Editor', () => oeffneEditorHub(true))),
       },
       {
         label: 'Assistierte Erstellung',
@@ -129,7 +138,7 @@ function neuScreen() {
             .catch((e) => {
               console.error('Assistent:', e);
               sprache.sage('Assistent konnte nicht geöffnet werden, starte freien Editor.');
-              screen.replace(hub);
+              oeffneEditorHub(true);
             });
         })),
       },
@@ -212,87 +221,60 @@ function stammdatenScreen(titel, onWeiter) {
   };
 }
 
-// --- Editor-Hub (Live-EP, Bereiche, Speichern) ---
+// --- Editor-Hub (F-Tasten, Live-EP, Bereiche, Speichern) ---
 
-/** Ein Bereich des freien Editors: Modul, Fabrikfunktion, Beschriftung. */
-function bereich(label, hint, modul, fabrik) {
-  return {
-    label,
-    hint,
-    onSelect: () => import(modul).then(m => screen.push(m[fabrik]()))
-      .catch((e) => { console.error(label, e); sprache.sage(`${label} konnte nicht geöffnet werden.`); }),
-  };
+let editorHub = null;
+
+/** Hub-Titel mit den live berechneten freien EP. */
+function editorTitel() {
+  const frei = aktualisiere();
+  return `Editor: ${char.name || 'ohne Namen'}, ${frei} von ${char.erfahrung.gesamt} EP frei`;
 }
 
-const hub = {
-  title: '',
-  onBack: darfVerlassen,
-  build() {
-    const frei = aktualisiere();
-    const name = char.name || 'ohne Namen';
-    hub.title = `Editor: ${name}, ${frei} von ${char.erfahrung.gesamt} EP frei`;
+/** Die Bereiche und Aktionen des Editors als Reiter-Hub-Punkte (mit F-Tasten). */
+function editorPunkte() {
+  const uebernatAnzahl = Object.keys(char.uebernatuerlich || {}).length;
+  const punkte = [
+    { label: 'Beschreibung', hint: 'Name, Heimat, Spezies', factory: () => beschreibungScreen() },
+    { label: 'Aussehen', hint: 'Geschlecht, Größe, Haare, Augen, Titel und freie Zeilen', factory: () => aussehenScreen() },
+    { label: 'Familie, Hintergrund und Herkunft', hint: 'Freie Zeilen wie auf dem Charakterbogen', factory: () => hintergrundScreen() },
+    { label: 'Status und Finanzen', hint: 'Stand, Startkapital, Schicksalspunkte', factory: () => statusFinanzenScreen() },
+    { label: 'Eigenheiten', hint: 'Stärken und Schwächen deines Charakters', factory: () => eigenheitenScreen() },
+    { label: 'Attribute', hint: 'Die acht Grundeigenschaften', factory: () => attributeScreen() },
+    { label: 'Fertigkeiten und Talente', hint: 'Profane Fertigkeiten und ihre Talente', factory: () => fertigkeitenScreen() },
+    { label: 'Vorteile', hint: 'Vor- und Nachteile', factory: () => vorteileScreen() },
+  ];
+  if (uebernatAnzahl) punkte.push({ label: 'Übernatürliches', hint: `${uebernatAnzahl} Fertigkeiten: Zauber, Liturgien, Anrufungen`, factory: () => uebernatuerlichesScreen() });
+  punkte.push({ label: 'Ausrüstung', hint: 'Waffen, Rüstungen, Gegenstände', factory: () => ausruestungScreen() });
+  punkte.push({ label: 'Erfahrungspunkte ändern', hint: 'Gesamt-EP anpassen', aktion: () => aendereGesamtEP() });
+  punkte.push({ label: 'Charakterbogen-Ansicht', hint: 'Alle Werte zum Durchlesen', aktion: () => zeigeBogen() });
+  punkte.push({ label: 'Charakter speichern', hint: 'In Meine Charaktere ablegen', aktion: () => speichere() });
+  punkte.push({ label: 'Charakter speichern und schließen', hint: 'Speichern und Editor verlassen', aktion: () => speichernUndSchliessen() });
+  return punkte;
+}
 
-    // Der Bereich Übernatürliches erscheint nur, wenn der Charakter durch seine
-    // Vorteile überhaupt übernatürliche Fertigkeiten hat. Ein nichtmagischer
-    // Charakter braucht die Kategorie nicht.
-    const uebernatAnzahl = Object.keys(char.uebernatuerlich || {}).length;
-    const items = [
-      bereich('Beschreibung', 'Name, Heimat, Spezies', './beschreibung.js', 'beschreibungScreen'),
-      bereich('Aussehen', 'Geschlecht, Geburtsdatum, Größe, Gewicht, Haare, Augen, Titel und sechs freie Zeilen',
-        './aussehen.js', 'aussehenScreen'),
-      bereich('Familie, Hintergrund und Herkunft', 'Neun freie Zeilen wie auf dem Charakterbogen',
-        './hintergrund.js', 'hintergrundScreen'),
-      bereich('Status und Finanzen', 'Gesellschaftlicher Stand, Startkapital, Schicksalspunkte', './status-finanzen.js', 'statusFinanzenScreen'),
-      bereich('Eigenheiten', 'Stärken und Schwächen deines Charakters', './eigenheiten.js', 'eigenheitenScreen'),
-      bereich('Attribute', 'Die acht Grundeigenschaften', './attribute.js', 'attributeScreen'),
-      bereich('Fertigkeiten und Talente', 'Profane Fertigkeiten und ihre Talente', './fertigkeiten.js', 'fertigkeitenScreen'),
-      bereich('Vorteile', 'Vor- und Nachteile', './vorteile.js', 'vorteileScreen'),
-      ...(uebernatAnzahl ? [bereich('Übernatürliches',
-        `${uebernatAnzahl} Fertigkeiten aus deinen Traditionen: Zauber, Liturgien, Anrufungen`,
-        './uebernatuerliches.js', 'uebernatuerlichesScreen')] : []),
-      bereich('Ausrüstung', 'Waffen, Rüstungen, Gegenstände', './ausruestung.js', 'ausruestungScreen'),
-      {
-        label: `Erfahrungspunkte: ${char.erfahrung.gesamt} gesamt, ${frei} frei`,
-        hint: 'Gesamt-EP ändern',
-        onSelect: () => aendereGesamtEP(),
-      },
-      {
-        label: 'Charakterbogen-Ansicht',
-        hint: 'Der vollständige Charakterbogen zum Durchlesen',
-        detail: 'Zeigt alle Werte des Charakters zum Durchlesen. Nichts wird dabei verändert.',
-        onSelect: () => zeigeBogen(),
-      },
-      {
-        label: 'Ansicht Abenteuertisch',
-        hint: 'So sieht dein Charakter am Spieltisch aus',
-        detail: 'Dieselbe Ansicht, die du am Abenteuer-Tisch beim Spielen siehst. Nichts wird dabei verändert.',
-        onSelect: () => zeigeBogen(),
-      },
-      {
-        label: 'Charakter speichern',
-        hint: 'In Meine Charaktere ablegen',
-        onSelect: () => speichere(),
-      },
-      {
-        label: 'Charakter speichern und schließen',
-        hint: 'Speichern und den Editor verlassen',
-        onSelect: () => speichernUndSchliessen(),
-      },
-      {
-        label: 'Charakter schließen',
-        hint: 'Den Editor verlassen, mit Rückfrage',
-        onSelect: () => schliesse(),
-      },
-    ];
-
-    return menuScreen({
-      title: hub.title,
-      subtitle: 'Pfeiltasten wählen, Eingabetaste öffnet, Escape zurück.',
-      items,
-      filter: false, // festes Menü: kein "Filtern" davor, die Reihenfolge ist die Ansage
-    }).build();
-  },
-};
+/** Den Editor-Hub mit F-Tasten öffnen. ersetzen: die Stammdaten-Seite ersetzen. */
+export function oeffneEditorHub(ersetzen) {
+  aktualisiere();
+  editorHub = reiterHub.oeffneHub({
+    titel: editorTitel,
+    subtitle: 'Mit F1 bis F12 direkt zum Bereich. Escape verlässt die Erstellung.',
+    ersetzen: !!ersetzen,
+    punkte: editorPunkte(),
+    beimVerlassen: async () => {
+      const w = await knopfDialog({
+        titel: 'Charaktererstellung',
+        knoepfe: [
+          { label: 'Speichern und schließen', wert: 'ja' },
+          { label: 'Verwerfen und schließen', wert: 'nein' },
+          { label: 'Weiter bearbeiten', wert: 'abbrechen' },
+        ],
+      });
+      if (w === 'ja') await speichere();
+      return w || 'abbrechen';
+    },
+  });
+}
 
 async function aendereGesamtEP() {
   const eingabe = await zahlDialog({ titel: 'Erfahrungspunkte gesamt', label: 'Gesamt-EP', wert: char.erfahrung.gesamt, min: 0, max: 100000 });
@@ -323,7 +305,7 @@ export async function speichere() {
 /** Speichern und danach den Editor verlassen, zurück auf die vorige Ebene. */
 async function speichernUndSchliessen() {
   if (await speichere()) {
-    screen.pop();
+    if (editorHub) editorHub.verlasse(); else screen.pop();
     sprache.sageZusatz('Editor geschlossen.');
   }
 }
