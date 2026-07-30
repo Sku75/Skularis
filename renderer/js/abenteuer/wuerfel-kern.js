@@ -187,7 +187,10 @@ export async function kampfProbe(o) {
     erfolgText = ` Gegen Schwierigkeit ${o.schwierigkeit}: ${ew >= o.schwierigkeit ? 'gelungen' : 'misslungen'}.`;
   }
   const zusatzText = o.zusatz ? ` ${o.zusatz}` : '';
-  const ansage = `${o.titel}. ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}. Probenergebnis ${ew}.${erfolgText}${zusatzText}${modNamenText}`;
+  // Das Probenergebnis steht bewusst ganz vorn — das ist beim Würfeln die
+  // wichtigste Zahl. Danach Erfolg/Misserfolg, dann Herkunft (Titel, Würfel,
+  // Werte) und zuletzt die Zusätze (Kosten usw.).
+  const ansage = `Probenergebnis ${ew}.${erfolgText} ${o.titel}, ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}.${zusatzText}${modNamenText}`;
 
   protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${erschText}, Ergebnis ${ew}.${erfolgText}${modNamenText}`);
   speichere();

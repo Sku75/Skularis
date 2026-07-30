@@ -16,10 +16,17 @@ import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { auswahlScreen } from '../ui/auswahl-screen.js';
 import { textDialog, zahlDialog } from '../ui/dialog.js';
-import { ladeDb } from '../core/db-laden.js';
+import { ladeDb, getDb } from '../core/db-laden.js';
 import { parse, serialisiere } from '../core/sephrasto-xml.js';
 import { createAbenteuer, parseAbenteuer, protokolliere, uebernehmeAbenteuerdaten } from '../core/abenteuer.js';
 import { getAbenteuer, setAbenteuer, speichere } from '../abenteuer/state.js';
+import * as reiterHub from '../ui/reiter-hub.js';
+import { liveSpielScreen, charakterstatusScreen } from '../abenteuer/live-spiel.js';
+import { charakterbogenScreen } from '../abenteuer/charakterbogen.js';
+import { inventarScreen } from '../abenteuer/inventar.js';
+import { notizenScreen } from '../abenteuer/notizen.js';
+import { mitspielerScreen } from '../abenteuer/mitspieler.js';
+import { regelnScreen } from './regeln.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -74,7 +81,7 @@ async function erstellen() {
         setAbenteuer(a);
         await speichere();
         sounds.playOeffnen();
-        screen.push(hubScreen('bearbeiten'));
+        oeffneHubSpieler('bearbeiten');
         sprache.sage(`Abenteuer ${a.name} erstellt.`);
       } catch (e) {
         console.error('Abenteuer erstellen:', e);
@@ -101,7 +108,7 @@ async function oeffnen(modus) {
         a._pfad = pfad;
         setAbenteuer(a);
         sounds.playOeffnen();
-        screen.push(hubScreen(modus));
+        oeffneHubSpieler(modus);
       } catch (e) {
         console.error('Abenteuer laden:', e);
         sprache.sage('Abenteuer konnte nicht geladen werden.');
@@ -112,57 +119,53 @@ async function oeffnen(modus) {
 
 // --- Hub (modusabhängig) ---
 
-function hubScreen(modus) {
-  const obj = {
-    title: '',
+function oeffneHubSpieler(modus) {
+  const a = getAbenteuer();
+  const titel = `${a.name}, Spieltag ${a.spieltag}${modus === 'bearbeiten' ? ', Bearbeiten' : ''}`;
+
+  let hub;
+  const punkte = [
+    { label: 'Meine Initiative-Phase', hint: 'Würfeln, Aktionen, Kampfwerte, Manöver und Zauber', factory: () => liveSpielScreen() },
+    { label: 'Charakterstatus', hint: 'Wunden, Energien, Werte zum Lesen', factory: () => charakterstatusScreen() },
+    { label: 'Charakterbogen', hint: 'Werte ansehen, Schnellauskunft', factory: () => charakterbogenScreen() },
+    { label: 'Inventar', hint: 'Geldbörse, Rucksack, am Gürtel', factory: () => inventarScreen() },
+    { label: 'Notizen und Tagebuch', factory: () => notizenScreen() },
+    { label: 'Mitspieler', factory: () => mitspielerScreen() },
+    { label: 'Protokoll', hint: 'Was im Abenteuer passiert ist', factory: () => protokollScreenSpieler() },
+    {
+      label: 'Regelnachschlagewerk',
+      hint: 'Alle Regeln alphabetisch, verfügbare vorn gekennzeichnet',
+      factory: () => regelnScreen({ db: getDb(), charakter: getAbenteuer()?.charakter || null, titel: 'Regelnachschlagewerk' }),
+    },
+    { label: 'Spielfeld', hint: 'Platzhalter für spätere Versionen', aktion: () => sprache.sage('Spielfeld, Platzhalter für später.') },
+    { label: 'Zwischenspeichern', hint: 'Spielstand sichern', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
+  ];
+
+  if (modus === 'spielen') {
+    punkte.push({ label: 'Abenteuer speichern und Spieltag abschließen', hint: 'Abenteuerpunkte an den Charakter, dann Hauptmenü', aktion: () => spieltagAbschliessen() });
+  } else {
+    punkte.push({ label: 'Abenteuer speichern und zurück', aktion: () => speichernUndZurueck(hub) });
+  }
+
+  hub = reiterHub.oeffneHub({ titel, subtitle: 'Mit F1 bis F12 direkt zum Menü. Escape verlässt das Abenteuer.', punkte });
+}
+
+function protokollScreenSpieler() {
+  return {
+    title: 'Protokoll',
     build() {
       const a = getAbenteuer();
-      obj.title = `${a.name}, Spieltag ${a.spieltag}${modus === 'bearbeiten' ? ', Bearbeiten' : ''}`;
-
-      const push = (modul, fn) => import(`../abenteuer/${modul}.js`).then(m => screen.push(m[fn]()))
-        .catch((e) => { console.error(e); sprache.sage('Bereich wird gerade gebaut.'); });
-
-      const items = [
-        { label: 'Meine Initiative-Phase', hint: 'Würfeln, Aktionen, Kampfwerte, Manöver und Zauber', onSelect: () => push('live-spiel', 'liveSpielScreen') },
-        { label: 'Charakterstatus', hint: 'Wunden, Energien, Werte zum Lesen', onSelect: () => push('live-spiel', 'charakterstatusScreen') },
-        { label: 'Charakterbogen', hint: 'Werte ansehen, Schnellauskunft', onSelect: () => push('charakterbogen', 'charakterbogenScreen') },
-        { label: 'Inventar', hint: 'Geldbörse, Rucksack, am Gürtel', onSelect: () => push('inventar', 'inventarScreen') },
-        { label: 'Notizen und Tagebuch', onSelect: () => push('notizen', 'notizenScreen') },
-        { label: 'Mitspieler', onSelect: () => push('mitspieler', 'mitspielerScreen') },
-        { label: 'Spielfeld', hint: 'Platzhalter für spätere Versionen', onSelect: () => sprache.sage('Spielfeld, Platzhalter für später.') },
-        { label: 'Protokoll', hint: 'Was im Abenteuer passiert ist', onSelect: () => zeigeProtokoll() },
-        {
-          label: 'Regelnachschlagewerk',
-          hint: 'Alle Regeln alphabetisch, verfügbare vorn gekennzeichnet',
-          detail: 'Die vollständige Regelliste, auch Manöver, die du noch nicht gekauft hast. '
-            + 'Regeln, die dein Charakter hat, stehen vorn mit "Verfügbar".',
-          onSelect: () => regelnOeffnen(),
-        },
-      ];
-
-      if (modus === 'spielen') {
-        items.push({ label: 'Abenteuer speichern und Spieltag abschließen', hint: 'Abenteuerpunkte an den Charakter, dann Hauptmenü', onSelect: () => spieltagAbschliessen() });
-      } else {
-        items.push({ label: 'Abenteuer speichern und zurück', onSelect: () => speichernUndZurueck() });
-      }
-
-      return menuScreen({ title: obj.title, subtitle: 'Escape kehrt zurück.', items }).build();
+      const items = a.protokoll.map(p => ({ label: `Spieltag ${p.spieltag}: ${p.text}`, detail: p.zeit || '', onSelect: () => {} }));
+      return menuScreen({ title: 'Protokoll', subtitle: 'Neueste oben. Escape zurück.', items, leer: 'Noch keine Einträge.' }).build();
     },
   };
-  return obj;
 }
 
-function zeigeProtokoll() {
-  const a = getAbenteuer();
-  const items = a.protokoll.map(p => ({ label: `Spieltag ${p.spieltag}: ${p.text}`, detail: p.zeit || '', onSelect: () => {} }));
-  screen.push(menuScreen({ title: 'Protokoll', subtitle: 'Neueste oben. Escape zurück.', items, leer: 'Noch keine Einträge.' }));
-}
-
-async function speichernUndZurueck() {
+async function speichernUndZurueck(hub) {
   await speichere();
   sounds.playSpeichern();
   sprache.sage('Abenteuer gespeichert.');
-  screen.pop();
+  if (hub) hub.verlasse(); else screen.pop();
 }
 
 async function spieltagAbschliessen() {

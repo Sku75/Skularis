@@ -4,6 +4,67 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.19, 30. Juli 2026
+
+
+Der Meister-Tisch ist da
+
+Der dritte Hauptbereich ist fertig. Du erstellst ein Meisterabenteuer, laedst es
+zum Bearbeiten oder oeffnest einen Spielabend, ganz wie am Abenteuertisch. Ein
+Meisterabenteuer fuehrt eine ganze Gruppe und liegt im eigenen Ordner
+Meisterabenteuer, getrennt vom Spielertisch.
+
+F-Tasten fuer den schnellen Sprung
+
+Am Meister-Tisch und am Abenteuertisch tragen die Menuepunkte jetzt Kurztasten,
+F1 bis F12 von oben. Hinter dem Namen wird die Taste angesagt, dann der
+begleitende Text. Mit den F-Tasten springst du direkt von Menue zu Menue, ohne
+Escape und erneutes Hineingehen. Jedes Menue bleibt an seiner letzten
+Fokusstelle stehen.
+
+Gruppenrecherche
+
+Ein Filterfeld, darunter die Werte der ganzen Gruppe. Frag nach einer Fertigkeit,
+dann siehst du je Held den Probenwert und die passenden Talente. Frag nach einem
+Attribut oder abgeleiteten Wert wie Mut oder Wundschwelle, dann stehen die Helden
+mit ihrem Wert da, der hoechste oben. Frag nach einem Vorteil oder Aehnlichem,
+dann siehst du, wer es hat. Mit der Eingabetaste auf einer Zeile wuerfelst du
+verdeckt fuer diesen Helden. Die Reihenfolge laesst sich umkehren.
+
+Gruppenprobe und verdeckte Wuerfe
+
+Die ganze Gruppe wuerfelt auf einmal gegen eine Schwierigkeit, du siehst sofort,
+wer besteht. Dazu ein verdeckter Meister-Wurf fuer alles, was die Spieler nicht
+hoeren sollen. Alle Meister-Wuerfe kommen nur bei dir an und wandern ins
+Protokoll.
+
+Gegnerkartei und freundliche NPC
+
+Schlanke Statbloecke mit Wundschwelle, Ruestung, Initiative und Angriffen. Angriff
+und Schaden lassen sich verdeckt auswuerfeln. Ein eigener Bereich fuehrt die
+freundlichen Meister-NPC.
+
+Spieltisch im Kartenstil
+
+Lege Helden und Gegner als Karten auf den Tisch. Jede Karte zeigt ihre Werte, den
+Wundenstand stellst du mit Pfeil links und rechts. Weise Gegner einem Helden zu;
+der Tisch gruppiert dann je Held seine Gegner, so behaeltst du im Kampf den
+Ueberblick. Dazu eine Initiative-Reihenfolge, hoechste oben.
+
+Abenteuertexte mit Lesezeichen
+
+Waehle einen Ordner, er wird zu einem Menue mit deinen txt-Dokumenten. Ein
+Dokument oeffnet sich zum Lesen. Verlaesst du es und kehrst zurueck, steht der
+Fokus wieder an derselben Zeile. Ein Lesezeichen je Dokument kannst du setzen und
+wieder anspringen.
+
+Erfahrungspunkte am Meister-Tisch
+
+Beim Abschluss eines Spielabends gibst du die vergebenen Erfahrungspunkte ein.
+Sie wandern nur ins Protokoll. Du sagst sie den Spielern, die tragen sie selbst
+an ihrem Abenteuertisch ein.
+
+
 Version 0.18, 30. Juli 2026
 
 

@@ -28,6 +28,13 @@ contextBridge.exposeInMainWorld('skularis', {
     abenteuerSpeichern:   (data)    => ipcRenderer.invoke('skularis:abenteuer-speichern', data),
     abenteuerLaden:       (pfad)    => ipcRenderer.invoke('skularis:abenteuer-laden', { pfad }),
     abenteuerLoeschen:    (pfad)    => ipcRenderer.invoke('skularis:abenteuer-loeschen', { pfad }),
+    meisterListe:         ()        => ipcRenderer.invoke('skularis:meister-liste'),
+    meisterSpeichern:     (data)    => ipcRenderer.invoke('skularis:meister-speichern', data),
+    meisterLaden:         (pfad)    => ipcRenderer.invoke('skularis:meister-laden', { pfad }),
+    meisterLoeschen:      (pfad)    => ipcRenderer.invoke('skularis:meister-loeschen', { pfad }),
+    ordnerWaehlen:        (titel)   => ipcRenderer.invoke('skularis:ordner-waehlen', { titel }),
+    textDateienListe:     (ordner)  => ipcRenderer.invoke('skularis:textdateien-liste', { ordner }),
+    textDateiLaden:       (pfad)    => ipcRenderer.invoke('skularis:textdatei-laden', { pfad }),
 
     onMenuAktion:       (cb) => ipcRenderer.on('skularis:menu-aktion', (_e, d) => cb(d)),
     onDateiVonCli:      (cb) => ipcRenderer.on('skularis:datei-von-cli', (_e, d) => cb(d)),

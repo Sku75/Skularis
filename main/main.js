@@ -5,7 +5,7 @@ const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron')
 const path = require('path');
 const fs = require('fs');
 
-const VERSION = 'Skularis 0.18';
+const VERSION = 'Skularis 0.19';
 let mainWindow = null;
 
 // Single Instance Lock
@@ -61,7 +61,7 @@ function migriereNutzerdaten() {
   const neu = getBasisPfad();
   if (path.resolve(alt) === path.resolve(neu)) return;
   try {
-    for (const name of ['Charakter-Dateien', 'Abenteuer-Daten']) {
+    for (const name of ['Charakter-Dateien', 'Abenteuer-Daten', 'Meisterabenteuer']) {
       const q = path.join(alt, name), z = path.join(neu, name);
       if (fs.existsSync(q) && !fs.existsSync(z)) fs.cpSync(q, z, { recursive: true });
     }
@@ -86,6 +86,11 @@ function getCharOrdner() {
 // Ordner für Abenteuer-Spielstände (Skularis-eigenes JSON-Format)
 function getAbenteuerOrdner() {
   return path.join(getBasisPfad(), 'Abenteuer-Daten');
+}
+
+// Ordner für Meisterabenteuer (eigener Ordner, getrennt vom Spielertisch)
+function getMeisterOrdner() {
+  return path.join(getBasisPfad(), 'Meisterabenteuer');
 }
 
 // Verzeichnis mit Regeldaten (datenbank.xml + CharakterAssistent)
@@ -153,5 +158,5 @@ app.on('window-all-closed', () => { app.quit(); });
 // Expose for ipc-handlers
 module.exports = {
   getMainWindow: () => mainWindow,
-  getBasisPfad, getAppPfad, getCharOrdner, getAbenteuerOrdner, getDatenPfad, VERSION,
+  getBasisPfad, getAppPfad, getCharOrdner, getAbenteuerOrdner, getMeisterOrdner, getDatenPfad, VERSION,
 };

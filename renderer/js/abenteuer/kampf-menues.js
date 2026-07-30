@@ -158,9 +158,12 @@ export function zauberKategorieLabel(char, db) {
 }
 
 // Feste Wertelabels im Zaubertext. Der Text vor dem ersten Label ist die Wirkung.
-const ZAUBER_LABELS = ['Probenschwierigkeit', 'Modifikationen', 'Vorbereitungszeit', 'Ziel',
-  'Reichweite', 'Wirkungsdauer', 'Kosten', 'Verbreitung', 'Merkmale', 'Voraussetzungen',
-  'Fertigkeiten', 'Erlernen'];
+// "Mächtige Magie" steht bei vielen Zaubern direkt hinter dem Wirkungssatz und
+// ist ein eigener Zusatz (was mächtige Magie bewirkt), gehört also NICHT in die
+// Wirkung — deshalb als eigenes Label, damit es abgeschnitten wird.
+const ZAUBER_LABELS = ['Probenschwierigkeit', 'Modifikationen', 'Mächtige Magie',
+  'Vorbereitungszeit', 'Ziel', 'Reichweite', 'Wirkungsdauer', 'Kosten', 'Verbreitung',
+  'Merkmale', 'Voraussetzungen', 'Fertigkeiten', 'Erlernen'];
 
 function parseZauberText(text) {
   const t = String(text || '').replace(/\s+/g, ' ').trim();
@@ -194,6 +197,7 @@ function zauberTooltip(def, pw, felder, beschreibung) {
     ['Vorbereitungszeit', felder['Vorbereitungszeit']],
   ];
   for (const [titel, wert] of werte) if (wert) abschnitte.push([titel, wert]);
+  if (felder['Mächtige Magie']) abschnitte.push(['Mächtige Magie', felder['Mächtige Magie']]);
   if (felder['Modifikationen']) abschnitte.push(['Modifikationen', felder['Modifikationen']]);
   const herkunft = [];
   if (felder['Fertigkeiten']) herkunft.push(`Fertigkeiten: ${felder['Fertigkeiten']}.`);

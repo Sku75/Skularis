@@ -85,6 +85,35 @@ export function current() {
   return _stack[_stack.length - 1] || null;
 }
 
+/** Liegt dieser Bildschirm gerade irgendwo im Stapel? (fuer den Reiter-Hub). */
+export function imStack(screen) {
+  return _stack.includes(screen);
+}
+
+/**
+ * Reiter-Hub: sorgt dafuer, dass ueber dem Anker-Bildschirm genau `tab` liegt.
+ * Der Fokus des bisher obersten Bildschirms wird gesichert, der gemerkte Fokus
+ * von `tab` wiederhergestellt. So springt man mit den F-Tasten von Reiter zu
+ * Reiter, und jeder Reiter steht wieder an seiner letzten Fokusstelle.
+ */
+export function reiterZeigen(anker, tab) {
+  const ai = _stack.indexOf(anker);
+  if (ai < 0) return;
+  const cur = current();
+  if (cur) cur._focusIndex = _aktuellerFokusIndex();
+  _stack.length = ai + 1;
+  if (tab && tab !== anker) _stack.push(tab);
+  _render({ sound: false, restore: true });
+}
+
+/** Reiter-Hub verlassen: den Anker und alles darueber entfernen, einmal rendern. */
+export function entferneAb(screen) {
+  const i = _stack.indexOf(screen);
+  if (i <= 0) return;
+  _stack.length = i;
+  _render({ sound: false, restore: true });
+}
+
 /**
  * Aktuellen Bildschirm neu aufbauen (z. B. nach Datenänderung).
  * @param {string} [fokusSelector] Optionaler CSS-Selektor: das passende Element
