@@ -60,6 +60,9 @@ function registriereEscape() {
     // Offener Dialog? Dann Dialog-eigenes Escape wirken lassen. Das gilt auch
     // für die Rückfrage aus onBack — mehrfaches Escape verwirft also nichts.
     if (document.querySelector('dialog[open]')) return;
+    // Kam das Escape aus einem Dialog (der sich soeben selbst geschlossen hat),
+    // NICHT zusätzlich den darunterliegenden Bildschirm verlassen.
+    if (e.target && e.target.closest && e.target.closest('dialog')) return;
     e.preventDefault();
     if (!await screen.zurueck()) {
       if (screen.tiefe() <= 1) sprache.sage('Hauptmenü. Bereits oberste Ebene.');

@@ -186,6 +186,7 @@ function waffeHinzufuegen() {
   auswahlScreen({
     titel: 'Waffe wählen',
     eintraege,
+    bleibt: true,
     onWahl: async (val) => {
       if (!await jaNeinDialog({ titel: 'Hinzufügen', frage: `Waffe ${val} wirklich hinzufügen?` })) return;
       const neu = waffeAusDb(db.waffen.find(x => x.name === val));
@@ -200,7 +201,6 @@ function waffeHinzufuegen() {
         sprache.sage(`Waffe ${val} hinzugefügt, liegt im Inventar.`);
       }
       editor.aktualisiere();
-      screen.refresh();
     },
   });
 }
@@ -472,6 +472,7 @@ function ruestungHinzufuegen() {
   auswahlScreen({
     titel: 'Rüstung wählen',
     eintraege,
+    bleibt: true,
     onWahl: async (val) => {
       let neu;
       if (val === '__eigene') {
@@ -506,7 +507,6 @@ function ruestungHinzufuegen() {
         });
       }
       editor.aktualisiere();
-      screen.refresh();
       sprache.sage(`Rüstung ${neu.name} hinzugefügt, Behinderung ${be}`
         + (anlegen ? ', angelegt.' : ', im Inventar.'));
     },

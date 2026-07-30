@@ -4,6 +4,30 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.18, 30. Juli 2026
+
+
+Würfelfenster schließt zuverlässig
+
+Bei allen Proben in den Menüs (Attacke, Verteidigung, Fernkampf, Zauber) schließt
+sich das Würfelfenster jetzt nach der Erschwernis wirklich. Vorher sprang der
+Fokus fälschlich zurück auf die Würfelwahl. Das Ergebnis steht danach hinter der
+Würfeln-Schaltfläche und wird vorgelesen.
+
+Erschwernis neu dargestellt
+
+Beim Einstellen der Erschwernis heißt es jetzt klar: Pfeil hoch erschwert, Pfeil
+runter erleichtert. Eine Stufe hoch sagt "1 erschwert, minus 1", eine Stufe
+runter "1 erleichtert, plus 1".
+
+Im Kauf-Menü bleiben
+
+Werden Vorteile oder Ausrüstung gekauft, bleibt der Cursor nach dem Bestätigen in
+der Liste und rutscht nur eine Stelle nach oben auf den vorherigen Eintrag. So
+lassen sich mehrere Dinge nacheinander kaufen, ohne jedes Mal zurück in die Liste
+zu wandern.
+
+
 Version 0.17, 30. Juli 2026
 
 
