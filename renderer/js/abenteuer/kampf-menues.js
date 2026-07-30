@@ -15,7 +15,7 @@ import { talentGruppen } from '../editor/talente.js';
 import { bauInfo } from '../core/infotext.js';
 import { zahlDialog } from '../ui/dialog.js';
 import { getAbenteuer } from './state.js';
-import { kampfProbe } from './wuerfel-kern.js';
+import { kampfProbe, mitLetztemWurf } from './wuerfel-kern.js';
 import { AKTIONEN, MANOEVER } from '../daten/kampf-listen.js';
 
 const TYP_NAME = { einfach: 'einfache Aktion', voll: 'volle Aktion', frei: 'freie Aktion' };
@@ -92,7 +92,7 @@ export function manoeverScreen() {
     return {
       label: `${m.name}: ${vokabel} ${eff}${rech}`,
       hint: `${m.kategorie}. Enter würfelt${info.x ? ', fragt den Wert X ab' : ''}`,
-      detail,
+      detail: mitLetztemWurf(id, detail),
       ergebnisId: id,
       onSelect: async () => {
         let extra = festMod;
@@ -238,7 +238,7 @@ export function zauberScreen() {
     return {
       label: s.name,
       hint: `${s.fertigkeit}, Probenwert ${s.pw}. Enter zum Zaubern`,
-      detail: zauberTooltip(def, s.pw, felder, beschreibung),
+      detail: mitLetztemWurf(id, zauberTooltip(def, s.pw, felder, beschreibung)),
       ergebnisId: id,
       onSelect: () => kampfProbe({
         id, titel: `Zauber ${s.name}`, vokabel: s.fertigkeit, probenwert: s.pw,

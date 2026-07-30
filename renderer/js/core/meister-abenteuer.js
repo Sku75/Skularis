@@ -47,9 +47,42 @@ export function leererStatblock(a) {
   return {
     id: naechsteId(a),
     name: '',
+    kategorie: '',
     ws: 4, rs: 0, ini: 0,
+    angriffe: [],          // { name, at, pa, wuerfel, seiten, bonus }
+    vorteile: [],          // Faehigkeiten/Vorteile, die der Gegner beherrscht
+    manoever: [],          // Manoever, die der Gegner beherrscht
     notizen: '',
-    angriffe: [],          // { name, wert, wuerfel, seiten, bonus }
+  };
+}
+
+/** Angriffszeile lesbar (unterstuetzt neues at/pa und altes wert). */
+export function angriffText(ang) {
+  const at = ang.at != null ? ang.at : ang.wert;
+  const paTeil = ang.pa != null ? `, Parade ${ang.pa}` : '';
+  const schaden = `Schaden ${ang.wuerfel || 0} W ${ang.seiten || 6}${ang.bonus ? ' plus ' + ang.bonus : ''}`;
+  return `${ang.name}, Attacke ${at != null ? at : 0}${paTeil}, ${schaden}`;
+}
+
+/** Alle Angriffe einer Karte/eines Statblocks als Satz. */
+export function angriffeText(karte) {
+  return (karte.angriffe || []).map(angriffText).join('. ');
+}
+
+/**
+ * Eine Bibliotheks-Vorlage (Bestiarium oder eigene Bibliothek) tief in einen
+ * neuen Statblock fuer die Auswahl des Abenteuers kopieren (mit frischer Id).
+ */
+export function statblockAusVorlage(a, vorlage) {
+  return {
+    id: naechsteId(a),
+    name: vorlage.name || 'Gegner',
+    kategorie: vorlage.kategorie || '',
+    ws: vorlage.ws || 0, rs: vorlage.rs || 0, ini: vorlage.ini || 0,
+    angriffe: (vorlage.angriffe || []).map(x => ({ ...x })),
+    vorteile: Array.isArray(vorlage.vorteile) ? [...vorlage.vorteile] : [],
+    manoever: Array.isArray(vorlage.manoever) ? [...vorlage.manoever] : [],
+    notizen: vorlage.notizen || '',
   };
 }
 
@@ -113,7 +146,8 @@ function charAngriffe(bogen, db) {
     if (k.at === null && k.vt === null) continue;
     out.push({
       name: `${slot} ${waffe.name}`,
-      wert: k.at !== null ? k.at : k.vt,
+      at: k.at,
+      pa: k.vt,
       wuerfel: waffe.wuerfel || 0,
       seiten: waffe.wuerfelSeiten || 6,
       bonus: (k.tp || 0) + w.SB,
@@ -143,9 +177,12 @@ export function baueStatblockKarte(a, sb, art) {
     id: naechsteId(a),
     art: art || 'gegner',
     name: sb.name || (art === 'freund' ? 'NPC' : 'Gegner'),
+    kategorie: sb.kategorie || '',
     ws: sb.ws || 0, rs: sb.rs || 0, ini: sb.ini || 0,
     wunden: 0,
     angriffe: (sb.angriffe || []).map(x => ({ ...x })),
+    vorteile: Array.isArray(sb.vorteile) ? [...sb.vorteile] : [],
+    manoever: Array.isArray(sb.manoever) ? [...sb.manoever] : [],
     notizen: sb.notizen || '',
     zuOrt: null,
   };

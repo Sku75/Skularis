@@ -15,7 +15,8 @@ import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { auswahlScreen } from '../ui/auswahl-screen.js';
-import { textDialog, zahlDialog, knopfDialog } from '../ui/dialog.js';
+import { textDialog, zahlDialog, knopfDialog, jaNeinDialog, spinnerDialog, erschwernisDialog } from '../ui/dialog.js';
+import { zeigeErgebnis } from '../abenteuer/wuerfel-kern.js';
 import * as reiterHub from '../ui/reiter-hub.js';
 import { ladeDb, getDb } from '../core/db-laden.js';
 import { createMeisterAbenteuer, parseMeisterAbenteuer, protokolliere } from '../core/meister-abenteuer.js';
@@ -23,6 +24,7 @@ import { getMeister, setMeister, speichere } from '../meister/state.js';
 import { gruppenzusammenstellungScreen, gruppenboegenScreen } from '../meister/gruppe.js';
 import { gruppenrechercheScreen, gruppenprobeScreen } from '../meister/gruppenrecherche.js';
 import { gegnerkarteiScreen } from '../meister/gegnerkartei.js';
+import { gegnerBibliothekScreen } from '../meister/gegner-bibliothek.js';
 import { spieltischScreen } from '../meister/spieltisch.js';
 import { texteScreen } from '../meister/texte.js';
 import { meisterNotizenScreen } from '../meister/notizen.js';
@@ -69,24 +71,66 @@ async function oeffnen(modus) {
   let liste = [];
   try { liste = await ipc.meisterListe(); } catch { liste = []; }
   if (!liste.length) { sprache.sage('Noch keine Meisterabenteuer gespeichert.'); return; }
-  auswahlScreen({
-    titel: modus === 'spielen' ? 'Meisterabenteuer zum Spielen waehlen' : 'Meisterabenteuer zum Bearbeiten waehlen',
-    eintraege: liste.map(a => ({ label: a.name, wert: a.pfad })),
-    onWahl: async (pfad) => {
-      try {
-        await ladeDb();
-        const r = await ipc.meisterLaden(pfad);
-        const a = parseMeisterAbenteuer(r.inhalt);
-        a._pfad = pfad;
-        setMeister(a);
-        sounds.playOeffnen();
-        oeffneHub(modus);
-      } catch (e) {
-        console.error('Meisterabenteuer laden:', e);
-        sprache.sage('Meisterabenteuer konnte nicht geladen werden.');
-      }
+  screen.push(meisterListeScreen(modus, liste));
+}
+
+/** Liste der Meisterabenteuer; Enter oeffnet ein Untermenue (oeffnen/loeschen). */
+function meisterListeScreen(modus, liste) {
+  return {
+    title: modus === 'spielen' ? 'Meisterabenteuer zum Spielen' : 'Meisterabenteuer zum Bearbeiten',
+    build() {
+      const items = liste.map(a => ({
+        label: a.name,
+        hint: 'Enter: oeffnen oder loeschen',
+        onSelect: () => screen.push(meisterEintragScreen(modus, a, liste)),
+      }));
+      return menuScreen({ title: this.title, subtitle: 'Escape zurueck.', items, leer: 'Noch keine Meisterabenteuer.' }).build();
     },
-  });
+  };
+}
+
+function meisterEintragScreen(modus, eintrag, liste) {
+  const oeffnenLabel = modus === 'spielen' ? 'Zum Spielen oeffnen' : 'Zum Bearbeiten oeffnen';
+  return {
+    title: eintrag.name,
+    build() {
+      return menuScreen({
+        title: eintrag.name,
+        subtitle: 'Escape zurueck.',
+        items: [
+          {
+            label: oeffnenLabel,
+            onSelect: async () => {
+              try {
+                await ladeDb();
+                const r = await ipc.meisterLaden(eintrag.pfad);
+                const a = parseMeisterAbenteuer(r.inhalt);
+                a._pfad = eintrag.pfad;
+                setMeister(a);
+                sounds.playOeffnen();
+                oeffneHub(modus);
+              } catch (e) {
+                console.error('Meisterabenteuer laden:', e);
+                sprache.sage('Meisterabenteuer konnte nicht geladen werden.');
+              }
+            },
+          },
+          {
+            label: 'Loeschen',
+            onSelect: async () => {
+              if (!await jaNeinDialog({ titel: 'Loeschen', frage: `Meisterabenteuer ${eintrag.name} wirklich loeschen?` })) return;
+              try { await ipc.meisterLoeschen(eintrag.pfad); } catch (e) { console.error('loeschen:', e); }
+              const i = liste.indexOf(eintrag);
+              if (i >= 0) liste.splice(i, 1);
+              screen.pop();
+              screen.refresh();
+              sprache.sage(`${eintrag.name} geloescht.`);
+            },
+          },
+        ],
+      }).build();
+    },
+  };
 }
 
 // --- Hub mit F-Tasten ---
@@ -102,7 +146,7 @@ function oeffneHub(modus) {
     { label: 'Gruppenrecherche', hint: 'Werte der Gruppe abfragen und verdeckt wuerfeln', factory: () => gruppenrechercheScreen() },
     { label: 'Gruppenprobe', hint: 'die ganze Gruppe gegen eine Schwierigkeit', factory: () => gruppenprobeScreen() },
     { label: 'Spieltisch', hint: 'Karten, Wunden und Zuweisung im Kampf', factory: () => spieltischScreen() },
-    { label: 'Gegner und Kreaturen', hint: 'Statbloecke anlegen und wuerfeln', factory: () => gegnerkarteiScreen('gegner') },
+    { label: 'Gegner-Bibliothek', hint: 'Gesamtliste und Kategorien, Gegner in die Auswahl uebernehmen', factory: () => gegnerBibliothekScreen() },
     { label: 'Freundliche NPC', hint: 'Meister-NPC verwalten', factory: () => gegnerkarteiScreen('freund') },
     { label: 'Charakterboegen der Gruppe', hint: 'Boegen ansehen', factory: () => gruppenboegenScreen() },
     { label: 'Abenteuertexte', hint: 'txt-Dokumente lesen, mit Lesezeichen', factory: () => texteScreen() },
@@ -110,7 +154,7 @@ function oeffneHub(modus) {
     { label: 'Regelnachschlagewerk', hint: 'alle Regeln, mit Hinweis welcher Held sie hat', factory: () => regelnScreen({ db: getDb(), helden: regelHelden(), titel: 'Regelnachschlagewerk' }) },
     { label: 'Protokoll', hint: 'was im Abenteuer passiert ist', factory: () => protokollScreen() },
     { label: 'Gruppenzusammenstellung', hint: 'Helden hinzufuegen und entfernen', factory: () => gruppenzusammenstellungScreen() },
-    { label: 'Verdeckter Meister-Wurf', hint: 'schnell und leise wuerfeln', aktion: () => verdeckterMeisterWurf() },
+    { label: 'Verdeckter Meister-Wurf', hint: 'schnell und leise wuerfeln', ergebnisId: 'meisterwurf', aktion: () => verdeckterMeisterWurf() },
     { label: 'Zwischenspeichern', hint: 'Spielstand sichern', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
   ];
 
@@ -119,7 +163,14 @@ function oeffneHub(modus) {
   }
   punkte.push({ label: 'Speichern und schliessen', hint: 'sichern und zum Meister-Tisch zurueck', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Gespeichert.'); hub.verlasse(); } });
 
-  hub = reiterHub.oeffneHub({ titel, subtitle: 'Mit F1 bis F12 direkt zum Menue. Escape verlaesst den Bereich.', punkte });
+  hub = reiterHub.oeffneHub({
+    titel, subtitle: 'Mit F1 bis F12 direkt zum Menue. Escape verlaesst den Bereich.', punkte,
+    beimVerlassen: async () => {
+      const ja = await jaNeinDialog({ titel: 'Meister-Tisch verlassen', frage: 'Meisterabenteuer speichern?' });
+      if (ja) { await speichere(); sounds.playSpeichern(); }
+      return true;
+    },
+  });
 }
 
 function protokollScreen() {
@@ -134,13 +185,29 @@ function protokollScreen() {
 }
 
 async function verdeckterMeisterWurf() {
-  const anzahl = await zahlDialog({ titel: 'Verdeckter Wurf', label: 'Anzahl der Wuerfel', wert: 1, min: 1, max: 50 });
+  // Einheitlicher Spinner-Ablauf wie bei den Spielerproben: erst Anzahl, dann
+  // Wuerfeltyp, dann die Erschwernis. Danach wird verdeckt gewuerfelt und das
+  // Ergebnis hinter den Menuepunkt F12 geschrieben und angesagt.
+  const anzahl = await spinnerDialog({ titel: 'Anzahl Wuerfel', optionen: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], index: 0, format: (v) => `${v} Wuerfel` });
   if (anzahl === null) return;
-  const seiten = await knopfDialog({ titel: 'Wuerfeltyp', knoepfe: [{ label: 'W6', wert: 6 }, { label: 'W20', wert: 20 }] });
+  const seiten = await spinnerDialog({ titel: 'Wuerfeltyp', optionen: [6, 20], index: 1, format: (v) => `W${v}` });
   if (seiten === null) return;
-  const mod = await zahlDialog({ titel: 'Modifikator', label: 'Modifikator, 0 wenn keiner', wert: 0, min: -100, max: 100 });
-  if (mod === null) return;
-  verdeckterWurf(anzahl, seiten, mod, 'Meister-Wurf');
+  const ersch = await erschwernisDialog({ titel: 'Erschwernis', wert: 0 });
+  if (ersch === null) return;
+
+  const a = getMeister();
+  const wuerfe = [];
+  for (let i = 0; i < anzahl; i++) wuerfe.push(1 + Math.floor(Math.random() * seiten));
+  const summe = wuerfe.reduce((s, n) => s + n, 0) - ersch; // Erschwernis positiv = Abzug
+  sounds.playWuerfel();
+  const erschText = ersch ? (ersch > 0 ? `, Erschwernis minus ${ersch}` : `, Erleichterung plus ${-ersch}`) : '';
+  const ansage = `Verdeckt. Ergebnis ${summe}. ${anzahl} W ${seiten}, ${wuerfe.join(', ')}${erschText}.`;
+  protokolliere(a, `Verdeckter Meister-Wurf: ${anzahl} W ${seiten} ${wuerfe.join(', ')}${erschText}, Ergebnis ${summe}.`);
+  speichere();
+  // Ergebnis hinter den Menuepunkt F12 schreiben; Fokus liegt nach den Dialogen
+  // schon wieder dort, daher die Ansage zuverlaessig per aria-live.
+  zeigeErgebnis('meisterwurf', `Ergebnis ${summe}`, ansage);
+  sprache.sage(ansage);
 }
 
 async function spielabendAbschliessen(hub) {

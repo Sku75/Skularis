@@ -34,12 +34,9 @@ function listeScreen(feld, einzeln, vorlesen) {
       const a = getMeister();
       const arr = a[feld] || (a[feld] = []);
       this.title = `${einzeln}e, ${arr.length}`;
-      const items = arr.map((n, i) => ({
-        label: n.titel || '(ohne Titel)',
-        hint: 'oeffnen',
-        detail: n.inhalt || '',
-        onSelect: () => screen.push(eintragScreen(feld, i, einzeln, vorlesen)),
-      }));
+      const items = [];
+      // Das Hinzufuegen-Feld bleibt oben; die Eintraege stehen durchnummeriert
+      // darunter, neueste zuerst, so wie im Tagebuch.
       items.push({
         label: `${einzeln} hinzufuegen`,
         onSelect: async () => {
@@ -51,7 +48,16 @@ function listeScreen(feld, einzeln, vorlesen) {
           await speichere(); screen.refresh(); sprache.sage(`${einzeln} ${titel.trim()} gespeichert.`);
         },
       });
-      return menuScreen({ title: this.title, subtitle: 'Enter oeffnet einen Eintrag. Escape zurueck.', items, leer: `Noch keine ${einzeln}e.` }).build();
+      for (let i = arr.length - 1; i >= 0; i--) {
+        const n = arr[i];
+        items.push({
+          label: `${einzeln} ${i + 1}: ${n.titel || '(ohne Titel)'}`,
+          hint: 'oeffnen',
+          detail: n.inhalt || '',
+          onSelect: () => screen.push(eintragScreen(feld, i, einzeln, vorlesen)),
+        });
+      }
+      return menuScreen({ title: this.title, subtitle: 'Hinzufuegen oben, Eintraege nummeriert darunter. Escape zurueck.', items, leer: `Noch keine ${einzeln}e.` }).build();
     },
   };
 }

@@ -151,6 +151,18 @@ ipcMain.handle('skularis:textdatei-laden', (_event, data) => {
   return fileOps.textDateiLaden(data.pfad);
 });
 
+// --- Globale Gegner-Bibliothek ---
+function gegnerBibPfad() {
+  const { getBasisPfad } = require('./main');
+  return path.join(getBasisPfad(), 'Gegner-Bibliothek.json');
+}
+ipcMain.handle('skularis:gegnerbib-laden', () => {
+  return fileOps.gegnerBibLaden(gegnerBibPfad());
+});
+ipcMain.handle('skularis:gegnerbib-speichern', (_event, data) => {
+  return fileOps.gegnerBibSpeichern(gegnerBibPfad(), data.inhalt);
+});
+
 // --- Erschaffungspakete ---
 ipcMain.handle('skularis:pakete-liste', (_event, data) => {
   const { getDatenPfad } = require('./main');

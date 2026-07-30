@@ -106,6 +106,28 @@ export function reiterZeigen(anker, tab) {
   _render({ sound: false, restore: true });
 }
 
+/** Reiter-Hub: das aktuelle Stapel-Segment ueber dem Anker (tiefe Navigation). */
+export function segmentUeberAnker(anker) {
+  const ai = _stack.indexOf(anker);
+  if (ai < 0) return [];
+  return _stack.slice(ai + 1);
+}
+
+/**
+ * Reiter-Hub: das Segment ueber dem Anker durch ein gemerktes Array ersetzen und
+ * den Fokus des obersten Bildschirms wiederherstellen. So kehrt man mit der
+ * F-Taste zur genauen tiefen Position eines Reiters zurueck.
+ */
+export function reiterSegmentZeigen(anker, segment) {
+  const ai = _stack.indexOf(anker);
+  if (ai < 0) return;
+  const cur = current();
+  if (cur) cur._focusIndex = _aktuellerFokusIndex();
+  _stack.length = ai + 1;
+  for (const s of (segment || [])) _stack.push(s);
+  _render({ sound: false, restore: true });
+}
+
 /** Reiter-Hub verlassen: den Anker und alles darueber entfernen, einmal rendern. */
 export function entferneAb(screen) {
   const i = _stack.indexOf(screen);

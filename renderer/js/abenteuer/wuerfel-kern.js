@@ -63,6 +63,24 @@ export function wuerfeln(anzahl, seiten, mod, id, stumm) {
 // --- Erschwernis (gemerkt je Schalter) -----------------------------------
 const _letzteErschwernis = {};
 
+// Letzter Wurf je Schalter-Id, mehrzeilig fuer den Tooltip. Bleibt die Sitzung
+// ueber erhalten (nur im Speicher, beim App-Start leer).
+const _letzterWurf = {};
+
+/**
+ * Detail-Funktion, die den letzten Wurf (falls vorhanden) ueber den statischen
+ * Tooltip stellt. Als item.detail nutzbar; wird beim Fokus frisch ausgewertet,
+ * zeigt also immer den aktuellen Stand.
+ */
+export function mitLetztemWurf(id, basis) {
+  return () => {
+    const lw = _letzterWurf[id];
+    if (!lw || !lw.length) return basis;
+    const basisArr = basis == null || basis === '' ? [] : (Array.isArray(basis) ? basis : [basis]);
+    return [...lw, '', ...basisArr];
+  };
+}
+
 async function erschwernisAbfrage(id) {
   const vor = _letzteErschwernis[id] || 0;
   const e = await erschwernisDialog({ titel: 'Erschwernis', wert: vor });
@@ -191,6 +209,15 @@ export async function kampfProbe(o) {
   // wichtigste Zahl. Danach Erfolg/Misserfolg, dann Herkunft (Titel, Würfel,
   // Werte) und zuletzt die Zusätze (Kosten usw.).
   const ansage = `Probenergebnis ${ew}.${erfolgText} ${o.titel}, ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}.${zusatzText}${modNamenText}`;
+
+  // Letzten Wurf mehrzeilig fuer den Tooltip merken (bleibt die Sitzung ueber).
+  _letzterWurf[o.id] = [
+    'Letzter Wurf:',
+    `Probenergebnis ${ew}${typeof o.schwierigkeit === 'number' ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : ''}`,
+    anzahl === 3 ? `Wurf drei W20 ${wuerfe.join(', ')}` : `Wurf ein W20 ${wuerfe[0]}`,
+    anzahl === 3 ? `Mittlerer Wurf zaehlt ${wert}` : null,
+    `Dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}`,
+  ].filter(Boolean);
 
   protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${erschText}, Ergebnis ${ew}.${erfolgText}${modNamenText}`);
   speichere();

@@ -98,12 +98,53 @@ export function erschwernisDialog({ titel = 'Erschwernis', wert = 0 }) {
       if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); v = Math.min(100, v + 1); zeige(); melde(dlg, text()); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); v = Math.max(-100, v - 1); zeige(); melde(dlg, text()); }
       else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); fertig(v); }
-      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fertig(null); }
+      else if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); e.stopPropagation(); fertig(null); }
     });
     dlg.showModal();
     anzeige.focus();
     zeige();
     melde(dlg, `${titel} einstellen. Pfeil hoch erschwert, Pfeil runter erleichtert. Aktuell ${text()}. Eingabetaste bestätigt, Escape bricht ab.`);
+  });
+}
+
+/**
+ * Spinner-Auswahl: durch eine Liste fester Optionen blaettern (Pfeil runter =
+ * naechste, hoch = vorige), Eingabetaste bestaetigt, Escape/Ruecktaste bricht ab.
+ * @returns Promise<any|null> die gewaehlte Option oder null
+ */
+export function spinnerDialog({ titel, optionen, index = 0, format }) {
+  return new Promise((resolve) => {
+    sounds.playClick();
+    const dlg = baueDialog(titel);
+    const fmt = format || ((v) => String(v));
+    dlg.insertAdjacentHTML('beforeend', `
+      <div class="db-dialog__header"><span class="db-dialog__title">${titel}</span></div>
+      <div class="db-dialog__body">
+        <p class="db-dialog__label">Pfeil runter und hoch waehlt. Eingabetaste bestätigt.</p>
+        <div id="dlg-spin" class="db-input" tabindex="0" role="spinbutton"></div>
+      </div>
+      <div class="db-dialog__footer">
+        <button class="db-btn db-btn--primary" id="dlg-ok">OK</button>
+        <button class="db-btn" id="dlg-ab">Abbrechen</button>
+      </div>`);
+    document.body.appendChild(dlg);
+    let i = Math.max(0, Math.min(optionen.length - 1, index | 0));
+    const anzeige = dlg.querySelector('#dlg-spin');
+    const text = () => fmt(optionen[i]);
+    const zeige = () => { anzeige.textContent = text(); anzeige.setAttribute('aria-label', text()); };
+    const fertig = (val) => { dlg.close(); dlg.remove(); resolve(val); };
+    dlg.querySelector('#dlg-ok').addEventListener('click', () => fertig(optionen[i]));
+    dlg.querySelector('#dlg-ab').addEventListener('click', () => fertig(null));
+    dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); i = Math.min(optionen.length - 1, i + 1); zeige(); melde(dlg, text()); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); i = Math.max(0, i - 1); zeige(); melde(dlg, text()); }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); fertig(optionen[i]); }
+      else if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); e.stopPropagation(); fertig(null); }
+    });
+    dlg.showModal();
+    anzeige.focus();
+    zeige();
+    melde(dlg, `${titel}. Pfeil runter und hoch waehlt. Aktuell ${text()}. Eingabetaste bestätigt, Escape bricht ab.`);
   });
 }
 
