@@ -7,6 +7,7 @@
  * Spielwerte, dann die Wirkung, unten die Herkunft.
  */
 import * as sprache from '../sprache.js';
+import * as screen from '../ui/screen.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { getDb } from '../core/db-laden.js';
 import { fertigkeitProbenwert, waffenwerte, abgeleiteteWerte } from '../core/regeln.js';
@@ -70,46 +71,78 @@ function primaerWaffe(char, db) {
   return waffe ? { waffe, k: waffenwerte(char, db, waffe) } : null;
 }
 
+/**
+ * Ob der Charakter ein Manöver ausführen kann: Basismanöver sind für alle frei,
+ * die eingeschränkten und Aufbaumanöver muss man als Kampf-Talent gelernt haben.
+ */
+function kannManoever(char, m) {
+  if (m.kategorie === 'Basis') return true;
+  return (char.talente || []).includes(m.name);
+}
+
 export function manoeverScreen() {
-  const a = getAbenteuer();
-  const char = a.charakter;
-  const db = getDb();
-  const pw = primaerWaffe(char, db);
-  const w = abgeleiteteWerte(char);
-  let idx = 0;
-  const items = MANOEVER.map((m) => {
-    const info = MANOEVER_PROBE[m.name] || { art: 'AT', modFix: 0 };
-    const vokabel = info.art === 'VT' ? 'Verteidigung' : 'Attacke';
-    const basis = pw ? (info.art === 'VT' ? pw.k.vt : pw.k.at) : null;
-    const id = `man-${idx++}`;
-    const detail = `${m.mod}. ${m.tooltip}`;
-    if (basis === null || basis === undefined) {
-      return { label: `${m.name}, ${m.kategorie}, ${m.mod}`, detail, onSelect: () => sprache.sage(`${m.name}, ${m.mod}. ${m.tooltip}`) };
-    }
-    const festMod = info.modFix + (info.be ? -w.BE : 0);
-    const eff = basis + festMod;
-    const rech = festMod ? ` (${basis}${festMod > 0 ? ' plus ' + festMod : ' minus ' + (-festMod)})` : '';
-    return {
-      label: `${m.name}: ${vokabel} ${eff}${rech}`,
-      hint: `${m.kategorie}. Enter würfelt${info.x ? ', fragt den Wert X ab' : ''}`,
-      detail: mitLetztemWurf(id, detail),
-      ergebnisId: id,
-      onSelect: async () => {
-        let extra = festMod;
-        if (info.x) {
-          const x = await zahlDialog({ titel: `${m.name}, Wert X`, label: 'Wie viel X? 0 wenn keiner', wert: 0, min: 0, max: 20 });
-          if (x === null) return;
-          extra = festMod - x;
-        }
-        kampfProbe({ id, titel: `${m.name} mit ${pw.waffe.name}`, vokabel, probenwert: basis, extraMod: extra });
-      },
-    };
-  });
-  return menuScreen({
+  // Standardmäßig nur die ausführbaren Manöver; ein Umschalter blendet die nicht
+  // gelernten bei Bedarf mit ein (dann als "nicht gelernt" gekennzeichnet).
+  const zustand = { zeigeAlle: false };
+  return {
     title: 'Manöver',
-    subtitle: 'Filtern, Enter würfelt mit den echten Werten. Shift und Pfeil-runter liest die Wirkung. Escape zurück.',
-    items, filter: true,
-  });
+    build() {
+      const a = getAbenteuer();
+      const char = a.charakter;
+      const db = getDb();
+      const pw = primaerWaffe(char, db);
+      const w = abgeleiteteWerte(char);
+
+      const items = [];
+      items.push({
+        id: 'man-umschalter',
+        label: zustand.zeigeAlle ? 'Nur ausführbare Manöver anzeigen' : 'Auch nicht gelernte Manöver anzeigen',
+        hint: zustand.zeigeAlle ? 'Basismanöver und gelernte' : 'blendet alle Manöver ein, auch ungelernte',
+        onSelect: () => { zustand.zeigeAlle = !zustand.zeigeAlle; screen.refresh('#man-umschalter'); },
+      });
+
+      let idx = 0;
+      for (const m of MANOEVER) {
+        const kann = kannManoever(char, m);
+        if (!kann && !zustand.zeigeAlle) continue; // Standard: nur Ausführbare
+        const info = MANOEVER_PROBE[m.name] || { art: 'AT', modFix: 0 };
+        const vokabel = info.art === 'VT' ? 'Verteidigung' : 'Attacke';
+        const basis = pw ? (info.art === 'VT' ? pw.k.vt : pw.k.at) : null;
+        const id = `man-${idx++}`;
+        const vorn = kann ? '' : 'Nicht gelernt: ';
+        const detail = `${kann ? '' : 'Nicht gelernt. '}${m.mod}. ${m.tooltip}`;
+        if (basis === null || basis === undefined) {
+          items.push({ label: `${vorn}${m.name}, ${m.kategorie}, ${m.mod}`, detail, klasse: kann ? undefined : 'ed-gesperrt', onSelect: () => sprache.sage(`${vorn}${m.name}, ${m.mod}. ${m.tooltip}`) });
+          continue;
+        }
+        const festMod = info.modFix + (info.be ? -w.BE : 0);
+        const eff = basis + festMod;
+        const rech = festMod ? ` (${basis}${festMod > 0 ? ' plus ' + festMod : ' minus ' + (-festMod)})` : '';
+        items.push({
+          label: `${vorn}${m.name}: ${vokabel} ${eff}${rech}`,
+          hint: `${m.kategorie}. Enter würfelt${info.x ? ', fragt den Wert X ab' : ''}`,
+          detail: mitLetztemWurf(id, detail),
+          ergebnisId: id,
+          klasse: kann ? undefined : 'ed-gesperrt',
+          onSelect: async () => {
+            let extra = festMod;
+            if (info.x) {
+              const x = await zahlDialog({ titel: `${m.name}, Wert X`, label: 'Wie viel X? 0 wenn keiner', wert: 0, min: 0, max: 20 });
+              if (x === null) return;
+              extra = festMod - x;
+            }
+            kampfProbe({ id, titel: `${m.name} mit ${pw.waffe.name}`, vokabel, probenwert: basis, extraMod: extra });
+          },
+        });
+      }
+
+      return menuScreen({
+        title: 'Manöver',
+        subtitle: 'Nur ausführbare Manöver. Oben umschaltbar. Filtern, Enter würfelt, Shift und Pfeil-runter liest die Wirkung. Escape zurück.',
+        items, filter: true,
+      }).build();
+    },
+  };
 }
 
 // --- Zauber (eine filterbare Liste, würfelbar) ---------------------------
