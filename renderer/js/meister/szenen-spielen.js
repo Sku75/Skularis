@@ -216,7 +216,7 @@ function szeneBoardScreen(index) {
       // damit die normale Listen-Navigation nicht dazwischenfunkt.
       wrap.addEventListener('keydown', (e) => {
         const k = e.key;
-        const abfangen = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', '+', '-', ' ', 'i', 'I', 'n', 'N', 'v', 'V'];
+        const abfangen = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', '+', '-', ' ', 'i', 'I', 'v', 'V'];
         if (!abfangen.includes(k)) return;
         e.preventDefault(); e.stopPropagation();
         if (k === 'ArrowUp') wechsleReihe('gegner');
@@ -228,14 +228,13 @@ function szeneBoardScreen(index) {
         else if (k === '-') wundeAendern(-1);
         else if (k === ' ') karteMenue();
         else if (k === 'i' || k === 'I') initiative();
-        else if (k === 'n' || k === 'N') naechsteSzene();
         else if (k === 'v' || k === 'V') vorlesen();
       }, true);
       zeichne();
       return wrap;
     },
     onShow() {
-      sprache.sage('Spielbrett. Pfeil hoch die Gegner, Pfeil runter die Freunde, Pfeil links und rechts die Karten. Eingabetaste verbindet Karten. Plus und Minus setzen Wunden. Leertaste oeffnet das Karten-Menue zum Wuerfeln. Taste i geht die Initiative durch, Taste v liest Vorlesetexte, Taste n zur naechsten Szene.');
+      sprache.sage('Spielbrett. Pfeil hoch die Gegner, Pfeil runter die Freunde, Pfeil links und rechts die Karten. Eingabetaste verbindet Karten. Plus und Minus setzen Wunden. Leertaste oeffnet das Karten-Menue zum Wuerfeln. Taste i geht die Initiative durch, Taste v liest die Vorlesetexte dieser Szene.');
       setTimeout(fokus, 120);
     },
   };
@@ -430,12 +429,6 @@ function szeneBoardScreen(index) {
     vorlesePos = (vorlesePos + 1) % vt.length;
     const t = vt[vorlesePos];
     sprache.sage(`Vorlesetext ${vorlesePos + 1} von ${vt.length}. ${t.titel ? t.titel + '. ' : ''}${t.inhalt || ''}`);
-  }
-
-  function naechsteSzene() {
-    if (index + 1 >= a.szenen.length) { sprache.sage('Das ist die letzte Szene.'); return; }
-    screen.replace(szeneBoardScreen(index + 1));
-    sprache.sage(`Naechste Szene, S-${index + 2}.`);
   }
 
   return scr;
