@@ -257,6 +257,21 @@ function gegnerBibSpeichern(pfad, inhalt) {
   return { pfad };
 }
 
+// --- Szenenpacks (Meister-Vorbereitung, im Ordner "Meister Daten") ---
+
+function jsonLaden(pfad) {
+  try { return { inhalt: fs.readFileSync(pfad, 'utf-8') }; }
+  catch { return { inhalt: '' }; }
+}
+
+function jsonSpeichern(pfad, inhalt) {
+  fs.mkdirSync(path.dirname(pfad), { recursive: true });
+  const tmp = pfad + '.tmp';
+  fs.writeFileSync(tmp, inhalt, 'utf-8');
+  fs.renameSync(tmp, pfad);
+  return { pfad };
+}
+
 module.exports = {
   dateiOeffnenDialog,
   dateiSpeichern,
@@ -285,4 +300,6 @@ module.exports = {
   textDateiLaden,
   gegnerBibLaden,
   gegnerBibSpeichern,
+  jsonLaden,
+  jsonSpeichern,
 };

@@ -40,6 +40,22 @@ function installiereListener() {
   }, true);
 }
 
+/** Nach einem F-Tasten-Wechsel: Fenstername, dann das fokussierte Feld ansagen. */
+function ansageWechsel() {
+  const cur = screen.current();
+  const fenster = (cur && cur.title) || '';
+  const el = document.activeElement;
+  let feld = '';
+  if (el) {
+    feld = el.getAttribute('aria-label')
+      || (el.querySelector && el.querySelector('.db-menu__label')?.textContent)
+      || (el.textContent || '').trim().split('\n')[0]
+      || '';
+  }
+  const text = [fenster, feld].filter(Boolean).join('. ');
+  if (text) sprache.sage(text);
+}
+
 /**
  * Hub oeffnen.
  * @param {object} o
@@ -77,6 +93,9 @@ export function oeffneHub(o) {
     }
     _aktiverIndex = i;
     screen.reiterSegmentZeigen(anker, segment);
+    // Nach dem Wechsel zuerst den Fensternamen ansagen, dann das Feld, auf dem
+    // der Fokus steht. Kurze Verzoegerung, bis der Fokus gesetzt ist.
+    setTimeout(ansageWechsel, 150);
   };
 
   const anker = {
@@ -108,16 +127,27 @@ export function oeffneHub(o) {
     onShow() {
       sprache.sage('Mit den F-Tasten springst du direkt zwischen den Menues.');
     },
-    // Escape auf der Hub-Ebene: optionale Abfrage (z. B. Speichern) vor dem
-    // Verlassen des Bereichs. o.beimVerlassen gibt true zurueck, wenn verlassen
-    // werden darf, false zum Abbrechen.
+    // Escape auf der Hub-Ebene: optionale Abfrage vor dem Verlassen.
+    // o.beimVerlassen liefert 'ja' | 'nein' | 'abbrechen'. Bei ja/nein wird der
+    // Bereich verlassen (zurueck bis zum Einstieg, nicht in ein Zwischenmenue);
+    // bei abbrechen bleibt man im Hub. onBack gibt immer false zurueck, weil die
+    // Navigation hier selbst erledigt wird (kein zusaetzliches einzelnes pop).
     async onBack() {
+      let ent = 'ja';
       if (typeof o.beimVerlassen === 'function') {
-        try { return await o.beimVerlassen(); } catch (e) { console.error('beimVerlassen:', e); return true; }
+        try { ent = await o.beimVerlassen(); } catch (e) { console.error('beimVerlassen:', e); ent = 'ja'; }
       }
-      return true;
+      if (ent === 'abbrechen') return false;
+      verlasseZumEinstieg();
+      return false;
     },
   };
+
+  function verlasseZumEinstieg() {
+    _aktiv = null;
+    if (o.zurueckAuf && screen.imStack(o.zurueckAuf)) screen.zurueckBis(o.zurueckAuf);
+    else screen.entferneAb(anker);
+  }
 
   _aktiv = { anker, punkte, aktiviere };
   installiereListener();
@@ -125,8 +155,8 @@ export function oeffneHub(o) {
   return {
     anker,
     aktiviere,
-    /** Hub ganz verlassen (Anker und alle Reiter entfernen). */
-    verlasse() { _aktiv = null; screen.entferneAb(anker); },
+    /** Hub ganz verlassen: zurueck bis zum Einstieg (oder Anker entfernen). */
+    verlasse() { verlasseZumEinstieg(); },
   };
 }
 
