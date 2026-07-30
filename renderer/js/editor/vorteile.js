@@ -83,21 +83,26 @@ export function vorteileInhalt(box) {
   const hinzuBtn = aktionZeile(
     `Vorteil hinzufügen, ${offen.length - gesperrt} verfügbar, ${gesperrt} noch nicht`,
     () => {
-      const eintraege = offen.map(v => {
-        const d = pruefeDetail(char, db, v.voraussetzungen);
-        const kosten = v.variableKosten ? 'variabel' : `${v.kosten} EP`;
-        return {
-          // "Nicht verfügbar" steht bewusst vorn, damit der Screenreader es
-          // zuerst liest und man nicht bis zum Zeilenende warten muss.
-          label: d.erfuellt ? `${v.name}, ${kosten}` : `Nicht verfügbar: ${v.name}, ${kosten}`,
-          wert: v.name,
-          gesperrt: !d.erfuellt,
-          detail: vorteilDetail(char, db, v),
-        };
-      });
       auswahlScreen({
         titel: 'Vorteil wählen',
-        eintraege,
+        bleibt: true,
+        // Als Funktion, damit die Liste nach jedem Kauf frisch gebaut wird und
+        // der gekaufte Vorteil verschwindet.
+        eintraege: () => {
+          const haben = new Set(char.vorteile.map(name));
+          return db.vorteile.filter(v => !haben.has(v.name)).map(v => {
+            const d = pruefeDetail(char, db, v.voraussetzungen);
+            const kosten = v.variableKosten ? 'variabel' : `${v.kosten} EP`;
+            return {
+              // "Nicht verfügbar" steht bewusst vorn, damit der Screenreader es
+              // zuerst liest und man nicht bis zum Zeilenende warten muss.
+              label: d.erfuellt ? `${v.name}, ${kosten}` : `Nicht verfügbar: ${v.name}, ${kosten}`,
+              wert: v.name,
+              gesperrt: !d.erfuellt,
+              detail: vorteilDetail(char, db, v),
+            };
+          });
+        },
         onWahl: async (gewaehlt) => {
           const v = db.vorteilByName[gewaehlt];
           const d = pruefeDetail(char, db, v.voraussetzungen);
@@ -118,8 +123,6 @@ export function vorteileInhalt(box) {
           }
           char.vorteile.push(neu);
           const f2 = editor.aktualisiere();
-          // Fokus nach dem Neuaufbau zurück auf "Vorteil hinzufügen".
-          screen.refresh('[data-fokus="vorteil-hinzufuegen"]');
           const hinweis = d.erfuellt ? '' : ' Achtung, Voraussetzung nicht erfüllt.';
           sprache.sage(`Vorteil gekauft. ${v.name}, ${f2} EP frei.${hinweis}`);
         },

@@ -209,6 +209,11 @@ function _onKeyDown(e) {
   // Enter funktioniert ÜBERALL — auch in Dialogen, nicht nur im aktiven Panel
   // (In Python: bind_class("Button", "<Return>", e.widget.invoke()))
   if (e.key === 'Enter') {
+    // Kam die Eingabetaste aus einem Dialog, hat der Dialog sie schon selbst
+    // verarbeitet (und sich dabei oft geschlossen). Dann NICHT zusätzlich das
+    // inzwischen fokussierte Hintergrund-Element anklicken — sonst würde z. B.
+    // nach dem Erschwernis-Dialog die Probe erneut ausgelöst.
+    if (e.target && e.target.closest && e.target.closest('dialog')) return;
     const el = document.activeElement;
     if (el && (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button')) {
       e.preventDefault();

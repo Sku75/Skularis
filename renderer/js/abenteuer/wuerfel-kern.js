@@ -13,7 +13,7 @@ import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import * as screen from '../ui/screen.js';
 import { menuScreen } from '../ui/menu-screen.js';
-import { zahlDialog, knopfDialog } from '../ui/dialog.js';
+import { knopfDialog, erschwernisDialog } from '../ui/dialog.js';
 import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
 
@@ -65,11 +65,7 @@ const _letzteErschwernis = {};
 
 async function erschwernisAbfrage(id) {
   const vor = _letzteErschwernis[id] || 0;
-  const e = await zahlDialog({
-    titel: 'Erschwernis',
-    label: 'Erschwernis, 0 wenn keine. Eine Erleichterung als Minuszahl.',
-    wert: vor, min: -100, max: 100,
-  });
+  const e = await erschwernisDialog({ titel: 'Erschwernis', wert: vor });
   if (e !== null) _letzteErschwernis[id] = e;
   return e;
 }
