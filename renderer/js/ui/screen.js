@@ -49,7 +49,9 @@ export function reset(screen) {
 export function pop() {
   if (_stack.length <= 1) return false;
   _stack.pop();
-  sounds.playSchliessen();
+  // Ebenen-Ton: sagt hoerbar, auf welcher Ebene man gelandet ist (Hauptebene =
+  // eigener Heimkehr-Klang). Ersetzt den fruehen einheitlichen Schliessen-Ton.
+  sounds.playEbene(_stack.length, 'zurueck');
   _render({ sound: false, restore: true });
   return true;
 }
@@ -74,6 +76,7 @@ export async function zurueck() {
 export function zuWurzel() {
   if (_stack.length <= 1) return;
   _stack.length = 1;
+  sounds.playEbene(1, 'zurueck'); // direkt zurueck zur Hauptebene: Heimkehr-Klang
   _render({ sound: false, restore: false });
 }
 
@@ -184,7 +187,7 @@ function _render({ sound, restore, fokusSelector }) {
 
   navigation.setAktivesPanel(el);
 
-  if (sound) sounds.playTab();
+  if (sound) sounds.playEbene(_stack.length, 'vor');
 
   // Fokusziel bestimmen: bei pop() der gemerkte Punkt, sonst der erste.
   const alle = Array.from(el.querySelectorAll(navigation.FOCUSABLE));
@@ -219,6 +222,19 @@ function _render({ sound, restore, fokusSelector }) {
 }
 
 /**
+ * Bei einem Textfeld den Cursor ans Ende setzen (statt den Inhalt zu markieren).
+ * Gilt fuer einzeilige Eingaben und mehrzeilige Textbereiche.
+ */
+export function cursorAnsEnde(el) {
+  if (!el) return;
+  const istText = (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search'))
+    || el.tagName === 'TEXTAREA';
+  if (!istText) return;
+  const n = (el.value || '').length;
+  try { el.setSelectionRange(n, n); } catch { /* manche Feldtypen erlauben das nicht */ }
+}
+
+/**
  * Fokus sicher setzen. Ist das Ziel inzwischen aus dem Dokument verschwunden
  * (weil zwischenzeitlich neu aufgebaut wurde), wird der erste Punkt des
  * aktuellen Bildschirms genommen. So bleibt der Fokus nie im Nichts hängen.
@@ -234,7 +250,10 @@ function _setzeFokus(ziel) {
   // und komplett vorliest.
   sprache.benenneFuerFokus(el);
   el.focus();
-  if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) el.select();
+  // Cursor ans Ende statt alles zu markieren: beim Betreten eines Textfeldes
+  // (Aussehen, Beschreibung ...) will man weiterschreiben, nicht versehentlich
+  // den ganzen Inhalt ueberschreiben.
+  cursorAnsEnde(el);
   if (el.scrollIntoView) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
   // Letzte Sicherung: hat der Fokus das Panel trotzdem nicht erreicht, das

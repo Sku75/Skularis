@@ -8,6 +8,7 @@
  */
 
 import { aufbereiten } from './regeltext.js';
+import { TALENT_TEXTE } from '../daten/talent-texte.js';
 
 function arr(v) { return v == null ? [] : (Array.isArray(v) ? v : [v]); }
 function num(v, d = 0) { const n = parseInt(v, 10); return Number.isNaN(n) ? d : n; }
@@ -96,7 +97,9 @@ export function transformDb(raw) {
       variableKosten: t.variableKosten === '1',
       kommentar: t.kommentar === '1',
       fertigkeiten: komma(t.fertigkeiten),
-      text: txt(t._text),
+      // Fehlt in der DB ein Beschreibungstext (z. B. bei den Gebräuchen), greift
+      // der nachgelieferte Text aus daten/talent-texte.js.
+      text: txt(t._text) || txt(TALENT_TEXTE[t.name] || ''),
       info: txt(t.info),
       // Für den Nachschlag im Regelwerk und die richtige Bezeichnung:
       // spezialTyp 0 = Zauber, 1 = Liturgie, 2 = Anrufung, fehlt = profanes Talent.

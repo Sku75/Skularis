@@ -62,7 +62,11 @@ export function zurueckInsPanel() {
 function _fokussiere(el) {
   sprache.benenneFuerFokus(el);
   el.focus();
-  if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search')) el.select();
+  // Cursor ans Ende statt alles markieren (siehe screen.cursorAnsEnde). Inline
+  // gehalten, um einen Zirkular-Import zwischen navigation und screen zu meiden.
+  const istText = (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search'))
+    || el.tagName === 'TEXTAREA';
+  if (istText) { const n = (el.value || '').length; try { el.setSelectionRange(n, n); } catch {} }
   el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
@@ -75,7 +79,7 @@ function _fokussiere(el) {
 function _sageElement(el) {
   if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search') && el.value) {
     const label = el.getAttribute('aria-label') || '';
-    sprache.sage(`${label}: ${el.value}, markiert`);
+    sprache.sage(`${label}: ${el.value}`);
   } else {
     sprache.sageZeile(el);
   }

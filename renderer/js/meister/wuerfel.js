@@ -42,12 +42,13 @@ export function verdeckteProbe(o) {
   }
   const ansage = `Verdeckt. Probenergebnis ${ew}.${erfolg} ${o.wer}, ${o.was}, Probenwert ${o.probenwert}, ${wtext}.`;
   merke(`Verdeckte Probe, ${o.wer}, ${o.was}: ${wtext}, Probenwert ${o.probenwert}, Ergebnis ${ew}.${erfolg}`);
-  sprache.sage(ansage);
-  return { ew, wuerfe, gelungen };
+  // stumm: der Aufrufer sagt selbst an (z. B. auf dem Spielbrett mit Kartennamen zuerst).
+  if (!o.stumm) sprache.sage(ansage);
+  return { ew, wuerfe, gelungen, ansage };
 }
 
-/** Freier verdeckter Wurf (Anzahl, Seiten, Modifikator). */
-export function verdeckterWurf(anzahl, seiten, mod = 0, was = 'Meister-Wurf') {
+/** Freier verdeckter Wurf (Anzahl, Seiten, Modifikator). stumm: Aufrufer sagt selbst an. */
+export function verdeckterWurf(anzahl, seiten, mod = 0, was = 'Meister-Wurf', stumm = false) {
   const wuerfe = [];
   for (let i = 0; i < anzahl; i++) wuerfe.push(1 + Math.floor(Math.random() * seiten));
   const summe = wuerfe.reduce((s, n) => s + n, 0) + (mod || 0);
@@ -55,6 +56,6 @@ export function verdeckterWurf(anzahl, seiten, mod = 0, was = 'Meister-Wurf') {
   const bez = `${anzahl} W ${seiten}${mod ? (mod > 0 ? ` plus ${mod}` : ` minus ${-mod}`) : ''}`;
   const ansage = `Verdeckt. ${was}, ${bez}, Ergebnis ${wuerfe.join(', ')}${mod ? `, Summe ${summe}` : ''}.`;
   merke(`Verdeckter Wurf, ${bez}: ${wuerfe.join(', ')}${mod ? `, Summe ${summe}` : ''}.`);
-  sprache.sage(ansage);
-  return { summe, wuerfe };
+  if (!stumm) sprache.sage(ansage);
+  return { summe, wuerfe, ansage };
 }

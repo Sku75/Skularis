@@ -11,6 +11,7 @@ import { menuScreen } from '../ui/menu-screen.js';
 import { textDialog, jaNeinDialog } from '../ui/dialog.js';
 import { getMeister, speichere } from './state.js';
 import { zufallstabellenScreen } from './zufallstabellen.js';
+import { namensgeneratorScreen } from './namensgenerator.js';
 
 export function meisterNotizenScreen() {
   return {
@@ -23,6 +24,7 @@ export function meisterNotizenScreen() {
           { label: 'Meister-Notizen (geheim)', hint: 'nur fuer dich', onSelect: () => screen.push(listeScreen('meisterNotizen', 'Meister-Notiz', false)) },
           { label: 'Vorlesetexte', hint: 'zum Vorlesen am Tisch', onSelect: () => screen.push(listeScreen('vorlesetexte', 'Vorlesetext', true)) },
           { label: 'Zufallstabellen', hint: 'Namen, Geruechte, Wetter, Beute wuerfeln', onSelect: () => screen.push(zufallstabellenScreen()) },
+          { label: 'Name erwuerfeln', hint: 'Vor- und Nachnamen nach Spezies, Kultur, Geschlecht', onSelect: () => screen.push(namensgeneratorScreen()) },
         ],
       }).build();
     },

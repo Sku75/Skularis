@@ -2,8 +2,8 @@
  * Skularistool — Meistertisch: Szenen-Packs (Vorbereitung).
  *
  * Der Meister bereitet Kartensets (Szenen-Packs) vor und ruft sie im Spiel ab.
- * Struktur: Meine Szenenpacks -> Abenteuer (Kategorie) -> Szenenpacks -> Karten.
- * Gespeichert wird userindividuell im Ordner "Meister Daten" (Szenenpacks.json),
+ * Struktur: Meine Kampfszenenpacks -> Abenteuer (Kategorie) -> Kampfszenenpacks -> Karten.
+ * Gespeichert wird userindividuell im Ordner "Meister Daten" (Kampfszenenpacks.json),
  * getrennt vom Programm — bleibt bei Updates erhalten und ist transportierbar.
  *
  * Ein Pack-Kartentemplate hat keine Laufzeitfelder (Wunden, Zuordnung, Id); die
@@ -35,7 +35,7 @@ export async function ladeStore() {
 }
 async function speichere() {
   try { await ipc.szenenpacksSpeichern(JSON.stringify(_store || { abenteuer: [] }, null, 2)); }
-  catch (e) { console.error('Szenenpacks speichern:', e); }
+  catch (e) { console.error('Kampfszenenpacks speichern:', e); }
 }
 function abHolen(name) {
   let ab = _store.abenteuer.find(x => x.name === name);
@@ -78,23 +78,23 @@ export function ladeAufTisch(pack) {
 
 export function szenenpacksScreen() {
   const scr = {
-    title: 'Meine Szenenpacks',
+    title: 'Meine Kampfszenenpacks',
     _geladen: false,
     async lade() { await ladeStore(); scr._geladen = true; screen.refresh(); },
     build() {
       const items = [];
-      items.push({ label: 'Neues Szenenpack erstellen', hint: 'Abenteuer und Pack-Name eingeben', onSelect: () => neuesPack() });
+      items.push({ label: 'Neues Kampfszenenpack erstellen', hint: 'Abenteuer und Pack-Name eingeben', onSelect: () => neuesPack() });
       for (const ab of (_store && _store.abenteuer) || []) {
-        items.push({ label: ab.name, hint: `${ab.packs.length} Szenenpacks`, onSelect: () => screen.push(abenteuerScreen(ab)) });
+        items.push({ label: ab.name, hint: `${ab.packs.length} Kampfszenenpacks`, onSelect: () => screen.push(abenteuerScreen(ab)) });
       }
       return menuScreen({
         title: this.title,
-        subtitle: 'Neues Szenenpack oben, darunter deine Abenteuer. Escape zurueck.',
+        subtitle: 'Neues Kampfszenenpack oben, darunter deine Abenteuer. Escape zurueck.',
         items,
-        leer: 'Noch keine Szenenpacks. Oben ein neues erstellen.',
+        leer: 'Noch keine Kampfszenenpacks. Oben ein neues erstellen.',
       }).build();
     },
-    onShow() { if (!scr._geladen) scr.lade(); else sprache.sage('Meine Szenenpacks.'); },
+    onShow() { if (!scr._geladen) scr.lade(); else sprache.sage('Meine Kampfszenenpacks.'); },
   };
   return scr;
 }
@@ -102,9 +102,9 @@ export function szenenpacksScreen() {
 async function neuesPack() {
   await ladeStore();
   const a = getMeister();
-  const abName = await textDialog({ titel: 'Neues Szenenpack', label: 'Zu welchem Abenteuer? Name', wert: (a && a.name) || '' });
+  const abName = await textDialog({ titel: 'Neues Kampfszenenpack', label: 'Zu welchem Abenteuer? Name', wert: (a && a.name) || '' });
   if (abName === null || !abName.trim()) return;
-  const packName = await textDialog({ titel: 'Neues Szenenpack', label: 'Name des Szenenpacks' });
+  const packName = await textDialog({ titel: 'Neues Kampfszenenpack', label: 'Name des Kampfszenenpacks' });
   if (packName === null || !packName.trim()) return;
   const ab = abHolen(abName.trim());
   abVorziehen(ab);
@@ -113,35 +113,35 @@ async function neuesPack() {
   await speichere();
   sounds.playOeffnen();
   screen.push(kartenEditorScreen(pack, speichere));
-  sprache.sage(`Szenenpack ${pack.name} in Abenteuer ${ab.name} erstellt.`);
+  sprache.sage(`Kampfszenenpack ${pack.name} in Abenteuer ${ab.name} erstellt.`);
 }
 
 function abenteuerScreen(ab) {
   return {
     title: '',
     build() {
-      this.title = `${ab.name}, ${ab.packs.length} Szenenpacks`;
+      this.title = `${ab.name}, ${ab.packs.length} Kampfszenenpacks`;
       const items = ab.packs.map(p => ({
         label: p.name,
         hint: `${p.karten.length} Karten. Enter: bearbeiten und mehr`,
         detail: (p.karten || []).map(k => k.name).join(', '),
         onSelect: () => screen.push(packUntermenueScreen(ab, p)),
       }));
-      items.push({ label: 'Neues Szenenpack in diesem Abenteuer', onSelect: () => neuesPackIn(ab) });
-      return menuScreen({ title: this.title, subtitle: 'Enter oeffnet ein Szenenpack. Escape zurueck.', items, leer: 'Noch keine Szenenpacks in diesem Abenteuer.' }).build();
+      items.push({ label: 'Neues Kampfszenenpack in diesem Abenteuer', onSelect: () => neuesPackIn(ab) });
+      return menuScreen({ title: this.title, subtitle: 'Enter oeffnet ein Kampfszenenpack. Escape zurueck.', items, leer: 'Noch keine Kampfszenenpacks in diesem Abenteuer.' }).build();
     },
   };
 }
 
 async function neuesPackIn(ab) {
-  const packName = await textDialog({ titel: 'Neues Szenenpack', label: 'Name des Szenenpacks' });
+  const packName = await textDialog({ titel: 'Neues Kampfszenenpack', label: 'Name des Kampfszenenpacks' });
   if (packName === null || !packName.trim()) return;
   const pack = { name: packName.trim(), karten: [] };
   ab.packs.push(pack);
   abVorziehen(ab);
   await speichere();
   screen.push(kartenEditorScreen(pack, speichere));
-  sprache.sage(`Szenenpack ${pack.name} erstellt.`);
+  sprache.sage(`Kampfszenenpack ${pack.name} erstellt.`);
 }
 
 function packUntermenueScreen(ab, pack) {
@@ -160,7 +160,7 @@ function packUntermenueScreen(ab, pack) {
           {
             label: 'Loeschen',
             onSelect: async () => {
-              if (!await jaNeinDialog({ titel: 'Loeschen', frage: `Szenenpack ${pack.name} loeschen?` })) return;
+              if (!await jaNeinDialog({ titel: 'Loeschen', frage: `Kampfszenenpack ${pack.name} loeschen?` })) return;
               const i = ab.packs.indexOf(pack); if (i >= 0) ab.packs.splice(i, 1);
               await speichere(); screen.pop(); sprache.sage('Geloescht.');
             },
@@ -190,7 +190,7 @@ async function verschiebePack(ab, pack) {
 // --- Pack-Editor: Karten hinzufuegen und pflegen -------------------------
 
 /**
- * Generischer Karten-Editor fuer ein Objekt mit .name und .karten (Szenenpack
+ * Generischer Karten-Editor fuer ein Objekt mit .name und .karten (Kampfszenenpack
  * ODER Szene). save() sichert nach jeder Aenderung (Pack -> globale Datei, Szene
  * -> Meisterabenteuer).
  */

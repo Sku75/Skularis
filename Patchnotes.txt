@@ -4,6 +4,73 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.26, 31. Juli 2026
+
+
+Namensgenerator am Meistertisch
+
+Unter Meister-Notizen und Werkzeuge gibt es jetzt "Name erwuerfeln". Oben steht
+"Neu erwuerfeln": du waehlst Spezies, Kultur und Geschlecht, dann kommt ein Name
+mit Vor- und oft auch Beinamen. Der Fokus landet direkt auf dem neuen Namen, nach
+oben kommst du wieder auf "Neu erwuerfeln". Die zuletzt gewaehlten Optionen stehen
+beim naechsten Mal oben, sodass du mit der Eingabetaste schnell durchbestaetigen
+und einen neuen Namen bekommst. Auf einem Namen oeffnet die Eingabetaste ein
+Menue: NPC-Karte erstellen, Notiz erstellen oder loeschen. Die erwuerfelten Namen
+bleiben im Abenteuer gespeichert.
+
+
+Groessere Zufallstabellen
+
+Die Zufallstabellen haben jetzt viel mehr Eintraege (meist 25 bis 36 statt 10),
+und es sind neue dazugekommen: Tavernennamen, Marotte eines NSC, Auftrag oder
+Questhaken und Begegnung auf der Reise. Zweimal hintereinander kommt nicht mehr
+derselbe Eintrag.
+
+
+Toene sagen die Ebene an
+
+Beim Zurueckgehen mit Escape hoerst du jetzt an der Tonhoehe, wie tief du im Menue
+stehst: je tiefer, desto hoeher der Ton; beim Zurueckgehen sinkt er Stufe fuer
+Stufe. Die Hauptebene hat einen eigenen, warmen Heimkehr-Klang. Ein kurzes
+Gleiten verraet die Richtung. Ausserdem sind alle Toene in der Lautstaerke
+angeglichen, damit sich die Bedienung gleichmaessig anfuehlt.
+
+
+Sprachausgabe: kuerzer und ohne Geplapper
+
+Menuepunkte und Karten sagen beim Fokus nur noch das Wesentliche; die
+Zusatzinfos (Hinweise, alle Kampfwerte) stehen im Detail und kommen auf Abruf
+(Shift und Pfeil runter oder Strg und I). So kommt die Information Stueck fuer
+Stueck statt in einer ewig langen Zeile.
+
+
+Spielbrett: Wuerfelergebnis bei der Karte
+
+Wenn du auf dem Spielbrett Angriff oder Schaden auswuerfelst, steht das Ergebnis
+jetzt direkt hinter dem Kartennamen und wird zuerst mit dem Namen angesagt; im
+Tooltip der Karte steht es oben.
+
+
+Kampfszene statt Szene
+
+Der Bereich hinter F3 heisst jetzt "Kampfszene und Spieltisch"; ueberall wo vorher
+"Szene" stand, steht nun "Kampfszene".
+
+
+Textfelder: Cursor am Ende
+
+Wenn du ein Textfeld betrittst (Aussehen, Beschreibung und aehnliche), steht der
+Schreibcursor jetzt am Ende des Textes statt alles zu markieren. So schreibst du
+weiter, ohne aus Versehen alles zu ueberschreiben.
+
+
+Gebraeuche mit Beschreibung
+
+Die Gebraeuche-Talente (Mittelreich, Tulamidenlande, Thorwal, Elfen, Zwerge und
+weitere) hatten keinen Beschreibungstext. Jetzt erklaeren sie Sitten, Etikette und
+Besonderheiten der jeweiligen Region, mit Beispielen.
+
+
 Version 0.25, 31. Juli 2026
 
 

@@ -159,9 +159,14 @@ export function menuScreen(opts) {
           const hint = document.createElement('span');
           hint.className = 'db-menu__hint';
           hint.textContent = it.hint;
+          // Der Hinweis ist nur fuer Sehende sichtbar; NVDA liest beim Fokus nur
+          // das kurze Label. Der Hinweis steckt im Detail (Shift+Pfeil / Strg+I).
+          hint.setAttribute('aria-hidden', 'true');
           b.appendChild(hint);
-          b.setAttribute('aria-label', `${it.label}. ${it.hint}`);
         }
+        // Kurze Fokus-Ansage: nur das Label, damit die Sprachausgabe nicht bei
+        // jeder Zeile den ganzen Hinweis mitplappert. Details kommen auf Abruf.
+        b.setAttribute('aria-label', it.label);
 
         b.__detail = (it.detail !== undefined) ? it.detail : (it.hint || '');
 

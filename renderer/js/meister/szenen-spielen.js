@@ -27,14 +27,14 @@ import { verdeckteProbe, verdeckterWurf } from './wuerfel.js';
 
 export function szenenBereichScreen() {
   return {
-    title: 'Szenen',
+    title: 'Kampfszenen',
     build() {
       return menuScreen({
-        title: 'Szenen',
+        title: 'Kampfszenen',
         subtitle: 'Escape zurueck.',
         items: [
-          { label: 'Meine Szenenpacks', hint: 'vorbereitete Kartensets, nach Abenteuer geordnet', onSelect: () => screen.push(szenenpacksScreen()) },
-          { label: 'Szenen spielen', hint: 'die Szenen dieses Abenteuers, durchnummeriert', onSelect: () => screen.push(szenenSpielenScreen()) },
+          { label: 'Meine Kampfszenenpacks', hint: 'vorbereitete Kartensets, nach Abenteuer geordnet', onSelect: () => screen.push(szenenpacksScreen()) },
+          { label: 'Kampfszenen spielen', hint: 'die Kampfszenen dieses Abenteuers, durchnummeriert', onSelect: () => screen.push(szenenSpielenScreen()) },
           { label: 'Freier Spieltisch', hint: 'Karten frei auf den Tisch legen', onSelect: () => screen.push(spieltischScreen()) },
         ],
       }).build();
@@ -47,9 +47,9 @@ export function szenenSpielenScreen() {
     title: '',
     build() {
       const a = getMeister();
-      this.title = `Szenen spielen, ${a.szenen.length} Szenen`;
+      this.title = `Kampfszenen spielen, ${a.szenen.length} Kampfszenen`;
       const items = [];
-      items.push({ label: 'Szene erstellen', hint: 'eine neue Szene fuer dieses Abenteuer', onSelect: () => neueSzene() });
+      items.push({ label: 'Kampfszene erstellen', hint: 'eine neue Kampfszene fuer dieses Abenteuer', onSelect: () => neueSzene() });
       a.szenen.forEach((s, i) => {
         items.push({
           label: `S-${i + 1}${s.name ? ' ' + s.name : ''}`,
@@ -57,7 +57,7 @@ export function szenenSpielenScreen() {
           onSelect: () => screen.push(szeneMenuScreen(i)),
         });
       });
-      return menuScreen({ title: this.title, subtitle: 'Szene erstellen oben, darunter die Szenen. Escape zurueck.', items }).build();
+      return menuScreen({ title: this.title, subtitle: 'Kampfszene erstellen oben, darunter die Kampfszenen. Escape zurueck.', items }).build();
     },
   };
 }
@@ -69,7 +69,7 @@ async function neueSzene() {
   sounds.playOeffnen();
   const i = a.szenen.length - 1;
   screen.push(kartenEditorScreen(a.szenen[i], speichere));
-  sprache.sage(`Szene S-${i + 1} erstellt. Fuege Karten hinzu.`);
+  sprache.sage(`Kampfszene S-${i + 1} erstellt. Fuege Karten hinzu.`);
 }
 
 function szeneMenuScreen(index) {
@@ -84,29 +84,29 @@ function szeneMenuScreen(index) {
         title: this.title,
         subtitle: 'Escape zurueck.',
         items: [
-          { label: 'Spielen', hint: 'das Spielbrett dieser Szene oeffnen', onSelect: () => screen.push(szeneBoardScreen(index)) },
+          { label: 'Spielen', hint: 'das Spielbrett dieser Kampfszene oeffnen', onSelect: () => screen.push(szeneBoardScreen(index)) },
           { label: 'Bearbeiten', hint: 'Karten hinzufuegen und aendern', onSelect: () => screen.push(kartenEditorScreen(s, speichere)) },
-          { label: 'Vorlesetexte', hint: 'Texte zum Vorlesen in dieser Szene', onSelect: () => screen.push(vorlesetexteScreen(s)) },
+          { label: 'Vorlesetexte', hint: 'Texte zum Vorlesen in dieser Kampfszene', onSelect: () => screen.push(vorlesetexteScreen(s)) },
           {
-            label: `Szenen-Notiz${s.notizen ? ': ' + s.notizen : ''}`,
-            onSelect: async () => { const v = await textDialog({ titel: 'Szenen-Notiz', label: 'Notiz zu dieser Szene', wert: s.notizen || '' }); if (v === null) return; s.notizen = v.trim(); await speichere(); screen.refresh(); sprache.sage('Notiz gespeichert.'); },
+            label: `Kampfszenen-Notiz${s.notizen ? ': ' + s.notizen : ''}`,
+            onSelect: async () => { const v = await textDialog({ titel: 'Kampfszenen-Notiz', label: 'Notiz zu dieser Kampfszene', wert: s.notizen || '' }); if (v === null) return; s.notizen = v.trim(); await speichere(); screen.refresh(); sprache.sage('Notiz gespeichert.'); },
           },
           {
-            label: 'Szene zuruecksetzen',
+            label: 'Kampfszene zuruecksetzen',
             hint: 'Wunden und Verbindungen loeschen',
             onSelect: async () => {
-              if (!await jaNeinDialog({ titel: 'Zuruecksetzen', frage: 'Wunden und Verbindungen dieser Szene loeschen?' })) return;
-              for (const k of s.karten || []) k.wunden = 0;
+              if (!await jaNeinDialog({ titel: 'Zuruecksetzen', frage: 'Wunden und Verbindungen dieser Kampfszene loeschen?' })) return;
+              for (const k of s.karten || []) { k.wunden = 0; k.letztesErgebnis = ''; }
               s.verbindungen = [];
-              await speichere(); sprache.sage('Szene zurueckgesetzt.');
+              await speichere(); sprache.sage('Kampfszene zurueckgesetzt.');
             },
           },
           { label: 'Auch auf den freien Spieltisch laden', hint: 'Karten zusaetzlich auf den Tisch legen', onSelect: () => { const n = ladeAufTisch(s); sounds.playOeffnen(); sprache.sage(`${n} Karten auf den Spieltisch geladen.`); } },
           {
             label: 'Loeschen',
             onSelect: async () => {
-              if (!await jaNeinDialog({ titel: 'Loeschen', frage: `Szene S-${index + 1} loeschen?` })) return;
-              a.szenen.splice(index, 1); await speichere(); screen.pop(); sprache.sage('Szene geloescht.');
+              if (!await jaNeinDialog({ titel: 'Loeschen', frage: `Kampfszene S-${index + 1} loeschen?` })) return;
+              a.szenen.splice(index, 1); await speichere(); screen.pop(); sprache.sage('Kampfszene geloescht.');
             },
           },
         ],
@@ -202,7 +202,19 @@ function szeneBoardScreen(index) {
     const geg = gegnerNamen(k.kid);
     const teil = geg.length ? `kaempft gegen ${geg.join(', ')}` : 'frei';
     const tipp = zustand.getippt === k.kid ? ', angetippt' : '';
-    return `${teil}. ${k.name}, ${wundText(k)}, Wundschwelle ${k.ws}, Ruestung ${k.rs}, Initiative ${k.ini}${tipp}. ${angriffeText(k) || 'keine Angriffe'}`;
+    // Das zuletzt gewuerfelte Ergebnis steht direkt hinter dem Namen, damit es
+    // ganz oben im Tooltip erscheint und beim Fokus gleich mit angesagt wird.
+    const erg = k.letztesErgebnis ? `, ${k.letztesErgebnis}` : '';
+    return `${teil}. ${k.name}${erg}, ${wundText(k)}, Wundschwelle ${k.ws}, Ruestung ${k.rs}, Initiative ${k.ini}${tipp}. ${angriffeText(k) || 'keine Angriffe'}`;
+  };
+  // Kurze Fokus-Ansage: nur das Noetige, Stueck fuer Stueck. Die vollen Werte
+  // (Wundschwelle, Ruestung, Initiative, Angriffe) stehen im Tooltip (Detail).
+  const kurzText = (k) => {
+    const teil = gegnerNamen(k.kid).length ? 'kaempft' : 'frei';
+    const erg = k.letztesErgebnis ? `, ${k.letztesErgebnis}` : '';
+    const wu = k.wunden ? `, ${k.wunden} Wunden` : '';
+    const tipp = zustand.getippt === k.kid ? ', angetippt' : '';
+    return `${teil}, ${k.name}${erg}${wu}${tipp}`;
   };
 
   const scr = {
@@ -262,9 +274,8 @@ function szeneBoardScreen(index) {
           b.tabIndex = 0;
           b.id = `karte-${art}-${k.kid}`;
           b.dataset.kid = String(k.kid);
-          const kurz = `${kaempft(k.kid) ? 'kaempft' : 'frei'}, ${k.name}${k.wunden ? ', ' + k.wunden + ' Wunden' : ''}${zustand.getippt === k.kid ? ', angetippt' : ''}`;
-          b.textContent = kurz;
-          b.setAttribute('aria-label', status(k));
+          b.textContent = kurzText(k);
+          b.setAttribute('aria-label', kurzText(k));
           b.__detail = status(k);
           row.appendChild(b);
         });
@@ -286,7 +297,7 @@ function szeneBoardScreen(index) {
     const k = aktuelleKarte();
     if (!k) { sprache.sage(zustand.reihe === 'gegner' ? 'Gegner: keine Karten.' : 'Freunde: keine Karten.'); return; }
     const el = scr._wrap && scr._wrap.querySelector(`#karte-${zustand.reihe}-${k.kid}`);
-    if (el) { el.focus(); sprache.sage(status(k)); }
+    if (el) { el.focus(); sprache.sage(kurzText(k)); }
   }
 
   function wechsleReihe(reihe) {
@@ -389,7 +400,7 @@ function szeneBoardScreen(index) {
       if (wahl === 'w+') { wundeAendern(1); return; }
       if (wahl === 'w-') { wundeAendern(-1); return; }
       if (wahl === 'entf') {
-        if (!await jaNeinDialog({ titel: 'Entfernen', frage: `${k.name} aus der Szene nehmen?` })) { fokusNach(); return; }
+        if (!await jaNeinDialog({ titel: 'Entfernen', frage: `${k.name} aus der Kampfszene nehmen?` })) { fokusNach(); return; }
         const i = s.karten.indexOf(k); if (i >= 0) s.karten.splice(i, 1);
         s.verbindungen = s.verbindungen.filter(v => !v.includes(k.kid));
         speichere(); zeichne(); setTimeout(fokus, 0); sprache.sage(`${k.name} entfernt.`);
@@ -397,9 +408,22 @@ function szeneBoardScreen(index) {
       }
       const ang = await waehleAngriff(k);
       if (!ang) { fokusNach(); return; }
-      if (wahl === 'at') verdeckteProbe({ wer: k.name, was: `Angriff ${ang.name}`, probenwert: (ang.at != null ? ang.at : ang.wert || 0), anzahl: 1 });
-      else verdeckterWurf(ang.wuerfel, ang.seiten, ang.bonus, `Schaden ${ang.name}`);
-      fokusNach();
+      // Verdeckt wuerfeln (stumm), Ergebnis auf der Karte merken, dann selbst mit
+      // dem Kartennamen ZUERST ansagen und in den Tooltip schreiben.
+      if (wahl === 'at') {
+        const r = verdeckteProbe({ wer: k.name, was: `Angriff ${ang.name}`, probenwert: (ang.at != null ? ang.at : ang.wert || 0), anzahl: 1, stumm: true });
+        k.letztesErgebnis = `Angriff ${ang.name}, Probe ${r.ew}`;
+      } else {
+        const r = verdeckterWurf(ang.wuerfel, ang.seiten, ang.bonus, `Schaden ${ang.name}`, true);
+        k.letztesErgebnis = `Schaden ${ang.name}, ${r.summe}`;
+      }
+      speichere();
+      zeichne();
+      setTimeout(() => {
+        const el = scr._wrap && scr._wrap.querySelector(`#karte-${zustand.reihe}-${k.kid}`);
+        if (el) el.focus();
+        sprache.sage(`${k.name}, ${k.letztesErgebnis}.`);
+      }, 0);
     });
   }
 
@@ -414,7 +438,7 @@ function szeneBoardScreen(index) {
   let initPos = -1;
   function initiative() {
     const alle = [...(s.karten || [])].sort((x, y) => (y.ini || 0) - (x.ini || 0));
-    if (!alle.length) { sprache.sage('Keine Karten in der Szene.'); return; }
+    if (!alle.length) { sprache.sage('Keine Karten in der Kampfszene.'); return; }
     initPos = (initPos + 1) % alle.length;
     const k = alle[initPos];
     fokusKarte(k);
@@ -425,7 +449,7 @@ function szeneBoardScreen(index) {
   let vorlesePos = -1;
   function vorlesen() {
     const vt = s.vorlesetexte || [];
-    if (!vt.length) { sprache.sage('Keine Vorlesetexte in dieser Szene. Du kannst sie beim Bearbeiten der Szene anlegen.'); return; }
+    if (!vt.length) { sprache.sage('Keine Vorlesetexte in dieser Kampfszene. Du kannst sie beim Bearbeiten der Kampfszene anlegen.'); return; }
     vorlesePos = (vorlesePos + 1) % vt.length;
     const t = vt[vorlesePos];
     sprache.sage(`Vorlesetext ${vorlesePos + 1} von ${vt.length}. ${t.titel ? t.titel + '. ' : ''}${t.inhalt || ''}`);

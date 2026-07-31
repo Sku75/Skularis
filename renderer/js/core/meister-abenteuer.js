@@ -100,6 +100,8 @@ export function parseMeisterAbenteuer(text) {
   a.szenen = Array.isArray(a.szenen) ? a.szenen : [];
   a.journal = Array.isArray(a.journal) ? a.journal : [];
   a.meisterNotizen = Array.isArray(a.meisterNotizen) ? a.meisterNotizen : [];
+  a.namensErgebnisse = Array.isArray(a.namensErgebnisse) ? a.namensErgebnisse : []; // Namensgenerator
+
   a.vorlesetexte = Array.isArray(a.vorlesetexte) ? a.vorlesetexte : [];
   a.textOrdner = a.textOrdner || '';
   a.textLesezeichen = a.textLesezeichen && typeof a.textLesezeichen === 'object' ? a.textLesezeichen : {};

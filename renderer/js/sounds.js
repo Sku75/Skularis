@@ -59,19 +59,29 @@ const FALLBACK_BEEPS = {
   ap_zurueck:    { freq: 450, ms: 150 },
 };
 
-// Pro-Sound Lautstaerke-Faktor (Multiplikator auf _globalVolume)
-// Bedien-Toene (Menue-Navigation) sind bewusst leise, damit sie die
-// Sprachausgabe nicht ueberdecken — je um die Haelfte reduziert.
+// Pro-Sound Lautstaerke-Faktor (Multiplikator auf _globalVolume).
+// Alle Toene sollen sich aehnlich laut anfuehlen ("gleiche Lautstaerke,
+// gleiches Steuerungsgefuehl") und dabei unter der Sprachausgabe bleiben. Wir
+// halten deshalb ein enges Band (etwa 0,18 bis 0,55): Bedien-/Navigationstoene
+// dezent, Ereignistoene (Wuerfeln, Speichern, Fehler) einen Hauch praesenter.
 const VOLUME_MAP = {
-  navigation: 0.075,  // Pfeil-Navigation zwischen Zeilen
-  tab:        0.30,   // Bildschirmwechsel vor
-  schliessen: 0.30,   // Bildschirmwechsel zurueck, gleich laut wie vor
-  click:      0.35,   // Menuepunkt auswaehlen
-  grenze:     0.45,   // Anschlag am Listenrand, etwas leiser als error, danach folgt die Ansage
+  navigation: 0.18,   // Pfeil-Navigation zwischen Zeilen (dezent, aber hoerbar)
+  tab:        0.30,   // Bildschirmwechsel vor (Alt-WAV, Ebenen-Ton kommt synthetisch)
+  schliessen: 0.30,   // Bildschirmwechsel zurueck
+  click:      0.30,   // Menuepunkt auswaehlen
+  grenze:     0.30,   // Anschlag am Listenrand
   buch_auf:   0.30,   // Info-Fenster oeffnet
   buch_zu:    0.30,   // Info-Fenster schliesst
+  eingabe_start: 0.30,
+  eingabe_ende:  0.30,
+  wert_hoch:  0.40,   // Werteaenderung
+  wert_runter:0.40,
 };
-const DEFAULT_VOLUME_FACTOR = 0.7;  // Alle anderen 30% leiser
+const DEFAULT_VOLUME_FACTOR = 0.55;  // Ereignistoene (Wuerfeln, Speichern, Fehler, ...)
+
+// Ebenen-Toene (synthetisch): einheitlicher Grundpegel, an die Gesamtlautstaerke
+// gekoppelt. Bewusst im selben Band wie die uebrigen Bedientoene.
+const EBENE_VOLUME = 0.30;
 
 let _soundAn = true;
 let _globalVolume = 0.5;
@@ -152,6 +162,57 @@ function _playFallbackBeep(name) {
     osc.start();
     osc.stop(_audioCtx.currentTime + b.ms / 1000);
   } catch { /* Fallback fehlgeschlagen — still ignorieren */ }
+}
+
+// --- Ebenen-Toene (audio-taktile Fuehrung) --------------------------------
+// Bei jedem Ebenenwechsel sagt ein Ton, wie tief man im Menue steht: je tiefer
+// im Stapel, desto hoeher der Ton. Die Hauptebene hat einen eigenen, warmen
+// Heimkehr-Klang (zwei absteigende Toene), damit man sie ohne Hinsehen erkennt.
+// Zusaetzlich verraet ein kurzes Gleiten die Richtung: vor = aufwaerts,
+// zurueck = abwaerts. Alles synthetisch, damit Tonhoehe und Tiefe zusammenpassen.
+
+/** Grundton einer Ebene: tiefe 2 startet warm, jede Ebene tiefer klingt hoeher. */
+function _ebeneFreq(tiefe) {
+  return Math.min(1245, 392 + Math.max(0, tiefe - 2) * 72);
+}
+
+/** Einen sauberen kurzen Ton mit weicher Huellkurve spielen (kein Knacken). */
+function _ton(ctx, freq, start, dauer, vol, freqEnde) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, start);
+  if (freqEnde && freqEnde !== freq) osc.frequency.linearRampToValueAtTime(freqEnde, start + dauer);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.linearRampToValueAtTime(vol, start + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + dauer);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(start); osc.stop(start + dauer + 0.03);
+}
+
+/**
+ * Ebenen-Ton spielen.
+ * @param {number} tiefe     Stapel-Tiefe der ERREICHTEN Ebene (1 = Hauptebene)
+ * @param {'vor'|'zurueck'} [richtung]
+ */
+export function playEbene(tiefe, richtung) {
+  if (!_soundAn) return;
+  try {
+    if (!_audioCtx) _audioCtx = new AudioContext();
+    const ctx = _audioCtx;
+    if (ctx.state === 'suspended') ctx.resume();
+    const t0 = ctx.currentTime;
+    const vol = _globalVolume * EBENE_VOLUME;
+    if (tiefe <= 1) {
+      // Hauptebene: warme, absteigende Heimkehr (zwei Toene).
+      _ton(ctx, 523, t0, 0.12, vol);
+      _ton(ctx, 349, t0 + 0.10, 0.20, vol);
+      return;
+    }
+    const f = _ebeneFreq(tiefe);
+    const glide = richtung === 'vor' ? f * 1.06 : (richtung === 'zurueck' ? f * 0.94 : f);
+    _ton(ctx, f, t0, 0.14, vol, glide);
+  } catch { /* Audio nicht verfuegbar — still ignorieren */ }
 }
 
 // Kurzfunktionen
