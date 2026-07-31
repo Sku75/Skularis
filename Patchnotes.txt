@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.32, 1. August 2026
+
+
+Ein gemeinsamer Meister-Ordner
+
+Die bisher losen Meister-Ordner sind zu einem einzigen Ordner "Meister"
+zusammengefasst, mit drei Unterordnern: Abenteuer (frueher Meisterabenteuer),
+Daten-sets (frueher Meister Daten) und Audio-Dateien (frueher Audio-Daten, mit
+Musik, Hintergrundstimmung und Spontansounds). Vorhandene Daten werden beim
+naechsten Start automatisch in den neuen Ordner umgezogen, es geht nichts
+verloren.
+
+
 Version 0.31, 1. August 2026
 
 

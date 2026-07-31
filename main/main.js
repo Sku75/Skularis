@@ -5,7 +5,7 @@ const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron')
 const path = require('path');
 const fs = require('fs');
 
-const VERSION = 'Skularis 0.31';
+const VERSION = 'Skularis 0.32';
 let mainWindow = null;
 
 // Single Instance Lock
@@ -88,33 +88,60 @@ function getAbenteuerOrdner() {
   return path.join(getBasisPfad(), 'Abenteuer-Daten');
 }
 
-// Ordner für Meisterabenteuer (eigener Ordner, getrennt vom Spielertisch)
-function getMeisterOrdner() {
-  return path.join(getBasisPfad(), 'Meisterabenteuer');
+// Alles vom Meister liegt in EINEM Ordner "Meister" mit drei Unterordnern:
+// Abenteuer (Meisterabenteuer), Daten-sets (Szenenpacks u. a.) und Audio-Dateien.
+// So gibt es nicht mehr mehrere lose Meister-Ordner nebeneinander.
+function getMeisterWurzel() {
+  return path.join(getBasisPfad(), 'Meister');
 }
 
-// Ordner für Meister-Daten (Szenenpacks, eigene Gegner): bleibt bei Updates
-// erhalten und ist wie die Charaktere auf einen anderen Rechner transportierbar.
+// Ordner für Meisterabenteuer.
+function getMeisterOrdner() {
+  return path.join(getMeisterWurzel(), 'Abenteuer');
+}
+
+// Ordner für Meister-Daten-Sets (Szenenpacks u. a.).
 function getMeisterDatenOrdner() {
-  return path.join(getBasisPfad(), 'Meister Daten');
+  return path.join(getMeisterWurzel(), 'Daten-sets');
 }
 
 // Ordner für die Audio-Dateien des Meisters (Musik, Hintergrundstimmung,
-// Spontansounds). Liegt neben den anderen Datenordnern und dem Updater, damit
-// der Meister dort einfach Ordner mit Klaengen hineinwerfen kann.
+// Spontansounds).
 function getAudioOrdner() {
-  return path.join(getBasisPfad(), 'Audio-Daten');
+  return path.join(getMeisterWurzel(), 'Audio-Dateien');
 }
 
-// Die drei festen Unterordner anlegen, falls sie fehlen — dann sind sie im
-// Audio-Menue sofort da und der Meister weiss, wohin mit seinen Dateien.
-function ensureAudioOrdner() {
+// Die festen Unterordner anlegen, falls sie fehlen — dann ist die Meister-Ablage
+// sofort vollstaendig und der Meister weiss, wohin mit seinen Dateien.
+function ensureMeisterOrdner() {
   try {
-    const wurzel = getAudioOrdner();
+    fs.mkdirSync(getMeisterOrdner(), { recursive: true });
+    fs.mkdirSync(getMeisterDatenOrdner(), { recursive: true });
     for (const name of ['Musik', 'Hintergrundstimmung', 'Spontansounds']) {
-      fs.mkdirSync(path.join(wurzel, name), { recursive: true });
+      fs.mkdirSync(path.join(getAudioOrdner(), name), { recursive: true });
     }
-  } catch (e) { console.error('Audio-Ordner anlegen:', e); }
+  } catch (e) { console.error('Meister-Ordner anlegen:', e); }
+}
+
+// Einmalige Zusammenfuehrung: fruehere Versionen legten die Meister-Ordner lose
+// nebeneinander ab (Meisterabenteuer, Meister Daten, Audio-Daten). Diese werden
+// einmalig in den gemeinsamen Ordner "Meister" verschoben, ohne Datenverlust.
+function migriereMeisterStruktur() {
+  const base = getBasisPfad();
+  const umzug = [
+    [path.join(base, 'Meisterabenteuer'), getMeisterOrdner()],
+    [path.join(base, 'Meister Daten'), getMeisterDatenOrdner()],
+    [path.join(base, 'Audio-Daten'), getAudioOrdner()],
+  ];
+  try { fs.mkdirSync(getMeisterWurzel(), { recursive: true }); } catch { /* egal */ }
+  for (const [alt, neu] of umzug) {
+    try {
+      if (!fs.existsSync(alt) || fs.existsSync(neu)) continue; // nichts zu tun / Ziel existiert schon
+      fs.mkdirSync(path.dirname(neu), { recursive: true });
+      try { fs.renameSync(alt, neu); }
+      catch { fs.cpSync(alt, neu, { recursive: true }); fs.rmSync(alt, { recursive: true, force: true }); }
+    } catch (e) { console.error('Meister-Struktur-Migration:', e); }
+  }
 }
 
 // Verzeichnis mit Regeldaten (datenbank.xml + CharakterAssistent)
@@ -168,7 +195,8 @@ require('./ipc-handlers');
 
 app.whenReady().then(() => {
   migriereNutzerdaten();
-  ensureAudioOrdner();
+  migriereMeisterStruktur();
+  ensureMeisterOrdner();
   createWindow();
   const xmlFile = process.argv.find(a => a.endsWith('.xml'));
   if (xmlFile) {
