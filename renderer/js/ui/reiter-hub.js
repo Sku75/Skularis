@@ -191,6 +191,11 @@ export function oeffneHub(o) {
   };
 }
 
+/** Ist gerade ein Reiter-Hub offen (Anker liegt im Stapel)? */
+export function hubAktiv() {
+  return Boolean(_aktiv && screen.imStack(_aktiv.anker));
+}
+
 /** Den gerade offenen Hub verlassen (falls einer offen ist). */
 export function verlasseAktiven() {
   if (_aktiv) { const a = _aktiv.anker; _aktiv = null; screen.entferneAb(a); }

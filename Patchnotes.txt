@@ -4,6 +4,22 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.33, 1. August 2026
+
+
+Audio ueberall mit F12, kuerzerer Schluessel
+
+F12 oeffnet jetzt ueberall den Audio-Bereich — auch im Hauptmenue, ohne dass ein
+Abenteuer geladen sein muss. So kann ein Spieler von jeder Stelle aus den Tisch
+anhoeren; es ist immer dasselbe Spieler-Menue (Radio-Lautstaerke und Tisch
+anhoeren). Nur am Meistertisch fuehrt F12 in die Meister-Version mit Schluessel
+erzeugen und Senden.
+
+Der Radio-Schluessel ist jetzt kuerzer: sechs Ziffern, angezeigt als drei und
+drei (zum Beispiel 123 456). Im Tooltip der Schluessel-Zeile steht er weiterhin
+zum ruhigen Nachlesen, drei Zeichen je Zeile.
+
+
 Version 0.32, 1. August 2026
 
 

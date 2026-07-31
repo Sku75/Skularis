@@ -10,8 +10,10 @@ import * as shortcuts from './shortcuts.js';
 import * as navigation from './navigation.js';
 import * as einstellungen from './daten/einstellungen.js';
 import * as screen from './ui/screen.js';
+import * as reiterHub from './ui/reiter-hub.js';
 import * as startScreen from './screens/start.js';
 import { hatInhalt } from './core/infotext.js';
+import { audioBereichScreen } from './meister/audio-bereich.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -41,6 +43,7 @@ async function init() {
   registriereShortcuts();
   initKopfzeile();
   registriereEscape();
+  registriereAudioTaste();
   registriereQuit();
 
   // Keine eigene Fokus-Ansage mehr: NVDA liest fokussierte Elemente selbst einmal
@@ -84,6 +87,26 @@ function registriereEscape() {
       if (screen.tiefe() <= 1) sprache.sage('Hauptmenü. Bereits oberste Ebene.');
     }
   });
+}
+
+// --- Audio-Bereich global auf F12 ---
+//
+// F12 oeffnet ueberall den Audio-Bereich, damit ein Spieler auch vom Hauptmenue
+// aus (ohne geladenes Abenteuer) den Tisch anhoeren kann — immer dasselbe
+// Spieler-Menue. Ausnahme: An einem Tisch-Hub behandelt der Hub F12 selbst
+// (am Meistertisch die Meister-Version mit Schluessel und Senden).
+function registriereAudioTaste() {
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'F12' || e.ctrlKey || e.altKey || e.shiftKey) return;
+    if (document.querySelector('dialog[open]')) return;
+    if (reiterHub.hubAktiv()) return; // im Tisch-Hub uebernimmt der Hub die F12
+    const cur = screen.current();
+    if (cur && cur._audioBereich) { sprache.sage('Audio ist schon offen.'); return; }
+    e.preventDefault();
+    const scr = audioBereichScreen('spieler');
+    scr._audioBereich = true;
+    screen.push(scr);
+  }, true);
 }
 
 // --- Beenden ---

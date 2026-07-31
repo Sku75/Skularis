@@ -159,8 +159,8 @@ function meisterScreen() {
       wrap.appendChild(status);
       _statusEl = status;
 
-      wrap.appendChild(infoZeile(_schluessel ? `Schluessel: ${_schluessel}` : 'Noch kein Schluessel',
-        schluesselDetail(_schluessel)));
+      const schluesselText = _schluessel ? `Schluessel: ${_schluessel.slice(0, 3)} ${_schluessel.slice(3)}` : 'Noch kein Schluessel';
+      wrap.appendChild(infoZeile(schluesselText, schluesselDetail(_schluessel)));
 
       wrap.appendChild(aktionZeile('Schluessel erzeugen', () => {
         _schluessel = radio.generiereSchluessel();

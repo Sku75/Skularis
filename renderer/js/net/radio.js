@@ -24,7 +24,6 @@ const ICE = {
   ],
 };
 
-const ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789'; // ohne leicht verwechselbare Zeichen
 
 let _peer = null;
 let _rolle = null;         // 'sender' | 'hoerer'
@@ -32,13 +31,11 @@ const _calls = new Set();  // Sender: verbundene Hoerer
 let _audioEl = null;       // Hoerer: Wiedergabe-Element
 let _hoererVol = 0.8;
 
-/** Einen gut lesbaren Schluessel erzeugen (z. B. "k7m2ab"). */
+/** Einen kurzen Zahlen-Schluessel erzeugen: sechs Ziffern (z. B. "123456"). */
 export function generiereSchluessel() {
-  let s = '';
-  const arr = new Uint32Array(6);
+  const arr = new Uint32Array(1);
   crypto.getRandomValues(arr);
-  for (let i = 0; i < 6; i++) s += ALPHABET[arr[i] % ALPHABET.length];
-  return s;
+  return String(arr[0] % 1000000).padStart(6, '0');
 }
 
 /** Schluessel -> feste PeerJS-Kennung (nur erlaubte Zeichen). */
