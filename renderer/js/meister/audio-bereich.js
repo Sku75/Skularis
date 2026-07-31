@@ -86,11 +86,18 @@ function ordnerScreen(pfad, kanal, titel) {
       for (const d of inhalt.dateien) {
         items.push({
           label: d.name,
-          hint: kanal === 'spontan' ? 'Enter spielt einmal' : 'Enter spielt in Schleife',
+          hint: kanal === 'spontan' ? 'Enter spielt einmal, nochmal Enter stoppt' : 'Enter spielt in Schleife, nochmal Enter stoppt',
           onSelect: async () => {
             try {
-              if (kanal === 'spontan') { await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`); }
-              else { await player.spieleSchleife(kanal, d); sprache.sage(`${d.name} laeuft.`); }
+              if (kanal === 'spontan') {
+                // Nochmal Enter auf einem laufenden Spontansound haelt ihn an.
+                if (player.spontanAktiv(d.pfad)) { player.stoppeSpontan(d.pfad); sprache.sage(`${d.name} gestoppt.`); }
+                else { await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`); }
+              } else {
+                // Laeuft dieser Klang im Kanal schon, haelt Enter ihn an; sonst starten.
+                if (player.laeuftPfad(kanal) === d.pfad) { player.stoppeKanal(kanal); sprache.sage(`${d.name} gestoppt.`); }
+                else { await player.spieleSchleife(kanal, d); sprache.sage(`${d.name} laeuft.`); }
+              }
             } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
           },
         });

@@ -110,7 +110,7 @@ export async function spieleEinmal(datei) {
   gain.gain.value = 0.0001;
   source.connect(gain);
   gain.connect(_mixBus);
-  const eintrag = { source, gain, name: datei.name };
+  const eintrag = { source, gain, name: datei.name, pfad: datei.pfad };
   _spontan.add(eintrag);
   source.onended = () => { try { gain.disconnect(); } catch { /* egal */ } _spontan.delete(eintrag); };
   source.start();
@@ -133,6 +133,22 @@ export function stoppeAlles() {
 /** Was laeuft gerade in einem Schleifen-Kanal? (Name oder null) */
 export function laeuftName(kanal) {
   return _laeuft[kanal] ? _laeuft[kanal].name : null;
+}
+
+/** Pfad des laufenden Klangs eines Schleifen-Kanals (oder null). */
+export function laeuftPfad(kanal) {
+  return _laeuft[kanal] ? _laeuft[kanal].pfad : null;
+}
+
+/** Spielt gerade ein Spontansound mit diesem Pfad? */
+export function spontanAktiv(pfad) {
+  for (const e of _spontan) if (e.pfad === pfad) return true;
+  return false;
+}
+
+/** Alle Spontansounds mit diesem Pfad ausblenden und stoppen. */
+export function stoppeSpontan(pfad) {
+  for (const e of _spontan) if (e.pfad === pfad) blendeAus(e, FADE_SPONTAN + 0.15);
 }
 
 /** Eigene Abhoer-Lautstaerke (0 bis 100) — beeinflusst NICHT die Hoerer. */

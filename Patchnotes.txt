@@ -19,6 +19,9 @@ Der Radio-Schluessel ist jetzt kuerzer: sechs Ziffern, angezeigt als drei und
 drei (zum Beispiel 123 456). Im Tooltip der Schluessel-Zeile steht er weiterhin
 zum ruhigen Nachlesen, drei Zeichen je Zeile.
 
+Ausserdem: Enter auf einem bereits laufenden Klang haelt ihn wieder an (Musik,
+Hintergrundstimmung und Spontansounds).
+
 
 Version 0.32, 1. August 2026
 
