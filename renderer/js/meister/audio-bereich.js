@@ -53,6 +53,16 @@ function setzeStatus(text) {
 
 function ordnerName(pfad) { return String(pfad || '').split(/[\\/]/).filter(Boolean).pop() || pfad; }
 
+// Den Schluessel gut nachlesbar aufbereiten: drei Zeichen je Zeile, Zeichen
+// einzeln durch Leerzeichen getrennt. Als Tooltip-Detail bleibt er stehen und
+// kann in Ruhe Zeichen fuer Zeichen gelesen werden.
+function schluesselDetail(key) {
+  if (!key) return 'Noch kein Schluessel. Erzeuge unten einen.';
+  const zeilen = ['Schluessel, drei Zeichen je Zeile:'];
+  for (let i = 0; i < key.length; i += 3) zeilen.push(key.slice(i, i + 3).split('').join(' '));
+  return zeilen;
+}
+
 /**
  * Ein Audio-Ordner als Menue: Unterordner zum Weiterblaettern, Dateien zum
  * Abspielen. kanal bestimmt das Verhalten: musik/stimmung laufen in Schleife
@@ -150,13 +160,15 @@ function meisterScreen() {
       _statusEl = status;
 
       wrap.appendChild(infoZeile(_schluessel ? `Schluessel: ${_schluessel}` : 'Noch kein Schluessel',
-        'Diesen Schluessel geben deine Spieler bei "Tisch anhoeren" ein.'));
+        schluesselDetail(_schluessel)));
 
       wrap.appendChild(aktionZeile('Schluessel erzeugen', () => {
         _schluessel = radio.generiereSchluessel();
         merke('radio_letzter_schluessel', _schluessel);
         screen.refresh();
-        sprache.sage(`Neuer Schluessel: ${_schluessel.split('').join(' ')}.`);
+        // Kurze Ansage; zum ruhigen Nachlesen steht der Schluessel im Tooltip der
+        // Schluessel-Zeile (drei Zeichen je Zeile).
+        sprache.sage(`Neuer Schluessel erzeugt: ${_schluessel}. Zum Nachlesen steht er im Tooltip der Schluessel-Zeile, drei Zeichen je Zeile.`);
       }, 'einen neuen, zufaelligen Radio-Schluessel'));
 
       wrap.appendChild(aktionZeile(senden ? 'Senden beenden' : 'Senden starten',
