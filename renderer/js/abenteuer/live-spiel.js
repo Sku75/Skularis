@@ -4,6 +4,7 @@
  * und Charakterstatus (Ressourcenzähler verstellbar, Kampfwerte und Waffe lesbar).
  */
 import * as screen from '../ui/screen.js';
+import * as sprache from '../sprache.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { wertZeile, infoZeile, abschnittTitel, verbindeDetail } from '../editor/widgets.js';
 import { zahlDialog, knopfDialog } from '../ui/dialog.js';
@@ -12,7 +13,7 @@ import { getDb } from '../core/db-laden.js';
 import { leseInventar, istFernkampf, SLOTS, SET_WAFFENLOS } from '../core/ausruestung.js';
 import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
-import { wuerfeln, kampfProbe, schadenWurf, mitLetztemWurf } from './wuerfel-kern.js';
+import { wuerfeln, kampfProbe, schadenWurf, mitLetztemWurf, letztesKurz } from './wuerfel-kern.js';
 import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, GRUNDREGEL_AKTIONEN } from './kampf-menues.js';
 
 const RES_NAME = {
@@ -58,119 +59,172 @@ export function liveSpielScreen() {
   });
 }
 
+// Gewähltes Waffenset auf der Kämpfen-Seite (bleibt die Sitzung über).
+let _kampfSet = 0;
+
 /**
- * Kämpfen: was am Spieltisch gewürfelt wird. GANZ OBEN die würfelbaren
- * Waffensets — je Set eine Probe (Attacke oder Verteidigung) und ein
- * Schadenswurf. Darunter die abgeleiteten Werte und die Kampffertigkeiten.
+ * Kämpfen: oben ein Waffenset-Wähler (Pfeil links/rechts wechselt das Set und
+ * sagt es an), darunter "Attacke oder Parade würfeln" und "Schaden würfeln" für
+ * das gewählte Set. Die Ergebnisse wechseln mit dem Set (letztes Ergebnis je Set).
+ * Darunter die abgeleiteten Werte.
  */
 export function kampfwerteScreen() {
-  const a = getAbenteuer();
-  const char = a.charakter;
-  const db = getDb();
-  const w = abgeleiteteWerte(char);
-  const items = [];
-  const findW = (n) => (n ? (char.waffen || []).find(x => x.name === n) || null : null);
-
-  // --- 1) Waffenset-Angriff ganz oben ---
-  items.push({ label: 'Waffenset-Angriff', ueberschrift: true, onSelect: () => {} });
-  const inv = leseInventar(char);
-  const sets = inv.waffenSets || [];
-  sets.forEach((set, si) => {
-    const key = `set${si}`;
-    // Primärwaffe des Sets: erste belegte Hand (Haupthand, sonst Fernkampf, sonst Nebenhand).
-    const primaer = findW(set.haupthand) || findW(set.fernkampf) || findW(set.nebenhand);
-    if (primaer && db) {
-      const k = waffenwerte(char, db, primaer);
-      const detailText = waffenwerteText(char, db, primaer);
-      const tp = k.tp || 0;
-      const schadenBonus = tp + w.SB;
-      const werte = `Attacke ${k.at === null ? 'nicht möglich' : k.at}, Verteidigung ${k.vt === null ? 'nicht möglich' : k.vt}, Schaden ${primaer.wuerfel || 0} W ${primaer.wuerfelSeiten || 6}`;
-      // Set-Kopfzeile (nur lesen)
-      items.push({ label: `Set ${si + 1}: ${set.name}, ${primaer.name}`, hint: werte, detail: detailText, onSelect: () => {} });
-      // Probe würfeln — bietet Attacke oder Verteidigung an.
-      items.push({
-        label: `Probe würfeln, ${primaer.name}`,
-        hint: `Attacke ${k.at === null ? 'nein' : k.at}${k.vt !== null ? `, Verteidigung ${k.vt}` : ''}`,
-        detail: mitLetztemWurf(`${key}-probe`, detailText),
-        ergebnisId: `${key}-probe`,
-        onSelect: async () => {
-          const knoepfe = [];
-          if (k.at !== null) knoepfe.push({ label: `Attacke ${k.at}`, wert: 'at' });
-          if (k.vt !== null) knoepfe.push({ label: `Verteidigung ${k.vt}`, wert: 'vt' });
-          if (!knoepfe.length) return;
-          let wahl = knoepfe[0].wert;
-          if (knoepfe.length > 1) { wahl = await knopfDialog({ titel: `Probe, ${primaer.name}`, knoepfe }); if (wahl === null) return; }
-          const vok = wahl === 'vt' ? 'Verteidigung' : 'Attacke';
-          const pw = wahl === 'vt' ? k.vt : k.at;
-          kampfProbe({ id: `${key}-probe`, titel: `${vok} ${set.name}, ${primaer.name}`, vokabel: vok, probenwert: pw });
-        },
-      });
-      // Schaden würfeln
-      items.push({
-        label: `Schaden würfeln, ${primaer.name}`,
-        hint: `${primaer.wuerfel || 0} W ${primaer.wuerfelSeiten || 6} plus Waffenbonus ${tp} und Schadensbonus ${w.SB}`,
-        detail: mitLetztemWurf(`${key}-schaden`, `Schaden ${primaer.wuerfel || 0} W ${primaer.wuerfelSeiten || 6}, dazu Waffenbonus ${tp} und Schadensbonus ${w.SB}.`),
-        ergebnisId: `${key}-schaden`,
-        onSelect: () => schadenWurf({
-          id: `${key}-schaden`, name: `${set.name}, ${primaer.name}`,
-          wuerfel: primaer.wuerfel || 0, seiten: primaer.wuerfelSeiten || 6,
-          bonus: schadenBonus, bonusText: `Waffenbonus ${tp}, Schadensbonus ${w.SB}`,
-        }),
-      });
-    } else {
-      // Waffenlos: Raufen, falls die Fertigkeit vorhanden ist.
-      const raufen = db && db.fertigkeitByName ? (db.fertigkeitByName['Raufen'] || null) : null;
-      const fw = raufen ? (char.fertigkeiten?.['Raufen']?.wert || 0) : 0;
-      const at = raufen ? fertigkeitProbenwert(char, raufen, fw, true) : 0;
-      items.push({ label: `Set ${si + 1}: ${set.name}, waffenlos`, hint: raufen ? `Raufen ${at}, Schaden 1 W 6` : 'keine Werte', detail: 'Kampf ohne Waffe (Raufen). Schaden ein W6 plus Schadensbonus.', onSelect: () => {} });
-      if (raufen) {
-        items.push({
-          label: 'Probe würfeln, Raufen',
-          hint: `Raufen ${at}`,
-          detail: mitLetztemWurf(`${key}-probe`, 'Raufen, Kampf ohne Waffe.'),
-          ergebnisId: `${key}-probe`,
-          onSelect: () => kampfProbe({ id: `${key}-probe`, titel: `Raufen ${set.name}`, vokabel: 'Raufen', probenwert: at }),
-        });
-        items.push({
-          label: 'Schaden würfeln, Raufen',
-          hint: `1 W 6 plus Schadensbonus ${w.SB}`,
-          detail: mitLetztemWurf(`${key}-schaden`, `Waffenloser Schaden ein W6 plus Schadensbonus ${w.SB}.`),
-          ergebnisId: `${key}-schaden`,
-          onSelect: () => schadenWurf({ id: `${key}-schaden`, name: `${set.name}, Raufen`, wuerfel: 1, seiten: 6, bonus: w.SB, bonusText: `Schadensbonus ${w.SB}` }),
-        });
-      }
-    }
-  });
-
-  // --- 2) Abgeleitete Werte ---
-  const eintrag = (label, detail) => items.push({ label, detail: detail || '', onSelect: () => {} });
-  items.push({ label: 'Abgeleitete Werte', ueberschrift: true, onSelect: () => {} });
-  eintrag(`Initiative: ${w.INI}`, 'Bestimmt die Reihenfolge im Kampf: wer den höheren Wert hat, handelt zuerst. Zu Kampfbeginn wird 1 W20 plus Initiative gewürfelt. Wert: gleich dem Attribut Intuition.');
-  eintrag(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Schaden, der über diesem Wert liegt, verursacht eine Wunde; über dem Doppelten zwei, über dem Dreifachen drei, und so weiter. Grundwert ohne Rüstung: 4 plus Konstitution durch 4.');
-  eintrag(`Magieresistenz: ${w.MR}`, 'Schwierigkeit, dich mit schädlicher Magie zu treffen. Bei Zaubern gegen die Magieresistenz wird der Wurf des Zaubernden dagegen verglichen. Wert: 4 plus Mut durch 4.');
-  eintrag(`Geschwindigkeit: ${w.GS}`, `So viele Schritt kannst du dich mit einer einfachen Aktion Bewegung fortbewegen, hier also ${w.GS} Schritt. Geradeaus vorwärts das Doppelte, ganz ohne Gepäck und Rüstung das Vierfache; auf unsicherem Boden die Hälfte, kniend ein Viertel. Wert: 4 plus Gewandtheit durch 4, minus Behinderung.`);
-  eintrag(`Durchhaltevermögen: ${w.DH}`, 'Deine Reserve gegen Erschöpfung durch Anstrengung, Hitze oder Kälte. Wert: Konstitution minus zweimal Behinderung.');
-  eintrag(`Schadensbonus: ${w.SB}`, 'Kommt zu jedem Waffenschaden hinzu. Wert: Körperkraft durch 4.');
-  eintrag(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, 'Rüstungsschutz senkt eingehenden Schaden und hebt die Wundschwelle. Behinderung verringert Geschwindigkeit und Durchhaltevermögen. Beides stammt aus der ersten angelegten Rüstung.');
-
-  // --- 3) Kampffertigkeiten ---
-  if (db) {
-    items.push({ label: 'Kampffertigkeiten', ueberschrift: true, onSelect: () => {} });
-    for (const f of db.fertigkeiten.filter(x => x.kampffertigkeit === 1)) {
-      const fw = char.fertigkeiten?.[f.name]?.wert || 0;
-      if (!fw) continue;
-      eintrag(`${f.name}: Probenwert ${fertigkeitProbenwert(char, f, fw, true)} mit Talent, `
-        + `${fertigkeitProbenwert(char, f, fw, false)} ohne`,
-        `Fertigkeitswert ${fw}. Mit passendem Talent zählt der volle Wert, ohne der halbe.`);
-    }
-  }
-
-  return menuScreen({
+  return {
     title: 'Kämpfen',
-    subtitle: 'Oben je Waffenset Probe und Schaden würfeln, darunter die Werte. Enter startet eine Probe. Oben filtern, Shift und Pfeil-runter liest Details. Escape zurück.',
-    items,
-    filter: true,
-  });
+    build() {
+      const a = getAbenteuer();
+      const char = a.charakter;
+      const db = getDb();
+      const w = abgeleiteteWerte(char);
+      const findW = (n) => (n ? (char.waffen || []).find(x => x.name === n) || null : null);
+      const inv = leseInventar(char);
+      const sets = inv.waffenSets || [];
+      if (sets.length) _kampfSet = Math.max(0, Math.min(sets.length - 1, _kampfSet));
+
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel('Kampfwürfe'));
+
+      // Werte eines Sets zusammenstellen (mit Waffe oder waffenlos/Raufen).
+      const setInfo = (i) => {
+        const set = sets[i];
+        const key = `set${i}`;
+        const primaer = findW(set.haupthand) || findW(set.fernkampf) || findW(set.nebenhand);
+        if (primaer && db) {
+          const k = waffenwerte(char, db, primaer);
+          const tp = k.tp || 0;
+          return {
+            set, key, primaer, waffenlos: false, k, tp, schadenBonus: tp + w.SB,
+            kurz: `${set.name}, ${primaer.name}`,
+            werte: `Attacke ${k.at === null ? 'nicht möglich' : k.at}, Parade ${k.vt === null ? 'nicht möglich' : k.vt}, Schaden ${primaer.wuerfel || 0} W ${primaer.wuerfelSeiten || 6}`,
+            tooltip: waffenwerteText(char, db, primaer),
+          };
+        }
+        const raufen = db && db.fertigkeitByName ? (db.fertigkeitByName['Raufen'] || null) : null;
+        const rw = raufen ? (char.fertigkeiten?.['Raufen']?.wert || 0) : 0;
+        const at = raufen ? fertigkeitProbenwert(char, raufen, rw, true) : 0;
+        return {
+          set, key, primaer: null, waffenlos: true, raufen, at,
+          kurz: `${set.name}, waffenlos`,
+          werte: raufen ? `Raufen ${at}, Schaden 1 W 6` : 'keine Werte',
+          tooltip: 'Kampf ohne Waffe (Raufen). Schaden ein W6 plus Schadensbonus.',
+        };
+      };
+
+      // Einen der beiden Würfel-Schalter (Attacke/Parade oder Schaden) neu befüllen.
+      const befuelle = (btn, o) => {
+        btn.innerHTML = '';
+        btn.setAttribute('aria-label', o.label);
+        btn.dataset.ergebnisZiel = o.id;
+        btn.__detail = o.detail;
+        delete btn.__detailText;
+        delete btn.__detailCache;
+        const lab = document.createElement('span');
+        lab.className = 'db-menu__label';
+        lab.textContent = o.label;
+        btn.appendChild(lab);
+        if (o.hint) {
+          const h = document.createElement('span');
+          h.className = 'db-menu__hint';
+          h.setAttribute('aria-hidden', 'true');
+          h.textContent = o.hint;
+          btn.appendChild(h);
+        }
+        const erg = document.createElement('span');
+        erg.className = 'db-menu__ergebnis';
+        erg.dataset.ergebnis = o.id;
+        erg.setAttribute('aria-hidden', 'true');
+        erg.textContent = letztesKurz(o.id); // letztes Ergebnis dieses Sets sofort zeigen
+        btn.appendChild(erg);
+        btn._onSelect = o.onSelect;
+      };
+
+      if (!sets.length) {
+        wrap.appendChild(infoZeile('Keine Waffensets vorhanden.',
+          'Waffensets stellst du im Editor unter Ausrüstung zusammen. Ohne Set kannst du hier nicht würfeln.'));
+      } else {
+        const macheBtn = () => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'db-btn ed-aktion';
+          b.addEventListener('click', () => { if (b._onSelect) b._onSelect(); });
+          return b;
+        };
+        const probeBtn = macheBtn();
+        const schadenBtn = macheBtn();
+
+        const zeigeSet = () => {
+          const info = setInfo(_kampfSet);
+          befuelle(probeBtn, {
+            id: `${info.key}-probe`,
+            label: 'Attacke oder Parade würfeln',
+            hint: info.waffenlos ? `${info.kurz}` : `${info.kurz}. Attacke ${info.k.at === null ? 'nicht möglich' : info.k.at}${info.k.vt !== null ? `, Parade ${info.k.vt}` : ''}`,
+            detail: mitLetztemWurf(`${info.key}-probe`, info.tooltip),
+            onSelect: async () => {
+              if (info.waffenlos) {
+                if (!info.raufen) return;
+                kampfProbe({ id: `${info.key}-probe`, titel: `Raufen ${info.set.name}`, vokabel: 'Raufen', probenwert: info.at });
+                return;
+              }
+              const k = info.k;
+              const knoepfe = [];
+              if (k.at !== null) knoepfe.push({ label: `Attacke ${k.at}`, wert: 'at' });
+              if (k.vt !== null) knoepfe.push({ label: `Parade ${k.vt}`, wert: 'vt' });
+              if (!knoepfe.length) return;
+              let wahl = knoepfe[0].wert;
+              if (knoepfe.length > 1) { wahl = await knopfDialog({ titel: `${info.primaer.name}: Attacke oder Parade`, knoepfe }); if (wahl === null) return; }
+              const vok = wahl === 'vt' ? 'Verteidigung' : 'Attacke';
+              const pw = wahl === 'vt' ? k.vt : k.at;
+              kampfProbe({ id: `${info.key}-probe`, titel: `${vok} ${info.set.name}, ${info.primaer.name}`, vokabel: vok, probenwert: pw });
+            },
+          });
+          befuelle(schadenBtn, {
+            id: `${info.key}-schaden`,
+            label: 'Schaden würfeln',
+            hint: info.waffenlos ? `${info.kurz}. 1 W 6 plus Schadensbonus ${w.SB}` : `${info.kurz}. ${info.primaer.wuerfel || 0} W ${info.primaer.wuerfelSeiten || 6} plus Waffenbonus ${info.tp} und Schadensbonus ${w.SB}`,
+            detail: mitLetztemWurf(`${info.key}-schaden`, info.waffenlos ? `Waffenloser Schaden ein W6 plus Schadensbonus ${w.SB}.` : `Schaden ${info.primaer.wuerfel || 0} W ${info.primaer.wuerfelSeiten || 6}, dazu Waffenbonus ${info.tp} und Schadensbonus ${w.SB}.`),
+            onSelect: () => {
+              if (info.waffenlos) { schadenWurf({ id: `${info.key}-schaden`, name: `${info.set.name}, Raufen`, wuerfel: 1, seiten: 6, bonus: w.SB, bonusText: `Schadensbonus ${w.SB}` }); return; }
+              schadenWurf({ id: `${info.key}-schaden`, name: `${info.set.name}, ${info.primaer.name}`, wuerfel: info.primaer.wuerfel || 0, seiten: info.primaer.wuerfelSeiten || 6, bonus: info.schadenBonus, bonusText: `Waffenbonus ${info.tp}, Schadensbonus ${w.SB}` });
+            },
+          });
+        };
+
+        // Set-Wähler: Pfeil links/rechts wechselt das Set; beim Wechsel die
+        // Schalter neu befüllen (die Ergebnisse wechseln so mit zum Set).
+        wrap.appendChild(wertZeile({
+          label: 'Waffenset',
+          get: () => _kampfSet + 1,
+          set: (v) => { _kampfSet = Math.max(0, Math.min(sets.length - 1, v - 1)); },
+          min: 1,
+          max: sets.length,
+          suffix: () => setInfo(_kampfSet).kurz,
+          onChange: () => { zeigeSet(); const info = setInfo(_kampfSet); return `${info.kurz}. ${info.werte}`; },
+          detail: () => setInfo(_kampfSet).tooltip,
+        }));
+        wrap.appendChild(probeBtn);
+        wrap.appendChild(schadenBtn);
+        zeigeSet();
+      }
+
+      // --- Abgeleitete Werte ---
+      wrap.appendChild(abschnittTitel('Abgeleitete Werte'));
+      const info2 = (label, detail) => wrap.appendChild(infoZeile(label, detail));
+      info2(`Initiative: ${w.INI}`, 'Bestimmt die Reihenfolge im Kampf: wer den höheren Wert hat, handelt zuerst. Zu Kampfbeginn wird 1 W20 plus Initiative gewürfelt. Wert: gleich dem Attribut Intuition.');
+      info2(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Schaden, der über diesem Wert liegt, verursacht eine Wunde; über dem Doppelten zwei, über dem Dreifachen drei, und so weiter. Grundwert ohne Rüstung: 4 plus Konstitution durch 4.');
+      info2(`Magieresistenz: ${w.MR}`, 'Schwierigkeit, dich mit schädlicher Magie zu treffen. Bei Zaubern gegen die Magieresistenz wird der Wurf des Zaubernden dagegen verglichen. Wert: 4 plus Mut durch 4.');
+      info2(`Geschwindigkeit: ${w.GS}`, `So viele Schritt kannst du dich mit einer einfachen Aktion Bewegung fortbewegen, hier also ${w.GS} Schritt. Geradeaus vorwärts das Doppelte, ganz ohne Gepäck und Rüstung das Vierfache; auf unsicherem Boden die Hälfte, kniend ein Viertel. Wert: 4 plus Gewandtheit durch 4, minus Behinderung.`);
+      info2(`Durchhaltevermögen: ${w.DH}`, 'Deine Reserve gegen Erschöpfung durch Anstrengung, Hitze oder Kälte. Wert: Konstitution minus zweimal Behinderung.');
+      info2(`Schadensbonus: ${w.SB}`, 'Kommt zu jedem Waffenschaden hinzu. Wert: Körperkraft durch 4.');
+      info2(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, 'Rüstungsschutz senkt eingehenden Schaden und hebt die Wundschwelle. Behinderung verringert Geschwindigkeit und Durchhaltevermögen. Beides stammt aus der ersten angelegten Rüstung.');
+
+      verbindeDetail(wrap);
+      return wrap;
+    },
+    onShow() {
+      sprache.sage('Kämpfen. Oben mit Pfeil links und rechts das Waffenset wählen, darunter Attacke oder Parade und Schaden würfeln.');
+    },
+  };
 }
 
 async function freierWurf() {

@@ -28,8 +28,14 @@ function mittel3(w) {
  * übernehmen. Sehende sehen es neben dem Schalter, Blinde hören es beim
  * erneuten Anspringen.
  */
+// Kurzergebnis je Schalter-Id merken, damit ein neu gezeichneter Schalter (z. B.
+// beim Set-Wechsel) das letzte Ergebnis seines Sets sofort wieder anzeigen kann.
+const _letztesKurz = {};
+export function letztesKurz(id) { return _letztesKurz[id] || ''; }
+
 export function zeigeErgebnis(id, kurz, ansage) {
   if (!id) return;
+  _letztesKurz[id] = kurz;
   const feld = document.querySelector(`[data-ergebnis="${id}"]`);
   if (feld) feld.textContent = kurz;
   const schalter = document.querySelector(`[data-ergebnis-ziel="${id}"]`);

@@ -4,6 +4,20 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.29, 31. Juli 2026
+
+
+Kämpfen mit Waffenset-Wähler
+
+Die Seite Kämpfen (Meine Initiative-Phase) ist neu aufgebaut. Ganz oben steht ein
+Waffenset-Wähler: mit Pfeil links und rechts wechselst du zwischen deinen
+Waffensets, das gewählte Set wird angesagt (Name und Werte). Darunter zwei
+Schaltflaechen: "Attacke oder Parade würfeln" und "Schaden würfeln", jeweils fuer
+das gewaehlte Set. Wechselst du oben das Set, wechseln auch die Wuerfelergebnisse
+mit: es steht jeweils das letzte Ergebnis dieses Sets hinter den Schaltflaechen
+und im Tooltip. Darunter folgt der Bereich Abgeleitete Werte.
+
+
 Version 0.28, 31. Juli 2026
 
 
