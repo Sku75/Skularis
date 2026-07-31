@@ -25,6 +25,15 @@ danach die Rechnung. Auch im Tooltip steht oben das Ergebnis (Schaden Ergebnis X
 und darunter die Wuerfel und Boni.
 
 
+Jedes Abenteuer bekommt einen eigenen Ordner
+
+Abenteuer liegen nicht mehr als lose Dateien im Abenteuer-Verzeichnis. Jedes
+Abenteuer wohnt jetzt in einem eigenen Ordner mit seinem Namen. Darin liegt der
+Spielstand, und du (oder ich) koennen dort beliebige eigene Dateien ablegen:
+Texte, Notizen, Material zum Abenteuer. Alte, lose gespeicherte Abenteuer werden
+beim naechsten Oeffnen der Liste automatisch in ihren eigenen Ordner umgezogen.
+
+
 Version 0.29, 31. Juli 2026
 
 

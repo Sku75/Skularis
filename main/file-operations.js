@@ -160,24 +160,59 @@ function paketLaden(datenPfad, pfad) {
 }
 
 // --- Abenteuer-Spielstände (JSON) ---
+//
+// Jedes Abenteuer wohnt in einem EIGENEN Ordner (nie lose Dateien im
+// Abenteuer-Verzeichnis). Im Ordner liegt der Spielstand als <Name>.json, und
+// man kann dort beliebige eigene Dateien ablegen (Texte, Notizen, Material).
+// Alte, lose gespeicherte Abenteuer werden beim Auflisten in ihren Ordner
+// umgezogen.
+
+function abenteuerMigriere(ordner) {
+  if (!fs.existsSync(ordner)) return;
+  for (const f of fs.readdirSync(ordner)) {
+    if (!f.toLowerCase().endsWith('.json')) continue;
+    const alt = path.join(ordner, f);
+    if (!fs.statSync(alt).isFile()) continue;
+    const name = f.replace(/\.json$/i, '');
+    const ziel = path.join(ordner, name);
+    if (fs.existsSync(ziel)) continue; // gleichnamiger Ordner existiert schon
+    fs.mkdirSync(ziel, { recursive: true });
+    fs.renameSync(alt, path.join(ziel, f));
+  }
+}
+
+// Den Spielstand (.json) in einem Abenteuer-Ordner finden, bevorzugt <Ordner>.json.
+function abenteuerDateiImOrdner(ordnerPfad, name) {
+  const dateien = fs.readdirSync(ordnerPfad).filter(f => f.toLowerCase().endsWith('.json'));
+  if (!dateien.length) return null;
+  const bevorzugt = dateien.find(f => f.toLowerCase() === (name + '.json').toLowerCase());
+  return path.join(ordnerPfad, bevorzugt || dateien[0]);
+}
 
 function abenteuerListe(ordner) {
   if (!fs.existsSync(ordner)) return [];
-  return fs.readdirSync(ordner)
-    .filter(f => f.toLowerCase().endsWith('.json'))
-    .map(f => ({ name: f.replace(/\.json$/i, ''), pfad: path.join(ordner, f) }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  abenteuerMigriere(ordner);
+  const eintraege = [];
+  for (const name of fs.readdirSync(ordner)) {
+    const unter = path.join(ordner, name);
+    if (!fs.statSync(unter).isDirectory()) continue;
+    const pfad = abenteuerDateiImOrdner(unter, name);
+    if (!pfad) continue; // Ordner ohne Spielstand ueberspringen
+    eintraege.push({ name, pfad, ordner: unter });
+  }
+  return eintraege.sort((a, b) => a.name.localeCompare(b.name, 'de'));
 }
 
 function abenteuerSpeichern(ordner, name, inhalt) {
-  fs.mkdirSync(ordner, { recursive: true });
   const sicher = String(name || '').replace(/[\\/:*?"<>|]/g, '_').trim() || 'Abenteuer';
-  const pfad = path.join(ordner, sicher + '.json');
+  const unter = path.join(ordner, sicher);
+  fs.mkdirSync(unter, { recursive: true });
+  const pfad = path.join(unter, sicher + '.json');
   // Atomar: erst in eine Zwischendatei, dann umbenennen.
   const tmp = pfad + '.tmp';
   fs.writeFileSync(tmp, inhalt, 'utf-8');
   fs.renameSync(tmp, pfad);
-  return { pfad, name: sicher };
+  return { pfad, name: sicher, ordner: unter };
 }
 
 function abenteuerLaden(pfad) {
@@ -185,7 +220,15 @@ function abenteuerLaden(pfad) {
 }
 
 function abenteuerLoeschen(pfad) {
-  if (pfad && fs.existsSync(pfad)) fs.unlinkSync(pfad);
+  if (!pfad || !fs.existsSync(pfad)) return { ok: true };
+  // Liegt der Spielstand in seinem eigenen Abenteuer-Ordner, den ganzen Ordner
+  // entfernen (samt hineingelegter Texte); als Rueckfall nur die Datei.
+  const eltern = path.dirname(pfad);
+  if (path.basename(eltern) && path.basename(path.dirname(eltern)) === 'Abenteuer-Daten') {
+    fs.rmSync(eltern, { recursive: true, force: true });
+  } else {
+    fs.unlinkSync(pfad);
+  }
   return { ok: true };
 }
 
