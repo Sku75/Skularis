@@ -43,6 +43,11 @@
   <!-- Hauptbereich: Bildschirme werden hier dynamisch gerendert -->
   <main id="app-content" class="db-main" role="main" aria-label="Hauptinhalt"></main>
 
+  <!-- Gut sichtbare EP-Anzeige unten mittig; nur eingeblendet, wenn EIN Charakter
+       geladen ist (Editor, Abenteuertisch). Rein optisch (aria-hidden), Blinde
+       hören die EP über die Menüs. -->
+  <div id="ep-anzeige" class="ep-anzeige" aria-hidden="true"></div>
+
   <!-- Statusleiste -->
   <footer class="db-footer" role="contentinfo">
     <div id="status-bar" class="db-status">

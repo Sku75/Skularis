@@ -14,13 +14,17 @@ import { getAbenteuer, speichere } from './state.js';
 const FACH_NAME = { rucksack: 'Rucksack', guertel: 'am Gürtel' };
 
 export function inventarScreen() {
+  const a = getAbenteuer();
+  const g = (a.inventar && a.inventar.geldboerse) || { dukaten: 0, silber: 0, kupfer: 0 };
+  const inv = a.inventar || { rucksack: [], guertel: [] };
   return menuScreen({
     title: 'Inventar',
     subtitle: 'Escape zurück.',
     items: [
-      { label: 'Geldbörse', hint: 'Dukaten, Silber, Kupfer', onSelect: () => screen.push(geldboerseScreen()) },
-      { label: 'Rucksack', hint: 'Gegenstände', onSelect: () => screen.push(fachScreen('rucksack')) },
-      { label: 'Am Gürtel', hint: 'Gegenstände', onSelect: () => screen.push(fachScreen('guertel')) },
+      // Der Geldbörse-Menüpunkt zeigt den Inhalt schon optisch: die Münzzahlen zu den Begriffen.
+      { label: 'Geldbörse', hint: `${g.dukaten || 0} Dukaten, ${g.silber || 0} Silber, ${g.kupfer || 0} Kupfer`, onSelect: () => screen.push(geldboerseScreen()) },
+      { label: 'Rucksack', hint: `${(inv.rucksack || []).length} Gegenstände`, onSelect: () => screen.push(fachScreen('rucksack')) },
+      { label: 'Am Gürtel', hint: `${(inv.guertel || []).length} Gegenstände`, onSelect: () => screen.push(fachScreen('guertel')) },
     ],
   });
 }

@@ -30,7 +30,8 @@ import { szenenBereichScreen } from '../meister/szenen-spielen.js';
 import { texteScreen } from '../meister/texte.js';
 import { meisterNotizenScreen } from '../meister/notizen.js';
 import { verdeckterWurf } from '../meister/wuerfel.js';
-import { regelnScreen } from './regeln.js';
+import { regelnMenuScreen } from './regeln-menu.js';
+import { versteckeEP } from '../ui/ep-anzeige.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -39,6 +40,7 @@ const ipc = window.skularis?.ipc;
 let _einstieg = null;
 
 export function oeffne() {
+  versteckeEP(); // Meistertisch führt mehrere Helden — keine Einzel-EP-Anzeige.
   _einstieg = einstiegScreen();
   screen.push(_einstieg);
 }
@@ -157,7 +159,7 @@ function oeffneHub(modus) {
     { label: 'Charakterboegen der Gruppe', hint: 'Boegen ansehen', factory: () => gruppenboegenScreen() },
     { label: 'Abenteuertexte', hint: 'txt-Dokumente lesen, mit Lesezeichen', factory: () => texteScreen() },
     { label: 'Meister-Notizen und Werkzeuge', hint: 'geheime Notizen, Vorlesetexte, Zufallstabellen', factory: () => meisterNotizenScreen() },
-    { label: 'Regelnachschlagewerk', hint: 'alle Regeln, mit Hinweis welcher Held sie hat', factory: () => regelnScreen({ db: getDb(), helden: regelHelden(), titel: 'Regelnachschlagewerk' }) },
+    { label: 'Regeln', hint: 'Kurzregelfilter und das ganze Ilaris-Regelwerk', factory: () => regelnMenuScreen({ db: getDb(), helden: regelHelden() }) },
     { label: 'Protokoll', hint: 'was im Abenteuer passiert ist', factory: () => protokollScreen() },
     { label: 'Gruppenzusammenstellung', hint: 'Helden hinzufuegen und entfernen', factory: () => gruppenzusammenstellungScreen() },
     { label: 'Verdeckter Meister-Wurf', hint: 'schnell und leise wuerfeln', ergebnisId: 'meisterwurf', aktion: () => verdeckterMeisterWurf() },
@@ -192,7 +194,9 @@ function protokollScreen() {
     title: 'Protokoll',
     build() {
       const a = getMeister();
-      const items = (a.protokoll || []).map(p => ({ label: `Spieltag ${p.spieltag}: ${p.text}`, detail: p.zeit || '', onSelect: () => {} }));
+      const prot = a.protokoll || [];
+      // Laufende Nummer vorne zur Orientierung (neueste oben = höchste Nummer).
+      const items = prot.map((p, i) => ({ label: `${prot.length - i}. Spieltag ${p.spieltag}: ${p.text}`, detail: p.zeit || '', onSelect: () => {} }));
       return menuScreen({ title: 'Protokoll', subtitle: 'Neueste oben. Escape zurueck.', items, leer: 'Noch keine Eintraege.' }).build();
     },
   };

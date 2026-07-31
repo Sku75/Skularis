@@ -33,16 +33,17 @@ export function liveSpielScreen() {
   const char = a.charakter;
   const db = getDb();
   const items = [
-    { label: 'Schnellwurf 1 W6', ergebnisId: 'w6', onSelect: () => wuerfeln(1, 6, 0, 'w6') },
-    { label: 'Schnellwurf 1 W20', ergebnisId: 'w20', onSelect: () => wuerfeln(1, 20, 0, 'w20') },
-    { label: 'Schnellwurf 3 W20', ergebnisId: 'w20x3', onSelect: () => wuerfeln(3, 20, 0, 'w20x3') },
-    { label: 'Freier Wurf', hint: 'Anzahl, Würfeltyp und Modifikator wählen', ergebnisId: 'frei', onSelect: freierWurf },
+    { label: 'Schnellwurf 1 W6', ergebnisId: 'w6', detail: mitLetztemWurf('w6', 'Ein W6, schneller Wurf.'), onSelect: () => wuerfeln(1, 6, 0, 'w6') },
+    { label: 'Schnellwurf 2 W6', ergebnisId: 'w6x2', detail: mitLetztemWurf('w6x2', 'Zwei W6, schneller Wurf.'), onSelect: () => wuerfeln(2, 6, 0, 'w6x2') },
+    { label: 'Schnellwurf 1 W20', ergebnisId: 'w20', detail: mitLetztemWurf('w20', 'Ein W20, schneller Wurf.'), onSelect: () => wuerfeln(1, 20, 0, 'w20') },
+    { label: 'Schnellwurf 3 W20', ergebnisId: 'w20x3', detail: mitLetztemWurf('w20x3', 'Drei W20, schneller Wurf.'), onSelect: () => wuerfeln(3, 20, 0, 'w20x3') },
+    { label: 'Freier Wurf', hint: 'Anzahl, Würfeltyp und Modifikator wählen', ergebnisId: 'frei', detail: mitLetztemWurf('frei', 'Anzahl, Würfeltyp und Modifikator frei wählen.'), onSelect: freierWurf },
     { label: 'Aktionen', hint: 'Was du in deiner Initiativephase tun kannst', detail: GRUNDREGEL_AKTIONEN, onSelect: () => screen.push(aktionenScreen()) },
     {
-      label: 'Kampfwerte',
-      hint: 'Proben und Schaden je Waffe, dazu die abgeleiteten Werte',
-      detail: 'Die abgeleiteten Werte, die Probenwerte der Kampffertigkeiten und je Waffe die '
-        + 'Proben für Attacke, Verteidigung und Schaden.',
+      label: 'Kämpfen',
+      hint: 'Je Waffenset Probe und Schaden würfeln, dazu die abgeleiteten Werte',
+      detail: 'Ganz oben je Waffenset eine Probe und ein Schadenswurf, darunter die abgeleiteten '
+        + 'Werte und die Probenwerte der Kampffertigkeiten.',
       onSelect: () => screen.push(kampfwerteScreen()),
     },
     { label: 'Manöver', hint: 'Nahkampf-Manöver mit ihrer Wirkung', onSelect: () => screen.push(manoeverScreen()) },
@@ -52,15 +53,15 @@ export function liveSpielScreen() {
   }
   return menuScreen({
     title: 'Meine Initiative-Phase',
-    subtitle: 'Würfeln, Aktionen, Kampfwerte, Manöver und Zauber. Escape zurück.',
+    subtitle: 'Würfeln, Aktionen, Kämpfen, Manöver und Zauber. Escape zurück.',
     items,
   });
 }
 
 /**
- * Kampfwerte: was am Spieltisch gewürfelt wird. Erst die Werte, die immer
- * gelten, dann jedes Waffenset einzeln — so wie es im Editor zusammengestellt
- * wurde.
+ * Kämpfen: was am Spieltisch gewürfelt wird. GANZ OBEN die würfelbaren
+ * Waffensets — je Set eine Probe (Attacke oder Verteidigung) und ein
+ * Schadenswurf. Darunter die abgeleiteten Werte und die Kampffertigkeiten.
  */
 export function kampfwerteScreen() {
   const a = getAbenteuer();
@@ -68,8 +69,82 @@ export function kampfwerteScreen() {
   const db = getDb();
   const w = abgeleiteteWerte(char);
   const items = [];
-  const eintrag = (label, detail) => items.push({ label, detail: detail || '', onSelect: () => {} });
+  const findW = (n) => (n ? (char.waffen || []).find(x => x.name === n) || null : null);
 
+  // --- 1) Waffenset-Angriff ganz oben ---
+  items.push({ label: 'Waffenset-Angriff', ueberschrift: true, onSelect: () => {} });
+  const inv = leseInventar(char);
+  const sets = inv.waffenSets || [];
+  sets.forEach((set, si) => {
+    const key = `set${si}`;
+    // Primärwaffe des Sets: erste belegte Hand (Haupthand, sonst Fernkampf, sonst Nebenhand).
+    const primaer = findW(set.haupthand) || findW(set.fernkampf) || findW(set.nebenhand);
+    if (primaer && db) {
+      const k = waffenwerte(char, db, primaer);
+      const detailText = waffenwerteText(char, db, primaer);
+      const tp = k.tp || 0;
+      const schadenBonus = tp + w.SB;
+      const werte = `Attacke ${k.at === null ? 'nicht möglich' : k.at}, Verteidigung ${k.vt === null ? 'nicht möglich' : k.vt}, Schaden ${primaer.wuerfel || 0} W ${primaer.wuerfelSeiten || 6}`;
+      // Set-Kopfzeile (nur lesen)
+      items.push({ label: `Set ${si + 1}: ${set.name}, ${primaer.name}`, hint: werte, detail: detailText, onSelect: () => {} });
+      // Probe würfeln — bietet Attacke oder Verteidigung an.
+      items.push({
+        label: `Probe würfeln, ${primaer.name}`,
+        hint: `Attacke ${k.at === null ? 'nein' : k.at}${k.vt !== null ? `, Verteidigung ${k.vt}` : ''}`,
+        detail: mitLetztemWurf(`${key}-probe`, detailText),
+        ergebnisId: `${key}-probe`,
+        onSelect: async () => {
+          const knoepfe = [];
+          if (k.at !== null) knoepfe.push({ label: `Attacke ${k.at}`, wert: 'at' });
+          if (k.vt !== null) knoepfe.push({ label: `Verteidigung ${k.vt}`, wert: 'vt' });
+          if (!knoepfe.length) return;
+          let wahl = knoepfe[0].wert;
+          if (knoepfe.length > 1) { wahl = await knopfDialog({ titel: `Probe, ${primaer.name}`, knoepfe }); if (wahl === null) return; }
+          const vok = wahl === 'vt' ? 'Verteidigung' : 'Attacke';
+          const pw = wahl === 'vt' ? k.vt : k.at;
+          kampfProbe({ id: `${key}-probe`, titel: `${vok} ${set.name}, ${primaer.name}`, vokabel: vok, probenwert: pw });
+        },
+      });
+      // Schaden würfeln
+      items.push({
+        label: `Schaden würfeln, ${primaer.name}`,
+        hint: `${primaer.wuerfel || 0} W ${primaer.wuerfelSeiten || 6} plus Waffenbonus ${tp} und Schadensbonus ${w.SB}`,
+        detail: mitLetztemWurf(`${key}-schaden`, `Schaden ${primaer.wuerfel || 0} W ${primaer.wuerfelSeiten || 6}, dazu Waffenbonus ${tp} und Schadensbonus ${w.SB}.`),
+        ergebnisId: `${key}-schaden`,
+        onSelect: () => schadenWurf({
+          id: `${key}-schaden`, name: `${set.name}, ${primaer.name}`,
+          wuerfel: primaer.wuerfel || 0, seiten: primaer.wuerfelSeiten || 6,
+          bonus: schadenBonus, bonusText: `Waffenbonus ${tp}, Schadensbonus ${w.SB}`,
+        }),
+      });
+    } else {
+      // Waffenlos: Raufen, falls die Fertigkeit vorhanden ist.
+      const raufen = db && db.fertigkeitByName ? (db.fertigkeitByName['Raufen'] || null) : null;
+      const fw = raufen ? (char.fertigkeiten?.['Raufen']?.wert || 0) : 0;
+      const at = raufen ? fertigkeitProbenwert(char, raufen, fw, true) : 0;
+      items.push({ label: `Set ${si + 1}: ${set.name}, waffenlos`, hint: raufen ? `Raufen ${at}, Schaden 1 W 6` : 'keine Werte', detail: 'Kampf ohne Waffe (Raufen). Schaden ein W6 plus Schadensbonus.', onSelect: () => {} });
+      if (raufen) {
+        items.push({
+          label: 'Probe würfeln, Raufen',
+          hint: `Raufen ${at}`,
+          detail: mitLetztemWurf(`${key}-probe`, 'Raufen, Kampf ohne Waffe.'),
+          ergebnisId: `${key}-probe`,
+          onSelect: () => kampfProbe({ id: `${key}-probe`, titel: `Raufen ${set.name}`, vokabel: 'Raufen', probenwert: at }),
+        });
+        items.push({
+          label: 'Schaden würfeln, Raufen',
+          hint: `1 W 6 plus Schadensbonus ${w.SB}`,
+          detail: mitLetztemWurf(`${key}-schaden`, `Waffenloser Schaden ein W6 plus Schadensbonus ${w.SB}.`),
+          ergebnisId: `${key}-schaden`,
+          onSelect: () => schadenWurf({ id: `${key}-schaden`, name: `${set.name}, Raufen`, wuerfel: 1, seiten: 6, bonus: w.SB, bonusText: `Schadensbonus ${w.SB}` }),
+        });
+      }
+    }
+  });
+
+  // --- 2) Abgeleitete Werte ---
+  const eintrag = (label, detail) => items.push({ label, detail: detail || '', onSelect: () => {} });
+  items.push({ label: 'Abgeleitete Werte', ueberschrift: true, onSelect: () => {} });
   eintrag(`Initiative: ${w.INI}`, 'Bestimmt die Reihenfolge im Kampf: wer den höheren Wert hat, handelt zuerst. Zu Kampfbeginn wird 1 W20 plus Initiative gewürfelt. Wert: gleich dem Attribut Intuition.');
   eintrag(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Schaden, der über diesem Wert liegt, verursacht eine Wunde; über dem Doppelten zwei, über dem Dreifachen drei, und so weiter. Grundwert ohne Rüstung: 4 plus Konstitution durch 4.');
   eintrag(`Magieresistenz: ${w.MR}`, 'Schwierigkeit, dich mit schädlicher Magie zu treffen. Bei Zaubern gegen die Magieresistenz wird der Wurf des Zaubernden dagegen verglichen. Wert: 4 plus Mut durch 4.');
@@ -78,8 +153,9 @@ export function kampfwerteScreen() {
   eintrag(`Schadensbonus: ${w.SB}`, 'Kommt zu jedem Waffenschaden hinzu. Wert: Körperkraft durch 4.');
   eintrag(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, 'Rüstungsschutz senkt eingehenden Schaden und hebt die Wundschwelle. Behinderung verringert Geschwindigkeit und Durchhaltevermögen. Beides stammt aus der ersten angelegten Rüstung.');
 
-  // Kampffertigkeiten mit ihren Probenwerten
+  // --- 3) Kampffertigkeiten ---
   if (db) {
+    items.push({ label: 'Kampffertigkeiten', ueberschrift: true, onSelect: () => {} });
     for (const f of db.fertigkeiten.filter(x => x.kampffertigkeit === 1)) {
       const fw = char.fertigkeiten?.[f.name]?.wert || 0;
       if (!fw) continue;
@@ -87,79 +163,14 @@ export function kampfwerteScreen() {
         + `${fertigkeitProbenwert(char, f, fw, false)} ohne`,
         `Fertigkeitswert ${fw}. Mit passendem Talent zählt der volle Wert, ohne der halbe.`);
     }
-
-    // Waffen: ein Set bestimmt Haupthand, Nebenhand und Fernkampf. Je Waffe die
-    // Proben Attacke, Verteidigung (nicht im Fernkampf) und Schaden auswürfeln.
-    const inv = leseInventar(char);
-    const slotWaffen = bestimmeSlotWaffen(char, db, inv);
-    const kurz = { Haupthand: 'hh', Nebenhand: 'nh', Fernkampf: 'fk' };
-    for (const slot of SLOTS) {
-      const waffe = slotWaffen[slot];
-      if (!waffe) continue;
-      const k = waffenwerte(char, db, waffe);
-      const key = kurz[slot];
-      const detailText = waffenwerteText(char, db, waffe);
-      if (k.at !== null) {
-        items.push({
-          label: `${slot} ${waffe.name}: Attacke ${k.at}`,
-          hint: 'Enter würfelt die Attacke-Probe',
-          detail: mitLetztemWurf(`${key}-at`, detailText),
-          ergebnisId: `${key}-at`,
-          onSelect: () => kampfProbe({ id: `${key}-at`, titel: `Attacke ${slot} ${waffe.name}`, vokabel: 'Attacke', probenwert: k.at }),
-        });
-      }
-      if (slot !== 'Fernkampf' && k.vt !== null) {
-        items.push({
-          label: `${slot} ${waffe.name}: Verteidigung ${k.vt}`,
-          hint: 'Enter würfelt die Verteidigungs-Probe',
-          detail: detailText,
-          ergebnisId: `${key}-vt`,
-          onSelect: () => kampfProbe({ id: `${key}-vt`, titel: `Verteidigung ${slot} ${waffe.name}`, vokabel: 'Verteidigung', probenwert: k.vt }),
-        });
-      }
-      const tp = k.tp || 0;
-      const schadenBonus = tp + w.SB;
-      items.push({
-        label: `${slot} ${waffe.name}: Schaden auswürfeln`,
-        hint: `${waffe.wuerfel || 0} W ${waffe.wuerfelSeiten || 6} plus Waffenbonus und Schadensbonus`,
-        detail: `Schaden ${waffe.wuerfel || 0} W ${waffe.wuerfelSeiten || 6}, dazu Waffenbonus ${tp} und Schadensbonus ${w.SB}.`,
-        ergebnisId: `${key}-schaden`,
-        onSelect: () => schadenWurf({
-          id: `${key}-schaden`, name: `${slot} ${waffe.name}`,
-          wuerfel: waffe.wuerfel || 0, seiten: waffe.wuerfelSeiten || 6,
-          bonus: schadenBonus, bonusText: `Waffenbonus ${tp}, Schadensbonus ${w.SB}`,
-        }),
-      });
-    }
   }
 
   return menuScreen({
-    title: 'Kampfwerte',
-    subtitle: 'Werte lesen und je Waffe würfeln. Enter startet eine Probe. Oben filtern, Shift und Pfeil-runter liest Details. Escape zurück.',
+    title: 'Kämpfen',
+    subtitle: 'Oben je Waffenset Probe und Schaden würfeln, darunter die Werte. Enter startet eine Probe. Oben filtern, Shift und Pfeil-runter liest Details. Escape zurück.',
     items,
     filter: true,
   });
-}
-
-/**
- * Bestimmt die Waffe je Slot (Haupthand, Nebenhand, Fernkampf). Es gibt kein
- * "aktives Set", daher wird das erste echte Waffenset genommen; fehlt eines,
- * werden die Waffen des Charakters nach Nah- und Fernkampf einsortiert.
- */
-function bestimmeSlotWaffen(char, db, inv) {
-  const findW = (n) => (n ? (char.waffen || []).find(x => x.name === n) || null : null);
-  const echte = (inv.waffenSets || []).filter(s => s.name !== SET_WAFFENLOS);
-  if (echte.length) {
-    const set = echte[0];
-    return { Haupthand: findW(set.haupthand), Nebenhand: findW(set.nebenhand), Fernkampf: findW(set.fernkampf) };
-  }
-  const res = { Haupthand: null, Nebenhand: null, Fernkampf: null };
-  for (const wa of (char.waffen || []).filter(x => x.name)) {
-    if (istFernkampf(db, wa)) { if (!res.Fernkampf) res.Fernkampf = wa; }
-    else if (!res.Haupthand) res.Haupthand = wa;
-    else if (!res.Nebenhand) res.Nebenhand = wa;
-  }
-  return res;
 }
 
 async function freierWurf() {
@@ -204,19 +215,26 @@ export function charakterstatusScreen() {
         if (summe >= 5) s += ', Kampfunfähigkeit droht';
         return s;
       };
+      // Das zuletzt angesagte Einschränkungs-Ergebnis. Es steht oben im Tooltip
+      // von Einschränkungen, Wunden UND Erschöpfung, damit man es dort nachliest.
+      const letztes = { text: hatWundErsch ? einschrText() : '' };
+      const mitErgebnis = (basis) => () => (letztes.text ? [letztes.text, '', basis] : basis);
       let einschrZeile = null;
       const aktualisiereEinschr = () => {
         if (!einschrZeile) return '';
         const t = einschrText();
+        letztes.text = t; // vor dem Refresh setzen, damit die Tooltips den neuen Wert zeigen
         einschrZeile.textContent = t;
         einschrZeile.setAttribute('data-sr-label', t);
         einschrZeile.dataset.srValue = t;
         einschrZeile.setAttribute('aria-label', t);
+        einschrZeile.__detail = mitErgebnis(EINSCHR_REGEL);
+        delete einschrZeile.__detailText;
         einschrZeile.dispatchEvent(new CustomEvent('detail-refresh', { bubbles: true }));
         return t;
       };
       if (hatWundErsch) {
-        einschrZeile = infoZeile(einschrText(), EINSCHR_REGEL);
+        einschrZeile = infoZeile(einschrText(), mitErgebnis(EINSCHR_REGEL));
         wrap.appendChild(einschrZeile);
       }
 
@@ -232,6 +250,8 @@ export function charakterstatusScreen() {
           min: 0,
           max: (r.max !== undefined) ? r.max : 999,
           suffix: () => (r.max !== undefined ? `von ${r.max}` : ''),
+          // Bei Wunden/Erschöpfung steht das Einschränkungs-Ergebnis oben im Tooltip.
+          detail: istEinschr ? mitErgebnis(`${name} verstellen. ${EINSCHR_REGEL}`) : undefined,
           onChange: () => {
             protokolliere(a, `${name} auf ${r.aktuell}.`);
             speichere();

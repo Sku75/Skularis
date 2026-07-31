@@ -60,8 +60,19 @@ export function finanzenInhalt(box, filter = '', danach = null) {
       gewaehlt: char.finanzen === f.index,
       onSelect: () => {
         char.finanzen = f.index;
+        // Startkapital in die Münzbörse übernehmen: die ÄNDERUNG des
+        // Startkapitals wirkt als Delta auf die vorhandenen Dukaten. Beispiel:
+        // Start 32, im Spiel 10 ausgegeben (22), dann Startkapital auf 16 → 6.
+        const g = char.geldboerse || (char.geldboerse = { dukaten: 0, silber: 0, kupfer: 0 });
+        if (typeof char.startkapital === 'number') {
+          g.dukaten = Math.max(0, (g.dukaten || 0) + (f.dukaten - char.startkapital));
+        } else {
+          // Erste Festlegung (z. B. älterer Bogen ohne Startkapital): setzen, kein Delta.
+          g.dukaten = f.dukaten;
+        }
+        char.startkapital = f.dukaten;
         editor.aktualisiere();
-        sprache.sage(`${f.name} gewählt, ${abgeleiteteWerte(char).SchiP} Schicksalspunkte.`);
+        sprache.sage(`${f.name} gewählt, Startkapital ${f.dukaten} Dukaten, ${g.dukaten} in der Münzbörse, ${abgeleiteteWerte(char).SchiP} Schicksalspunkte.`);
         if (danach) danach(); else screen.refresh();
       },
     }));

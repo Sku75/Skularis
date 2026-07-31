@@ -20,6 +20,7 @@ import * as sounds from '../sounds.js';
 import * as reiterHub from '../ui/reiter-hub.js';
 import { ladeDb } from '../core/db-laden.js';
 import { createCharakter, neuberechne, verfuegbareEP } from '../core/character.js';
+import { zeigeEP } from '../ui/ep-anzeige.js';
 import { serialisiere } from '../core/sephrasto-xml.js';
 import { zahlDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
 import { beschreibungScreen } from './beschreibung.js';
@@ -228,6 +229,8 @@ let editorHub = null;
 /** Hub-Titel mit den live berechneten freien EP. */
 function editorTitel() {
   const frei = aktualisiere();
+  // Feste EP-Anzeige unten mittig mitziehen (Sichtbar, solange der Editor offen ist).
+  zeigeEP(frei, char.erfahrung.gesamt || 0);
   return `Editor: ${char.name || 'ohne Namen'}, ${frei} von ${char.erfahrung.gesamt} EP frei`;
 }
 

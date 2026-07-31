@@ -27,6 +27,9 @@ import { inventarScreen } from '../abenteuer/inventar.js';
 import { notizenScreen } from '../abenteuer/notizen.js';
 import { mitspielerScreen } from '../abenteuer/mitspieler.js';
 import { regelnScreen } from './regeln.js';
+import { regelnMenuScreen } from './regeln-menu.js';
+import { neuberechne, verfuegbareEP } from '../core/character.js';
+import { zeigeEP, versteckeEP } from '../ui/ep-anzeige.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -167,9 +170,21 @@ function oeffneHubSpieler(modus) {
   const a = getAbenteuer();
   const titel = `${a.name}, Spieltag ${a.spieltag}${modus === 'bearbeiten' ? ', Bearbeiten' : ''}`;
 
+  // Feste EP-Anzeige unten mittig einblenden (ein Charakter geladen).
+  const cha = a.charakter;
+  if (cha && cha.erfahrung) {
+    let frei = 0;
+    try { const db = getDb(); if (db) { neuberechne(cha, db); frei = verfuegbareEP(cha); } } catch { /* Anzeige ist nur optisch */ }
+    zeigeEP(frei, cha.erfahrung.gesamt || 0);
+  }
+
   let hub;
+  // F-Tasten bekommen NUR die Bildschirm-Punkte (factory). Die Aktionen unten
+  // (Zwischenspeichern, Abenteuertag abschließen) haben KEINE F-Taste — die
+  // F-Tasten dienen nur dem Bildschirmwechsel. "Spielfeld" ist die letzte
+  // F-Bindung, deshalb steht es als letzter Bildschirm-Punkt.
   const punkte = [
-    { label: 'Meine Initiative-Phase', hint: 'Würfeln, Aktionen, Kampfwerte, Manöver und Zauber', factory: () => liveSpielScreen() },
+    { label: 'Meine Initiative-Phase', hint: 'Würfeln, Aktionen, Kämpfen, Manöver und Zauber', factory: () => liveSpielScreen() },
     { label: 'Charakterstatus', hint: 'Wunden, Energien, Werte zum Lesen', factory: () => charakterstatusScreen() },
     { label: 'Charakterbogen', hint: 'Werte ansehen, Schnellauskunft', factory: () => charakterbogenScreen() },
     { label: 'Inventar', hint: 'Geldbörse, Rucksack, am Gürtel', factory: () => inventarScreen() },
@@ -177,16 +192,17 @@ function oeffneHubSpieler(modus) {
     { label: 'Mitspieler', factory: () => mitspielerScreen() },
     { label: 'Protokoll', hint: 'Was im Abenteuer passiert ist', factory: () => protokollScreenSpieler() },
     {
-      label: 'Regelnachschlagewerk',
-      hint: 'Alle Regeln alphabetisch, verfügbare vorn gekennzeichnet',
-      factory: () => regelnScreen({ db: getDb(), charakter: getAbenteuer()?.charakter || null, titel: 'Regelnachschlagewerk' }),
+      label: 'Regeln',
+      hint: 'Kurzregelfilter und das ganze Ilaris-Regelwerk',
+      factory: () => regelnMenuScreen({ db: getDb(), charakter: getAbenteuer()?.charakter || null }),
     },
-    { label: 'Spielfeld', hint: 'Platzhalter für spätere Versionen', aktion: () => sprache.sage('Spielfeld, Platzhalter für später.') },
+    { label: 'Spielfeld', hint: 'kommt in einer späteren Version', factory: () => spielfeldScreen() },
+    // Aktionen ohne F-Taste (nur per Eingabetaste):
     { label: 'Zwischenspeichern', hint: 'Spielstand sichern', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
   ];
 
   if (modus === 'spielen') {
-    punkte.push({ label: 'Abenteuer speichern und Spieltag abschließen', hint: 'Abenteuerpunkte an den Charakter, dann Hauptmenü', aktion: () => spieltagAbschliessen() });
+    punkte.push({ label: 'Abenteuertag abschließen und EP erhalten', hint: 'EP eintragen, an den Charakter gutschreiben, dann Hauptmenü', aktion: () => spieltagAbschliessen() });
   } else {
     punkte.push({ label: 'Abenteuer speichern und zurück', aktion: () => speichernUndZurueck(hub) });
   }
@@ -204,8 +220,19 @@ function oeffneHubSpieler(modus) {
         ],
       });
       if (w === 'ja') { await speichere(); sounds.playSpeichern(); }
+      if (w === 'ja' || w === 'nein') versteckeEP(); // Charakter nicht mehr geladen
       return w || 'abbrechen';
     },
+  });
+}
+
+function spielfeldScreen() {
+  return menuScreen({
+    title: 'Spielfeld',
+    subtitle: 'Escape zurück.',
+    items: [
+      { label: 'Spielfeld', hint: 'kommt in einer späteren Version', detail: 'Das Spielfeld für den Abenteuertisch ist noch in Arbeit.', onSelect: () => sprache.sage('Spielfeld, kommt in einer späteren Version.') },
+    ],
   });
 }
 
@@ -214,7 +241,8 @@ function protokollScreenSpieler() {
     title: 'Protokoll',
     build() {
       const a = getAbenteuer();
-      const items = a.protokoll.map(p => ({ label: `Spieltag ${p.spieltag}: ${p.text}`, detail: p.zeit || '', onSelect: () => {} }));
+      // Laufende Nummer zur Orientierung: neueste oben trägt die höchste Nummer.
+      const items = a.protokoll.map((p, i) => ({ label: `${a.protokoll.length - i}. Spieltag ${p.spieltag}: ${p.text}`, detail: p.zeit || '', onSelect: () => {} }));
       return menuScreen({ title: 'Protokoll', subtitle: 'Neueste oben. Escape zurück.', items, leer: 'Noch keine Einträge.' }).build();
     },
   };
@@ -229,7 +257,7 @@ async function speichernUndZurueck(hub) {
 
 async function spieltagAbschliessen() {
   const a = getAbenteuer();
-  const ap = await zahlDialog({ titel: 'Spieltag abschließen', label: 'Erhaltene Abenteuerpunkte', wert: 0, min: 0, max: 100000 });
+  const ap = await zahlDialog({ titel: 'Abenteuertag abschließen', label: 'Erhaltene Erfahrungspunkte (EP)', wert: 0, min: 0, max: 100000 });
   if (ap === null) return;
 
   // Beim Abschluss den Charakterbogen aktualisieren: Abenteuerpunkte,

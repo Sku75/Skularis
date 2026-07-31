@@ -31,7 +31,7 @@ export function aussehenInhalt(box) {
   const eingaben = {};
 
   for (const f of BESCHREIBUNG_FELDER) {
-    const feld = textFeld({ label: f.label, id: `bd-${f.key}`, wert: char[f.key] || '', hint: f.hint });
+    const feld = textFeld({ label: f.label, id: `bd-${f.key}`, wert: char[f.key] || '', beispiel: f.hint });
     feld.__detail = `${f.label}.${f.hint ? ' ' + f.hint + '.' : ''} `
       + `Steht in Sephrasto und auf dem Charakterbogen im Feld ${f.ziel}.`;
     eingaben[f.key] = feld.__eingabe;
@@ -52,7 +52,7 @@ export function aussehenInhalt(box) {
       label: `Aussehen, Zeile ${i + 1}`,
       id: `aussehen-${i + 1}`,
       wert: char.aussehen[i] || '',
-      hint: beispiel,
+      beispiel,
     });
     feld.__detail = `Freie Zeile ${i + 1} von ${AUSSEHEN_ZEILEN.length}, ${beispiel}. `
       + `In Sephrasto ist das die Zeile Aussehen ${i + 1}.`;

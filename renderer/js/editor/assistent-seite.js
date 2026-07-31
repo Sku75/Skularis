@@ -186,7 +186,7 @@ export function listenSchalter({ label, hint, detail, gewaehlt, onSelect }) {
  * Ein beschriftetes Textfeld für den Inhaltsbereich (Aussehen, Eigenheiten).
  * Mit typ 'number' entsteht ein Zahlenfeld (etwa für Erfahrungspunkte).
  */
-export function textFeld({ label, id, wert = '', mehrzeilig = false, hint, typ = 'text', min }) {
+export function textFeld({ label, id, wert = '', mehrzeilig = false, hint, beispiel, typ = 'text', min }) {
   const box = document.createElement('div');
   box.className = 'db-row ed-feld';
 
@@ -206,6 +206,17 @@ export function textFeld({ label, id, wert = '', mehrzeilig = false, hint, typ =
   input.value = wert;
   input.setAttribute('aria-label', hint ? `${label}, ${hint}` : label);
   box.appendChild(input);
+
+  // Beispiel steht HINTER dem Eingabefeld: sichtbar für Sehende und über
+  // aria-describedby erst NACH dem eingetragenen Wert vorgelesen.
+  if (beispiel) {
+    const bsp = document.createElement('span');
+    bsp.className = 'ed-feld__beispiel';
+    bsp.id = `${id}-bsp`;
+    bsp.textContent = `Zum Beispiel: ${beispiel}`;
+    box.appendChild(bsp);
+    input.setAttribute('aria-describedby', `${id}-bsp`);
+  }
 
   box.__eingabe = input;
   return box;

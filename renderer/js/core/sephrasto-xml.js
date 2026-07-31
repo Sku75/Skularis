@@ -140,6 +140,7 @@ export function parse(xml, db) {
       const d = JSON.parse(sd.textContent);
       if (d.geldboerse) c.geldboerse = d.geldboerse;
       if (d.spielinventar) c.spielinventar = d.spielinventar;
+      if (typeof d.startkapital === 'number') c.startkapital = d.startkapital;
     } catch { /* defekte eigene Daten ignorieren, Sephrasto-Teil bleibt gültig */ }
   }
 
@@ -690,6 +691,7 @@ function schreibeSkularisDaten(root, c) {
   const daten = {};
   if (c.geldboerse) daten.geldboerse = c.geldboerse;
   if (c.spielinventar) daten.spielinventar = c.spielinventar;
+  if (typeof c.startkapital === 'number') daten.startkapital = c.startkapital;
   el.textContent = JSON.stringify(daten);
 }
 

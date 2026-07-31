@@ -32,8 +32,9 @@ function installiereListener() {
     if (!screen.imStack(_aktiv.anker)) { _aktiv = null; return; }
     // Bei offenem Dialog nichts abfangen.
     if (document.querySelector('dialog[open]')) return;
-    const idx = parseInt(m[1], 10) - 1;
-    if (idx < 0 || idx >= _aktiv.punkte.length) return;
+    // F-Nummer ueber die Zuordnung in den Array-Index (Aktionen sind uebersprungen).
+    const idx = _aktiv.fTaste ? _aktiv.fTaste[parseInt(m[1], 10)] : (parseInt(m[1], 10) - 1);
+    if (idx == null || idx < 0 || idx >= _aktiv.punkte.length) return;
     e.preventDefault();
     e.stopPropagation();
     _aktiv.aktiviere(idx);
@@ -66,8 +67,18 @@ function ansageWechsel() {
  *   (mit build()); aktion wird sofort ausgefuehrt.
  */
 export function oeffneHub(o) {
-  // Kurztasten F1 bis F12 von oben; weitere Punkte bleiben ohne Taste.
-  const punkte = (o.punkte || []).map((p, i) => ({ ...p, taste: i < 12 ? `F${i + 1}` : '' }));
+  // F-Tasten NUR fuer Bildschirmwechsel (Punkte mit factory). Aktionen wie
+  // Speichern/Spieltag-Abschluss bekommen keine F-Taste, bleiben aber per
+  // Eingabetaste erreichbar. fTaste bildet die F-Nummer auf den Array-Index ab,
+  // weil die Nummerierung jetzt Aktionen ueberspringt.
+  const fTaste = {};
+  let fn = 0;
+  const punkte = (o.punkte || []).map((p, i) => {
+    const istBildschirm = typeof p.factory === 'function';
+    let taste = '';
+    if (istBildschirm && fn < 12) { fn += 1; taste = `F${fn}`; fTaste[fn] = i; }
+    return { ...p, taste };
+  });
 
   let _aktiverIndex = null;
   const aktiviere = (i, opts = {}) => {
@@ -107,13 +118,11 @@ export function oeffneHub(o) {
     build() {
       anker.title = titelText();
       const items = punkte.map((p, i) => {
-        // Ansage: Name, dann Kurztaste, dann Zusatztext.
-        const teile = [];
-        if (p.taste) teile.push(p.taste);
-        if (p.hint) teile.push(p.hint);
+        // Die F-Taste gehoert INS Label, damit sie beim Fokus mit angesagt wird
+        // ("Charakterstatus, F2"). Der uebrige Hinweis bleibt nur optisch (hint).
         return {
-          label: p.label,
-          hint: teile.join('. '),
+          label: p.taste ? `${p.label}, ${p.taste}` : p.label,
+          hint: p.hint || '',
           detail: p.detail,
           klasse: p.klasse,
           ergebnisId: p.ergebnisId,
@@ -153,7 +162,7 @@ export function oeffneHub(o) {
     else screen.entferneAb(anker);
   }
 
-  _aktiv = { anker, punkte, aktiviere };
+  _aktiv = { anker, punkte, aktiviere, fTaste };
   installiereListener();
   if (o.ersetzen) screen.replace(anker); else screen.push(anker);
   return {

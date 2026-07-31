@@ -6,8 +6,10 @@ import { emit } from '../state.js';
 import * as sprache from '../sprache.js';
 import * as screen from '../ui/screen.js';
 import { menuScreen } from '../ui/menu-screen.js';
+import { versteckeEP } from '../ui/ep-anzeige.js';
 
 export function build() {
+  versteckeEP(); // Im Hauptmenü ist kein einzelner Charakter geladen.
   return menuScreen({
     title: 'Skularis',
     subtitle: 'Hauptmenü — mit Pfeiltasten wählen, Eingabetaste öffnet, Escape zurück.',
@@ -30,24 +32,14 @@ export function build() {
           .catch((e) => { console.error('Meister-Tisch:', e); sprache.sage('Meister-Tisch konnte nicht geöffnet werden.'); }),
       },
       {
-        label: 'Regelnachschlagewerk',
-        hint: 'Alle Regeln alphabetisch, mit Filter',
-        detail: 'Die vollständigen Ilaris-Regeln zum Nachschlagen, ohne dass ein Charakter offen '
-          + 'sein muss. Dasselbe Nachschlagewerk findest du auch im Meister-Tisch und während '
-          + 'eines Abenteuers, dort jeweils mit Bezug auf die Helden.',
-        onSelect: () => Promise.all([import('../core/db-laden.js'), import('./regeln.js')])
-          .then(([dbm, m]) => dbm.ladeDb().then(db => screen.push(m.regelnScreen({ db }))))
-          .catch((e) => { console.error('Regeln:', e); sprache.sage('Regelnachschlagewerk konnte nicht geöffnet werden.'); }),
-      },
-      {
-        label: 'Original Ilaris Regeldokument, vollständig',
-        hint: 'Die komplette Ilaris-PDF als lesbare Seite mit Filter und Kapitelsprung',
-        detail: 'Das vollständige Original-Regeldokument von Ilaris, aus der PDF übernommen und '
-          + 'zum Lesen aufbereitet. Oben ein Filter für die Volltextsuche, Strg und Pfeil springt '
-          + 'zwischen Überschriften, Strg und Bild auf oder ab zwischen Kapiteln, ganz oben das '
-          + 'Inhaltsverzeichnis zum sofortigen Springen.',
-        onSelect: () => import('./regelwerk-lesen.js').then(m => screen.push(m.regelwerkLesenScreen()))
-          .catch((e) => { console.error('Regeldokument:', e); sprache.sage('Regeldokument konnte nicht geöffnet werden.'); }),
+        label: 'Regeln',
+        hint: 'Kurzregelfilter und das ganze Ilaris-Regelwerk',
+        detail: 'Zwei Wege zu den Ilaris-Regeln: der Kurzregelfilter zum schnellen Nachschlagen '
+          + 'einzelner Regeln und das vollständige Gesamtregelwerk aus der PDF zum Lesen. Dieselben '
+          + 'zwei Wege findest du auch im Abenteuertisch und im Meister-Tisch.',
+        onSelect: () => Promise.all([import('../core/db-laden.js'), import('./regeln-menu.js')])
+          .then(([dbm, m]) => dbm.ladeDb().then(db => screen.push(m.regelnMenuScreen({ db }))))
+          .catch((e) => { console.error('Regeln:', e); sprache.sage('Regeln konnten nicht geöffnet werden.'); }),
       },
       {
         label: 'Optionen',

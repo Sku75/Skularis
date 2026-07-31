@@ -5,8 +5,10 @@
 import * as sprache from '../sprache.js';
 import * as screen from '../ui/screen.js';
 import { menuScreen } from '../ui/menu-screen.js';
+import { versteckeEP } from '../ui/ep-anzeige.js';
 
 export function build() {
+  versteckeEP(); // Liste ohne geladenen Einzel-Charakter.
   return menuScreen({
     title: 'Charakterverwaltung',
     subtitle: 'Escape kehrt zum Hauptmenü zurück.',

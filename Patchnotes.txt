@@ -4,6 +4,92 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.27, 31. Juli 2026
+
+
+Kaempfen statt Kampfwerte
+
+In "Meine Initiative-Phase" heisst der Punkt jetzt "Kaempfen". Ganz oben stehen
+die Waffensets: je Set eine Schaltflaeche "Probe wuerfeln" (fragt Attacke oder
+Verteidigung ab) und eine "Schaden wuerfeln". Das Ergebnis erscheint hinter der
+Schaltflaeche und oben im Tooltip. Darunter die abgeleiteten Werte und die
+Kampffertigkeiten.
+
+
+Wuerfelergebnis immer im Tooltip
+
+Bei jedem Wurf steht das Ergebnis jetzt oben im Tooltip: Schnellwuerfe (neu auch
+2 W6), freier Wurf, Kampfproben, Schaden, Manoever und Zauber. Vorher fehlte es
+beim Zaubern.
+
+
+Inventar wird richtig ins Abenteuer geladen
+
+Ein Fehler ist behoben: Gegenstaende am Mann und im Rucksack kamen leer im
+Abenteuer an. Jetzt werden sie korrekt aus dem Charakterbogen ins Abenteuer und
+beim Spieltag-Abschluss wieder zurueck uebertragen. Waffen- und Ruestungssets
+bleiben dabei erhalten.
+
+
+Startkapital und Geldboerse
+
+Das Startkapital der Finanz-Stufe landet jetzt in der Muenzboerse. Aenderst du im
+Editor spaeter die Finanz-Stufe, wirkt die Aenderung als Differenz auf dein
+vorhandenes Geld. Beispiel: Start 32, im Spiel 10 ausgegeben (22), dann
+Startkapital auf 16 geaendert, ergibt 6. Der Geldboerse-Menuepunkt zeigt die
+Muenzzahlen jetzt schon in der Uebersicht.
+
+
+F-Tasten nur fuer Bildschirmwechsel
+
+Am Abenteuertisch schalten die F-Tasten nur noch zwischen den Bildschirmen um;
+"Spielfeld" ist die letzte F-Taste. Speichern und Abenteuertag-Abschluss haben
+keine F-Taste mehr (per Eingabetaste erreichbar). Die F-Taste wird jetzt mit
+angesagt (zum Beispiel "Charakterstatus, F2").
+
+
+Abenteuertag abschliessen und EP erhalten
+
+Ganz unten am Abenteuertisch: "Abenteuertag abschliessen und EP erhalten". Du
+traegst die EP ein, sie werden dem Charakterbogen gutgeschrieben und gespeichert.
+
+
+Notizen, Tagebuch und Mitspieler bearbeiten
+
+Jeder Eintrag hat jetzt ein Untermenue: Vorlesen, Bearbeiten, nach oben oder
+unten verschieben und Loeschen.
+
+
+Regeln in einem Menue
+
+Aus den zwei getrennten Punkten wird einer: "Regeln", darin "Kurzregelfilter"
+und "Gesamtregelwerk Ilaris pdf". Ueberall gleich (Hauptmenue, Abenteuertisch,
+Meistertisch); am Abenteuer- und Meistertisch gibt es jetzt auch das
+Gesamtregelwerk.
+
+
+Kleinere Verbesserungen
+
+Der Charakterstatus zeigt das Einschraenkungs-Ergebnis oben im Tooltip von
+Einschraenkungen, Wunden und Erschoepfung. Das Protokoll hat vorne eine laufende
+Nummer zur Orientierung. Beim Mitspieler steht die zweite Zeile jetzt auch
+sichtbar (nur optisch).
+
+
+EP-Anzeige unten mittig
+
+Ist ein Charakter geladen (Editor oder Abenteuertisch), steht unten in der Mitte
+gut sichtbar "Abenteuerpunkte x von y frei". Am Meistertisch (mehrere Helden) und
+im Hauptmenue wird sie ausgeblendet.
+
+
+Beispiele hinter dem Eingabefeld
+
+Bei den Aussehen-Feldern (Haarfarbe, Groesse, Augenfarbe und so weiter) steht das
+Beispiel jetzt HINTER dem eingetragenen Wert ("Zum Beispiel: ...") und wird auch
+erst nach dem Wert vorgelesen.
+
+
 Version 0.26, 31. Juli 2026
 
 

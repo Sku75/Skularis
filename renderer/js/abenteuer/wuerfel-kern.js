@@ -33,7 +33,14 @@ export function zeigeErgebnis(id, kurz, ansage) {
   const feld = document.querySelector(`[data-ergebnis="${id}"]`);
   if (feld) feld.textContent = kurz;
   const schalter = document.querySelector(`[data-ergebnis-ziel="${id}"]`);
-  if (schalter) schalter.setAttribute('aria-label', ansage);
+  if (schalter) {
+    schalter.setAttribute('aria-label', ansage);
+    // Tooltip-Zwischenspeicher verwerfen, damit mitLetztemWurf beim naechsten
+    // Fokus/Abruf den frischen Wurf zeigt (sonst bleibt der alte Text stehen —
+    // das war der Grund, warum das Zauber-Ergebnis nicht im Tooltip erschien).
+    delete schalter.__detailText;   // Cache der sichtbaren Detailleiste (menu-screen)
+    delete schalter.__detailCache;  // Cache des Vorlese-Tooltips (app.js)
+  }
 }
 
 function fokusAufZiel(id) {
@@ -56,6 +63,8 @@ export function wuerfeln(anzahl, seiten, mod, id, stumm) {
   protokolliere(a, `Wurf ${bez}: ${wuerfe.join(', ')}${summeText}.`);
   speichere();
   const ansage = `Gewürfelt, ${bez}, Ergebnis: ${wuerfe.join(', ')}${summeText}.`;
+  // Auch einfache Wuerfe (Schnellwuerfe, freier Wurf) fuers Tooltip merken.
+  if (id) _letzterWurf[id] = ['Letzter Wurf:', `${bez}: ${wuerfe.join(', ')}${summeText}`];
   zeigeErgebnis(id, mod ? `${wuerfe.join(' ')} = ${summe}` : wuerfe.join(' '), ansage);
   if (!stumm) sprache.sage(ansage);
 }
@@ -246,6 +255,8 @@ export function schadenWurf(o) {
   const bText = o.bonus ? (o.bonus > 0 ? ` plus ${o.bonus}` : ` minus ${-o.bonus}`) : '';
   const zusatz = o.bonusText ? ` (${o.bonusText})` : '';
   const ansage = `Schaden ${o.name}. ${wuerfelText}${bText}${zusatz}. Gesamtschaden ${summe}.`;
+  // Auch den Schaden fuers Tooltip merken (erscheint dann oben im Detail).
+  _letzterWurf[o.id] = ['Letzter Wurf:', `Schaden ${o.name}`, `${wuerfelText}${bText}`, `Gesamtschaden ${summe}`].filter(Boolean);
   protokolliere(a, `Schaden ${o.name}: ${wuerfelText}${bText}, gesamt ${summe}.`);
   speichere();
   zeigeErgebnis(o.id, `Schaden ${summe}`, ansage);

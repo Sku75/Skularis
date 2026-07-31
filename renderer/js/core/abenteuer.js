@@ -7,6 +7,7 @@
  * Spieltag, verdiente AP) ist veränderlich und wird gespeichert.
  */
 import { abgeleiteteWerte } from './regeln.js';
+import { leseInventar, schreibeInventar, ORT_MANN, ORT_RUCKSACK } from './ausruestung.js';
 
 export const SCHEMA_VERSION = 1;
 
@@ -29,32 +30,44 @@ export function ressourcenAusCharakter(char) {
 }
 
 /**
- * Inventar aus dem Charakter übernehmen: Münzbörse und Spielinventar stammen
- * aus den eigenen Skularis-Feldern des Charakterbogens (char.geldboerse,
- * char.spielinventar). Fehlen sie (älterer Bogen), beginnt das Abenteuer leer.
+ * Inventar aus dem Charakter übernehmen: die Münzbörse aus char.geldboerse, die
+ * Gegenstände aus der ECHTEN Ausrüstungsliste des Charakterbogens
+ * (char.ausruestung über leseInventar). "Am Mann" (ORT_MANN) wird zum Gürtel,
+ * ORT_RUCKSACK zum Rucksack. So kommen die im Editor eingetragenen Gegenstände
+ * korrekt ins Abenteuer. Waffen- und Rüstungssets bleiben am Bogen.
  */
 export function inventarAusCharakter(char) {
   const g = (char && char.geldboerse) || {};
-  const si = (char && char.spielinventar) || {};
+  const inv = leseInventar(char || {});
+  const rucksack = [];
+  const guertel = [];
+  for (const item of inv.gegenstaende) {
+    if (item.ort === ORT_RUCKSACK) rucksack.push(item.text);
+    else guertel.push(item.text);
+  }
   return {
     geldboerse: { dukaten: g.dukaten || 0, silber: g.silber || 0, kupfer: g.kupfer || 0 },
-    rucksack: Array.isArray(si.rucksack) ? si.rucksack.map(x => ({ ...x })) : [],
-    guertel: Array.isArray(si.guertel) ? si.guertel.map(x => ({ ...x })) : [],
+    rucksack, guertel,
   };
 }
 
 /**
  * Beim Spieltag-Abschluss zurück in den Charakterbogen: die im Abenteuer
- * veränderte Münzbörse und das Spielinventar werden übernommen. So bleibt der
- * Charakterbogen der eine aktuelle Stand für das nächste Abenteuer.
+ * veränderte Münzbörse und die Gegenstände werden übernommen. Die Gegenstände
+ * gehen zurück in char.ausruestung (über schreibeInventar), die Waffen- und
+ * Rüstungssets des Bogens bleiben dabei erhalten. So transportiert der
+ * Charakterbogen das Inventar in beide Richtungen.
  */
 export function uebernehmeAbenteuerdaten(char, a) {
   const inv = (a && a.inventar) || {};
   char.geldboerse = { ...(inv.geldboerse || { dukaten: 0, silber: 0, kupfer: 0 }) };
-  char.spielinventar = {
-    rucksack: Array.isArray(inv.rucksack) ? inv.rucksack.map(x => ({ ...x })) : [],
-    guertel: Array.isArray(inv.guertel) ? inv.guertel.map(x => ({ ...x })) : [],
-  };
+  // Einträge können Strings (aktuelles Abenteuer-Modell) oder alte {text}-Objekte sein.
+  const alsText = (x) => (typeof x === 'string' ? x : (x && x.text) || '');
+  const gegenstaende = [];
+  for (const x of (inv.guertel || [])) { const t = alsText(x).trim(); if (t) gegenstaende.push({ text: t, ort: ORT_MANN }); }
+  for (const x of (inv.rucksack || [])) { const t = alsText(x).trim(); if (t) gegenstaende.push({ text: t, ort: ORT_RUCKSACK }); }
+  const vorhanden = leseInventar(char); // Waffen-/Rüstungssets erhalten
+  schreibeInventar(char, { gegenstaende, waffenSets: vorhanden.waffenSets, ruestungsSets: vorhanden.ruestungsSets });
 }
 
 export function createAbenteuer(char, name, charakterName, charakterPfad) {
