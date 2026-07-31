@@ -125,7 +125,7 @@ function registriereRadioLautstaerke() {
     if (istTextfeld(e.target)) return;
     if (e.target && e.target.closest && e.target.closest('.ed-zeile')) return; // Wert-Zeile regelt selbst
     e.preventDefault();
-    const v = Math.max(0, Math.min(100, radio.getHoererLautstaerke() + (e.code === 'NumpadAdd' ? 5 : -5)));
+    const v = Math.max(0, Math.min(100, radio.getHoererLautstaerke() + (e.code === 'NumpadAdd' ? 1 : -1)));
     radio.setHoererLautstaerke(v);
     if (ipc && ipc.configSchreiben) { try { ipc.configSchreiben('radio_hoerer_vol', v); } catch { /* egal */ } }
     sprache.sage(`${v}`);

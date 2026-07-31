@@ -4,6 +4,15 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.35, 1. August 2026
+
+
+Radio-Lautstaerke in Einer-Schritten
+
+Plus und Minus am Ziffernblock stellen die Radio-Lautstaerke jetzt in Einer-
+Schritten statt in Fuenfer-Schritten.
+
+
 Version 0.34, 1. August 2026
 
 
