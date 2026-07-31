@@ -46,7 +46,7 @@ function vorteilDetail(char, db, v) {
   if (v.text || v.info) abschnitte.push(['Beschreibung', v.text, v.info]);
 
   if (v.voraussetzungen) {
-    const d = pruefeDetail(char, db, v.voraussetzungen);
+    const d = pruefeDetail(char, db, v.voraussetzungen, v.name);
     const zeilen = [];
     if (d.offen.length) zeilen.push('Es fehlt noch: ' + d.offen.join(', ') + '.');
     if (d.erledigt.length) zeilen.push('Bereits erfüllt: ' + d.erledigt.join(', ') + '.');
@@ -78,7 +78,7 @@ export function vorteileInhalt(box) {
   const habenNamen = new Set(char.vorteile.map(name));
 
   const offen = db.vorteile.filter(v => !habenNamen.has(v.name));
-  const gesperrt = offen.filter(v => !pruefeDetail(char, db, v.voraussetzungen).erfuellt).length;
+  const gesperrt = offen.filter(v => !pruefeDetail(char, db, v.voraussetzungen, v.name).erfuellt).length;
 
   const hinzuBtn = aktionZeile(
     `Vorteil hinzufügen, ${offen.length - gesperrt} verfügbar, ${gesperrt} noch nicht`,
@@ -91,7 +91,7 @@ export function vorteileInhalt(box) {
         eintraege: () => {
           const haben = new Set(char.vorteile.map(name));
           return db.vorteile.filter(v => !haben.has(v.name)).map(v => {
-            const d = pruefeDetail(char, db, v.voraussetzungen);
+            const d = pruefeDetail(char, db, v.voraussetzungen, v.name);
             const kosten = v.variableKosten ? 'variabel' : `${v.kosten} EP`;
             return {
               // "Nicht verfügbar" steht bewusst vorn, damit der Screenreader es
@@ -105,7 +105,7 @@ export function vorteileInhalt(box) {
         },
         onWahl: async (gewaehlt) => {
           const v = db.vorteilByName[gewaehlt];
-          const d = pruefeDetail(char, db, v.voraussetzungen);
+          const d = pruefeDetail(char, db, v.voraussetzungen, v.name);
           const frage = d.erfuellt
             ? `${gewaehlt} wirklich hinzufügen?`
             : `${gewaehlt} ist nicht verfügbar. Es fehlt: ${d.offen.join(', ')}. Trotzdem hinzufügen?`;
@@ -143,7 +143,7 @@ export function vorteileInhalt(box) {
     const v = db.vorteilByName[n];
     const kosten = (typeof eintrag === 'object' && typeof eintrag.kosten === 'number') ? eintrag.kosten : (v ? v.kosten : 0);
     const komm = (typeof eintrag === 'object' && eintrag.kommentar) ? `, ${eintrag.kommentar}` : '';
-    const d = v ? pruefeDetail(char, db, v.voraussetzungen) : { erfuellt: true, offen: [], erledigt: [] };
+    const d = v ? pruefeDetail(char, db, v.voraussetzungen, v.name) : { erfuellt: true, offen: [], erledigt: [] };
     const vorn = d.erfuellt ? '' : 'Voraussetzung fehlt: ';
 
     const zeile = aktionZeile(

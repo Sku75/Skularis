@@ -39,16 +39,30 @@ export function menuScreen(opts) {
   // opts.filter: true erzwingt den Filter, false schaltet ihn ab (feste Menüs
   // wie der Editor-Hub sollen keinen bekommen), sonst ab FILTER_AB Einträgen.
   const brauchtFilter = opts.filter === false ? false : (opts.filter || alleItems.length >= FILTER_AB);
-  let filterText = '';
 
   const obj = {
     title: opts.title,
     build() {
+      // Der Filter-Suchbegriff lebt am dauerhaften Bildschirm-Objekt, NICHT in
+      // einer Closure: Wrapper wie auswahlScreen und die Editor-Bereiche bauen
+      // menuScreen bei jedem screen.refresh() neu auf; eine lokale Variable
+      // spraenge dabei jedes Mal auf leer zurueck — der Filter griffe nie.
+      // owner wird bewusst erst HIER (im build) gelesen: dann ist es in beiden
+      // Mustern der stabile Bildschirm — bei Wrappern der Wrapper, bei direkt
+      // gepushten menuScreens dieses obj selbst. So ueberlebt der Suchbegriff
+      // jeden refresh und startet beim Neuoeffnen frisch.
+      const owner = screen.current();
+      const getFilter = () => (owner && owner.__menuFilter) || '';
+      const setFilter = (v) => { if (owner) owner.__menuFilter = v; };
+      const filterText = getFilter();
       const q = filterText.toLowerCase();
       const sichtbar = q ? alleItems.filter(it => it.label.toLowerCase().includes(q)) : alleItems;
       obj.title = filterText
         ? `${opts.title}, Filter ${filterText}, ${sichtbar.length} Treffer`
         : opts.title;
+      // Den angesagten Bildschirmtitel mitziehen, damit der Screenreader die
+      // Trefferzahl hoert. Der Wrapper setzt seinen Titel vor unserem Aufbau.
+      if (owner && owner !== obj) owner.title = obj.title;
 
       const wrap = document.createElement('div');
       wrap.className = 'db-menu';
@@ -76,7 +90,7 @@ export function menuScreen(opts) {
       const filtern = async () => {
         const eingabe = await textDialog({ titel: 'Filtern', label: 'Suchbegriff eingeben, dann Eingabetaste' });
         if (eingabe === null) return;
-        filterText = eingabe.trim();
+        setFilter(eingabe.trim());
         sounds.playClick();
         screen.refresh();
       };
@@ -89,7 +103,7 @@ export function menuScreen(opts) {
       }
       for (const it of sichtbar) renderItems.push(it);
       if (brauchtFilter && filterText) {
-        renderItems.push({ label: 'Filter aufheben', hint: `zeigt wieder alle ${alleItems.length}`, onSelect: () => { filterText = ''; sounds.playClick(); screen.refresh(); } });
+        renderItems.push({ label: 'Filter aufheben', hint: `zeigt wieder alle ${alleItems.length}`, onSelect: () => { setFilter(''); sounds.playClick(); screen.refresh(); } });
         renderItems.push({ label: 'Filter ändern', hint: 'neuen Suchbegriff eingeben', onSelect: filtern });
       }
 

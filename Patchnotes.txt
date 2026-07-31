@@ -4,6 +4,29 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.25, 31. Juli 2026
+
+
+Der Filter in den Auswahllisten wirkt wieder
+
+Beim Hinzufuegen von Waffen, Ruestung, Vorteilen, Talenten und uebernatuerlichen
+Fertigkeiten sowie im Regeldokument liess sich die Liste ueber "Filtern" oben
+durchsuchen. Der eingegebene Suchbegriff ging aber sofort wieder verloren, sodass
+die Liste ungefiltert stehen blieb. Der Filter merkt sich den Suchbegriff jetzt
+und zeigt nur noch die Treffer, samt Trefferzahl in der Ansage. "Filter aufheben"
+zeigt wieder alle. Beim erneuten Oeffnen einer Liste startet der Filter frisch.
+
+
+Phex und andere Traditionen: Voraussetzung richtig geprueft
+
+Beim Geweihten hat der Vorteil "Tradition der Phexgeweihten" (und ebenso die
+anderen Geweihten-Traditionen) faelschlich "Voraussetzung fehlt" gemeldet, obwohl
+alles erfuellt war. Grund war die Bedingung "keine andere Geweihten-Tradition":
+sie hat die eigene Tradition mitgezaehlt. Jetzt zaehlt bei "Kein Vorteil ..." der
+gerade gepruefte Vorteil sich nicht mehr selbst dagegen, genau wie in Sephrasto.
+Eine wirklich zweite, fremde Tradition sperrt weiterhin korrekt.
+
+
 Version 0.24, 30. Juli 2026
 
 

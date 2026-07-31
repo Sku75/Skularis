@@ -91,8 +91,13 @@ function platzhalterRegex(muster) {
   return new RegExp('^' + escaped.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
 }
 
-function hatVorteil(char, muster) {
-  const namen = (char.vorteile || []).map(v => (typeof v === 'string' ? v : v.name));
+function hatVorteil(char, muster, ausser) {
+  let namen = (char.vorteile || []).map(v => (typeof v === 'string' ? v : v.name));
+  // Bei "Kein Vorteil <Muster>" darf der Vorteil, dessen Voraussetzungen wir
+  // gerade pruefen, sich nicht selbst treffen. Beispiel: die Phex-Tradition hat
+  // "Kein Vorteil Tradition der *geweihten I" — das meint KEINE ANDERE geweihte
+  // Tradition, nicht die eigene. (So macht es auch Sephrasto.)
+  if (ausser) namen = namen.filter(n => n !== ausser);
   if (!/[*?]/.test(muster)) return namen.includes(muster);
   const re = platzhalterRegex(muster);
   return namen.some(n => re.test(n));
@@ -112,9 +117,14 @@ function probenwert(char, db, name, uebernatuerlich) {
 
 // --- Auswerten ------------------------------------------------------------
 
-function pruefeBaustein(char, db, b) {
+function pruefeBaustein(char, db, b, selbst) {
   switch (b.typ) {
-    case 'V': return hatVorteil(char, b.name) === (b.wert === 1);
+    case 'V': {
+      // "Kein Vorteil" (b.wert 0) schliesst den eigenen Vorteil aus, "Vorteil"
+      // (b.wert 1) nicht — dort ist Selbst-Ausschluss unnoetig.
+      const vorhanden = b.wert === 0 ? hatVorteil(char, b.name, selbst) : hatVorteil(char, b.name);
+      return vorhanden === (b.wert === 1);
+    }
     case 'A': return (char.attribute?.[b.name] || 0) >= b.wert;
     case 'M': {
       // Sephrasto, Hilfsmethoden: das Attribut selbst muss den Wert erreichen
@@ -136,10 +146,14 @@ function pruefeBaustein(char, db, b) {
   }
 }
 
-/** Sind alle Voraussetzungen erfüllt? */
-export function pruefe(char, db, text) {
+/**
+ * Sind alle Voraussetzungen erfüllt?
+ * @param {string} [selbst] Name des geprüften Vorteils; wird bei "Kein Vorteil"
+ *   ausgeschlossen (die eigene Tradition zählt nicht gegen "keine andere").
+ */
+export function pruefe(char, db, text, selbst) {
   if (!text) return true;
-  return zerlege(text).every(k => k.alternativen.some(b => pruefeBaustein(char, db, b)));
+  return zerlege(text).every(k => k.alternativen.some(b => pruefeBaustein(char, db, b, selbst)));
 }
 
 /**
@@ -147,11 +161,11 @@ export function pruefe(char, db, text) {
  * @returns {{ erfuellt: boolean, offen: string[], erledigt: string[] }}
  *   offen und erledigt enthalten lesbar aufbereitete Klauseltexte.
  */
-export function pruefeDetail(char, db, text) {
+export function pruefeDetail(char, db, text, selbst) {
   const offen = [];
   const erledigt = [];
   for (const k of zerlege(text)) {
-    const ok = k.alternativen.some(b => pruefeBaustein(char, db, b));
+    const ok = k.alternativen.some(b => pruefeBaustein(char, db, b, selbst));
     (ok ? erledigt : offen).push(lesbar(db, k.text));
   }
   return { erfuellt: offen.length === 0, offen, erledigt };
