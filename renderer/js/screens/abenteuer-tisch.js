@@ -30,6 +30,7 @@ import { regelnScreen } from './regeln.js';
 import { regelnMenuScreen } from './regeln-menu.js';
 import { neuberechne, verfuegbareEP } from '../core/character.js';
 import { zeigeEP, versteckeEP } from '../ui/ep-anzeige.js';
+import { audioBereichScreen } from '../meister/audio-bereich.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -197,6 +198,7 @@ function oeffneHubSpieler(modus) {
       factory: () => regelnMenuScreen({ db: getDb(), charakter: getAbenteuer()?.charakter || null }),
     },
     { label: 'Spielfeld', hint: 'kommt in einer späteren Version', factory: () => spielfeldScreen() },
+    { label: 'Audio', hint: 'Radio-Lautstärke und den Tisch des Meisters anhören', festeTaste: 12, factory: () => audioBereichScreen('spieler') },
     // Aktionen ohne F-Taste (nur per Eingabetaste):
     { label: 'Zwischenspeichern', hint: 'Spielstand sichern', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
   ];

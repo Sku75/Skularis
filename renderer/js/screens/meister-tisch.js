@@ -29,6 +29,7 @@ import { spieltischScreen } from '../meister/spieltisch.js';
 import { szenenBereichScreen } from '../meister/szenen-spielen.js';
 import { texteScreen } from '../meister/texte.js';
 import { meisterNotizenScreen } from '../meister/notizen.js';
+import { audioBereichScreen } from '../meister/audio-bereich.js';
 import { verdeckterWurf } from '../meister/wuerfel.js';
 import { regelnMenuScreen } from './regeln-menu.js';
 import { versteckeEP } from '../ui/ep-anzeige.js';
@@ -162,6 +163,7 @@ function oeffneHub(modus) {
     { label: 'Regeln', hint: 'Kurzregelfilter und das ganze Ilaris-Regelwerk', factory: () => regelnMenuScreen({ db: getDb(), helden: regelHelden() }) },
     { label: 'Protokoll', hint: 'was im Abenteuer passiert ist', factory: () => protokollScreen() },
     { label: 'Gruppenzusammenstellung', hint: 'Helden hinzufuegen und entfernen', factory: () => gruppenzusammenstellungScreen() },
+    { label: 'Audio', hint: 'Klaenge abspielen und ans Radio senden', festeTaste: 12, factory: () => audioBereichScreen('meister') },
     { label: 'Verdeckter Meister-Wurf', hint: 'schnell und leise wuerfeln', ergebnisId: 'meisterwurf', aktion: () => verdeckterMeisterWurf() },
     { label: 'Zwischenspeichern', hint: 'Spielstand sichern', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
   ];

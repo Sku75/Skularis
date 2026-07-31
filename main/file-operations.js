@@ -300,6 +300,43 @@ function gegnerBibSpeichern(pfad, inhalt) {
   return { pfad };
 }
 
+// --- Audio-Dateien (Musik, Hintergrundstimmung, Spontansounds) ---
+
+const AUDIO_ENDUNGEN = /\.(mp3|ogg|oga|wav|m4a|aac|flac|opus|webm)$/i;
+
+// Inhalt eines Audio-Ordners: Unterordner (zum Weiterblaettern) und abspielbare
+// Audio-Dateien. Nur lesen, nichts wird veraendert.
+function audioInhalt(ordner) {
+  if (!ordner || !fs.existsSync(ordner)) return { ordner: [], dateien: [] };
+  let eintraege = [];
+  try { eintraege = fs.readdirSync(ordner, { withFileTypes: true }); } catch { return { ordner: [], dateien: [] }; }
+  const unterordner = eintraege.filter(e => e.isDirectory())
+    .map(e => ({ name: e.name, pfad: path.join(ordner, e.name) }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const dateien = eintraege.filter(e => e.isFile() && AUDIO_ENDUNGEN.test(e.name))
+    .map(e => ({ name: e.name.replace(AUDIO_ENDUNGEN, ''), datei: e.name, pfad: path.join(ordner, e.name) }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  return { ordner: unterordner, dateien };
+}
+
+// Eine Audio-Datei als Bytes lesen — aber nur, wenn sie unter einer erlaubten
+// Wurzel liegt (Audio-Daten oder der vom Meister gewaehlte Ordner). So kann das
+// Menue keine beliebigen Dateien vom Rechner auslesen.
+function audioDatei(pfad, wurzeln) {
+  const ziel = path.resolve(pfad || '');
+  const erlaubt = (wurzeln || []).some((w) => {
+    if (!w) return false;
+    const wr = path.resolve(w);
+    return ziel === wr || ziel.startsWith(wr + path.sep);
+  });
+  if (!erlaubt) return { fehler: 'nicht erlaubt' };
+  try {
+    const buf = fs.readFileSync(ziel);
+    const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    return { bytes: ab };
+  } catch (e) { return { fehler: e.message }; }
+}
+
 // --- Szenenpacks (Meister-Vorbereitung, im Ordner "Meister Daten") ---
 
 function jsonLaden(pfad) {
@@ -345,4 +382,6 @@ module.exports = {
   gegnerBibSpeichern,
   jsonLaden,
   jsonSpeichern,
+  audioInhalt,
+  audioDatei,
 };

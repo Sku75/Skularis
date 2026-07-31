@@ -5,7 +5,7 @@ const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron')
 const path = require('path');
 const fs = require('fs');
 
-const VERSION = 'Skularis 0.30';
+const VERSION = 'Skularis 0.31';
 let mainWindow = null;
 
 // Single Instance Lock
@@ -99,6 +99,24 @@ function getMeisterDatenOrdner() {
   return path.join(getBasisPfad(), 'Meister Daten');
 }
 
+// Ordner für die Audio-Dateien des Meisters (Musik, Hintergrundstimmung,
+// Spontansounds). Liegt neben den anderen Datenordnern und dem Updater, damit
+// der Meister dort einfach Ordner mit Klaengen hineinwerfen kann.
+function getAudioOrdner() {
+  return path.join(getBasisPfad(), 'Audio-Daten');
+}
+
+// Die drei festen Unterordner anlegen, falls sie fehlen — dann sind sie im
+// Audio-Menue sofort da und der Meister weiss, wohin mit seinen Dateien.
+function ensureAudioOrdner() {
+  try {
+    const wurzel = getAudioOrdner();
+    for (const name of ['Musik', 'Hintergrundstimmung', 'Spontansounds']) {
+      fs.mkdirSync(path.join(wurzel, name), { recursive: true });
+    }
+  } catch (e) { console.error('Audio-Ordner anlegen:', e); }
+}
+
 // Verzeichnis mit Regeldaten (datenbank.xml + CharakterAssistent)
 function getDatenPfad() {
   return path.join(getAppPfad(), 'daten');
@@ -150,6 +168,7 @@ require('./ipc-handlers');
 
 app.whenReady().then(() => {
   migriereNutzerdaten();
+  ensureAudioOrdner();
   createWindow();
   const xmlFile = process.argv.find(a => a.endsWith('.xml'));
   if (xmlFile) {
@@ -164,5 +183,5 @@ app.on('window-all-closed', () => { app.quit(); });
 // Expose for ipc-handlers
 module.exports = {
   getMainWindow: () => mainWindow,
-  getBasisPfad, getAppPfad, getCharOrdner, getAbenteuerOrdner, getMeisterOrdner, getMeisterDatenOrdner, getDatenPfad, VERSION,
+  getBasisPfad, getAppPfad, getCharOrdner, getAbenteuerOrdner, getMeisterOrdner, getMeisterDatenOrdner, getAudioOrdner, getDatenPfad, VERSION,
 };

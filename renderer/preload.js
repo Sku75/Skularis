@@ -39,6 +39,10 @@ contextBridge.exposeInMainWorld('skularis', {
     gegnerBibSpeichern:   (inhalt)  => ipcRenderer.invoke('skularis:gegnerbib-speichern', { inhalt }),
     szenenpacksLaden:     ()        => ipcRenderer.invoke('skularis:szenenpacks-laden'),
     szenenpacksSpeichern: (inhalt)  => ipcRenderer.invoke('skularis:szenenpacks-speichern', { inhalt }),
+    audioWurzeln:         ()        => ipcRenderer.invoke('skularis:audio-wurzeln'),
+    audioInhalt:          (ordner)  => ipcRenderer.invoke('skularis:audio-inhalt', { ordner }),
+    audioDatei:           (pfad)    => ipcRenderer.invoke('skularis:audio-datei', { pfad }),
+    audioMeineWaehlen:    ()        => ipcRenderer.invoke('skularis:audio-meine-waehlen'),
 
     onMenuAktion:       (cb) => ipcRenderer.on('skularis:menu-aktion', (_e, d) => cb(d)),
     onDateiVonCli:      (cb) => ipcRenderer.on('skularis:datei-von-cli', (_e, d) => cb(d)),

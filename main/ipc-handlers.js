@@ -175,6 +175,34 @@ ipcMain.handle('skularis:szenenpacks-speichern', (_event, data) => {
   return fileOps.jsonSpeichern(szenenpacksPfad(), data.inhalt);
 });
 
+// --- Audio (Musik, Hintergrundstimmung, Spontansounds) ---
+ipcMain.handle('skularis:audio-wurzeln', () => {
+  const { getAudioOrdner } = require('./main');
+  const wurzel = getAudioOrdner();
+  const meine = settings.laden().audio_meine_pfad || null;
+  return {
+    audioDaten: wurzel,
+    musik: path.join(wurzel, 'Musik'),
+    stimmung: path.join(wurzel, 'Hintergrundstimmung'),
+    spontan: path.join(wurzel, 'Spontansounds'),
+    meineAudios: meine,
+  };
+});
+ipcMain.handle('skularis:audio-inhalt', (_event, data) => {
+  return fileOps.audioInhalt(data.ordner);
+});
+ipcMain.handle('skularis:audio-datei', (_event, data) => {
+  const { getAudioOrdner } = require('./main');
+  const meine = settings.laden().audio_meine_pfad || null;
+  return fileOps.audioDatei(data.pfad, [getAudioOrdner(), meine]);
+});
+ipcMain.handle('skularis:audio-meine-waehlen', () => {
+  const { getMainWindow } = require('./main');
+  const r = fileOps.ordnerWaehlen(getMainWindow(), 'Ordner mit deinen Audios waehlen');
+  if (r && r.pfad) settings.setWert('audio_meine_pfad', r.pfad);
+  return r;
+});
+
 // --- Erschaffungspakete ---
 ipcMain.handle('skularis:pakete-liste', (_event, data) => {
   const { getDatenPfad } = require('./main');

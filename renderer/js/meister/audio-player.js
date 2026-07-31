@@ -1,0 +1,157 @@
+/**
+ * Skularis — Audio-Player fuer den Meister (Musik, Hintergrundstimmung,
+ * Spontansounds), mit sanftem Ein- und Ausblenden und Ueberblenden.
+ *
+ * Aufbau des Klanggraphen (Web Audio):
+ *
+ *   je Klang: BufferSource -> KanalGain --\
+ *                                          mixBus --> monitorGain --> Lautsprecher
+ *                                             \-----> radioDest (Sendestrom fuers Radio)
+ *
+ * Der mixBus buendelt alles, was der Meister abspielt. Von dort geht es zum einen
+ * ueber monitorGain an die eigenen Lautsprecher (dessen Lautstaerke regelt der
+ * Meister fuer sich, ohne die Hoerer zu beeinflussen) und zum anderen in voller
+ * Staerke an radioDest — das ist der Strom, den das Radio an die Spieler sendet.
+ *
+ * Musik und Hintergrundstimmung laufen in Schleife; startet man einen neuen Klang
+ * im selben Kanal, wird der alte weich aus- und der neue eingeblendet
+ * (Ueberblenden). Spontansounds spielen einmal und duerfen sich ueberlagern.
+ */
+
+const ipc = window.skularis?.ipc;
+
+const FADE_EIN = 1.4;      // Sekunden: Musik/Stimmung einblenden
+const FADE_AUS = 1.2;      // Sekunden: ausblenden beim Stoppen/Wechseln
+const FADE_SPONTAN = 0.08; // Sekunden: kurze Einblende gegen Knacken
+
+let _ctx = null;
+let _mixBus = null;
+let _monitor = null;
+let _radioDest = null;
+let _monitorVol = 0.8;
+
+// Laufende Klaenge je Kanal. musik/stimmung: genau einer; spontan: mehrere.
+const _laeuft = { musik: null, stimmung: null };
+const _spontan = new Set();
+const _decodeCache = new Map(); // pfad -> AudioBuffer
+
+function ctx() {
+  if (!_ctx) {
+    _ctx = new (window.AudioContext || window.webkitAudioContext)();
+    _mixBus = _ctx.createGain();
+    _mixBus.gain.value = 1;
+    _monitor = _ctx.createGain();
+    _monitor.gain.value = _monitorVol;
+    _radioDest = _ctx.createMediaStreamDestination();
+    _mixBus.connect(_monitor);
+    _monitor.connect(_ctx.destination);
+    _mixBus.connect(_radioDest);
+  }
+  if (_ctx.state === 'suspended') _ctx.resume();
+  return _ctx;
+}
+
+/** Rohe Bytes einer Datei holen und einmalig dekodieren (danach im Cache). */
+async function ladePuffer(pfad) {
+  if (_decodeCache.has(pfad)) return _decodeCache.get(pfad);
+  const r = await ipc.audioDatei(pfad);
+  if (!r || r.fehler || !r.bytes) throw new Error(r && r.fehler ? r.fehler : 'Datei nicht lesbar');
+  const puffer = await ctx().decodeAudioData(r.bytes);
+  _decodeCache.set(pfad, puffer);
+  return puffer;
+}
+
+function rampe(gain, ziel, dauer) {
+  const t = ctx().currentTime;
+  gain.cancelScheduledValues(t);
+  gain.setValueAtTime(Math.max(0.0001, gain.value), t);
+  if (ziel <= 0) gain.exponentialRampToValueAtTime(0.0001, t + dauer);
+  else gain.linearRampToValueAtTime(ziel, t + dauer);
+}
+
+/** Einen laufenden Klang weich ausblenden und danach stoppen. */
+function blendeAus(eintrag, dauer = FADE_AUS) {
+  if (!eintrag) return;
+  try {
+    rampe(eintrag.gain.gain, 0, dauer);
+    eintrag.source.stop(ctx().currentTime + dauer + 0.05);
+  } catch { /* schon gestoppt */ }
+}
+
+/**
+ * Musik oder Hintergrundstimmung abspielen (Schleife, mit Ueberblenden).
+ * @param {'musik'|'stimmung'} kanal
+ * @param {{pfad:string, name:string}} datei
+ */
+export async function spieleSchleife(kanal, datei) {
+  const puffer = await ladePuffer(datei.pfad);
+  const c = ctx();
+  const source = c.createBufferSource();
+  source.buffer = puffer;
+  source.loop = true;
+  const gain = c.createGain();
+  gain.gain.value = 0.0001;
+  source.connect(gain);
+  gain.connect(_mixBus);
+  // Den bisherigen Klang dieses Kanals ausblenden, den neuen einblenden.
+  blendeAus(_laeuft[kanal]);
+  source.start();
+  rampe(gain.gain, 1, FADE_EIN);
+  _laeuft[kanal] = { source, gain, name: datei.name, pfad: datei.pfad };
+}
+
+/** Einen Spontansound einmal abspielen (darf sich ueberlagern). */
+export async function spieleEinmal(datei) {
+  const puffer = await ladePuffer(datei.pfad);
+  const c = ctx();
+  const source = c.createBufferSource();
+  source.buffer = puffer;
+  const gain = c.createGain();
+  gain.gain.value = 0.0001;
+  source.connect(gain);
+  gain.connect(_mixBus);
+  const eintrag = { source, gain, name: datei.name };
+  _spontan.add(eintrag);
+  source.onended = () => { try { gain.disconnect(); } catch { /* egal */ } _spontan.delete(eintrag); };
+  source.start();
+  rampe(gain.gain, 1, FADE_SPONTAN);
+}
+
+/** Einen Schleifen-Kanal stoppen (mit Ausblenden). */
+export function stoppeKanal(kanal) {
+  if (_laeuft[kanal]) { blendeAus(_laeuft[kanal]); _laeuft[kanal] = null; }
+}
+
+/** Alles stoppen: beide Schleifen und alle Spontansounds. */
+export function stoppeAlles() {
+  stoppeKanal('musik');
+  stoppeKanal('stimmung');
+  for (const e of _spontan) { try { e.source.stop(); } catch { /* egal */ } }
+  _spontan.clear();
+}
+
+/** Was laeuft gerade in einem Schleifen-Kanal? (Name oder null) */
+export function laeuftName(kanal) {
+  return _laeuft[kanal] ? _laeuft[kanal].name : null;
+}
+
+/** Eigene Abhoer-Lautstaerke (0 bis 100) — beeinflusst NICHT die Hoerer. */
+export function setMonitorLautstaerke(prozent) {
+  _monitorVol = Math.max(0, Math.min(1, prozent / 100));
+  if (_monitor) rampe(_monitor.gain, Math.max(0.0001, _monitorVol), 0.15);
+}
+
+export function getMonitorLautstaerke() {
+  return Math.round(_monitorVol * 100);
+}
+
+/** Der Sendestrom fuers Radio (ein Audio-Track mit dem gesamten Mix). */
+export function getSendeStrom() {
+  ctx();
+  return _radioDest.stream;
+}
+
+/** Laeuft gerade irgendetwas? */
+export function istAktiv() {
+  return Boolean(_laeuft.musik || _laeuft.stimmung || _spontan.size);
+}

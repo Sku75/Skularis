@@ -71,12 +71,30 @@ export function oeffneHub(o) {
   // Speichern/Spieltag-Abschluss bekommen keine F-Taste, bleiben aber per
   // Eingabetaste erreichbar. fTaste bildet die F-Nummer auf den Array-Index ab,
   // weil die Nummerierung jetzt Aktionen ueberspringt.
+  //
+  // Ein Punkt darf eine feste Taste verlangen (festeTaste: 12) — dann bekommt er
+  // immer diese Nummer (z. B. Audio auf F12 an beiden Tischen); die uebrigen
+  // Bildschirme fuellen die restlichen Nummern auf und ueberspringen die festen.
   const fTaste = {};
+  const punkteRaw = o.punkte || [];
+  const fest = new Set();
+  punkteRaw.forEach((p, i) => {
+    if (typeof p.factory === 'function' && Number.isInteger(p.festeTaste)
+      && p.festeTaste >= 1 && p.festeTaste <= 12 && !fest.has(p.festeTaste)) {
+      fest.add(p.festeTaste); fTaste[p.festeTaste] = i;
+    }
+  });
   let fn = 0;
-  const punkte = (o.punkte || []).map((p, i) => {
+  const naechsteFreie = () => { do { fn += 1; } while (fn <= 12 && fest.has(fn)); return fn; };
+  const punkte = punkteRaw.map((p, i) => {
     const istBildschirm = typeof p.factory === 'function';
     let taste = '';
-    if (istBildschirm && fn < 12) { fn += 1; taste = `F${fn}`; fTaste[fn] = i; }
+    if (Number.isInteger(p.festeTaste) && fTaste[p.festeTaste] === i) {
+      taste = `F${p.festeTaste}`;
+    } else if (istBildschirm) {
+      const nr = naechsteFreie();
+      if (nr <= 12) { taste = `F${nr}`; fTaste[nr] = i; }
+    }
     return { ...p, taste };
   });
 

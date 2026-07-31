@@ -4,6 +4,32 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.31, 1. August 2026
+
+
+Audio-Bereich und Online-Radio (F12 an beiden Tischen)
+
+Neu an beiden Tischen unter F12 der Bereich "Audio".
+
+Fuer den Meister: Ein Ordner "Audio-Daten" liegt neben dem Programm (mit den
+Unterordnern Musik, Hintergrundstimmung und Spontansounds). Wirf dort deine
+Klangdateien hinein (mp3, ogg, wav und mehr), sie erscheinen im Menue. Enter
+spielt: Musik und Hintergrundstimmung laufen in Schleife und werden beim Wechsel
+sanft ueberblendet, Spontansounds spielen einmal; alles blendet weich ein und
+aus. Zusaetzlich kannst du unter "Meine Audios" einen eigenen Ordner waehlen.
+Eine eigene Audio-Lautstaerke regelt, wie laut du selbst hoerst.
+
+Das Online-Radio: Erzeuge unten einen Schluessel und starte das Senden. Deine
+Spieler geben den Schluessel bei sich unter Audio, "Tisch anhoeren" ein und
+hoeren dann live, was du abspielst. Kein eigener Server und kein Konto noetig.
+Bei jedem neuen Hoerer bekommst du einen kurzen Ton und die aktuelle Hoererzahl;
+die Spieler hoeren "verbunden". Die Radio-Lautstaerke ist bei allen ein eigener
+Kanal, getrennt von den uebrigen Toenen.
+
+Hinweis: Wenn ein Spieler hinter einer sehr strengen Firewall sitzt, kann die
+Verbindung scheitern; dann melde dich, wir schalten einen Umleiter dazu.
+
+
 Version 0.30, 31. Juli 2026
 
 
