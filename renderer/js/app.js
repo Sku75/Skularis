@@ -14,6 +14,7 @@ import * as reiterHub from './ui/reiter-hub.js';
 import * as startScreen from './screens/start.js';
 import { hatInhalt } from './core/infotext.js';
 import { audioBereichScreen } from './meister/audio-bereich.js';
+import * as radio from './net/radio.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -44,6 +45,7 @@ async function init() {
   initKopfzeile();
   registriereEscape();
   registriereAudioTaste();
+  registriereRadioLautstaerke();
   registriereQuit();
 
   // Keine eigene Fokus-Ansage mehr: NVDA liest fokussierte Elemente selbst einmal
@@ -106,6 +108,27 @@ function registriereAudioTaste() {
     const scr = audioBereichScreen('spieler');
     scr._audioBereich = true;
     screen.push(scr);
+  }, true);
+}
+
+// --- Radio-Lautstaerke am Ziffernblock (global) ---
+//
+// Plus und Minus am Ziffernblock stellen ueberall die Radio-Lautstaerke lauter
+// und leiser (der eigene Radio-Kanal des Clients). Ohne Klangeffekt, es wird nur
+// die Zahl angesagt. Steht der Fokus auf einer Wert-Zeile (eigener Regler),
+// bleibt deren Plus/Minus unangetastet.
+function registriereRadioLautstaerke() {
+  document.addEventListener('keydown', (e) => {
+    if (e.code !== 'NumpadAdd' && e.code !== 'NumpadSubtract') return;
+    if (e.ctrlKey || e.altKey || e.shiftKey) return;
+    if (document.querySelector('dialog[open]')) return;
+    if (istTextfeld(e.target)) return;
+    if (e.target && e.target.closest && e.target.closest('.ed-zeile')) return; // Wert-Zeile regelt selbst
+    e.preventDefault();
+    const v = Math.max(0, Math.min(100, radio.getHoererLautstaerke() + (e.code === 'NumpadAdd' ? 5 : -5)));
+    radio.setHoererLautstaerke(v);
+    if (ipc && ipc.configSchreiben) { try { ipc.configSchreiben('radio_hoerer_vol', v); } catch { /* egal */ } }
+    sprache.sage(`${v}`);
   }, true);
 }
 

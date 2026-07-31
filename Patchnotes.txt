@@ -4,6 +4,16 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.34, 1. August 2026
+
+
+Radio-Lautstaerke am Ziffernblock, leiseres Verstellen
+
+Plus und Minus am Ziffernblock stellen jetzt ueberall die Radio-Lautstaerke
+lauter und leiser (der eigene Radio-Kanal). Beim Verstellen der Lautstaerke gibt
+es keinen Klang mehr, es wird nur die neue Zahl angesagt.
+
+
 Version 0.33, 1. August 2026
 
 

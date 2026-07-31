@@ -59,12 +59,14 @@ export function wertZeile(o) {
     e.stopPropagation();
     const v = o.get();
     const nv = Math.max(o.min, Math.min(o.max, v + delta));
-    if (nv === v) { sounds.playError(); return; }
+    if (nv === v) { if (!o.ohneTon) sounds.playError(); return; }
     o.set(nv);
-    if (delta > 0) sounds.playWertHoch(); else sounds.playWertRunter();
+    // o.ohneTon: kein Klick beim Verstellen (z. B. bei Lautstaerke-Reglern).
+    if (!o.ohneTon) { if (delta > 0) sounds.playWertHoch(); else sounds.playWertRunter(); }
     render();
     const zusatz = o.onChange ? (o.onChange(nv, delta) || '') : '';
-    sprache.sage(`${o.label} ${nv}${zusatz ? ', ' + zusatz : ''}`);
+    // o.nurWert: nur die Zahl ansagen (z. B. Lautstaerke), sonst Label und Wert.
+    sprache.sage(o.nurWert ? `${nv}` : `${o.label} ${nv}${zusatz ? ', ' + zusatz : ''}`);
   });
 
   row.__render = render;

@@ -155,7 +155,7 @@ function meisterScreen() {
       wrap.appendChild(wertZeile({
         label: 'Meine Audio-Lautstaerke', get: () => player.getMonitorLautstaerke(),
         set: (v) => { player.setMonitorLautstaerke(v); merke('audio_monitor_vol', v); },
-        min: 0, max: 100,
+        min: 0, max: 100, ohneTon: true, nurWert: true,
         detail: 'Wie laut du die Klaenge selbst hoerst. Aendert nicht, wie laut die Spieler hoeren.',
       }));
 
@@ -234,8 +234,8 @@ function spielerScreen() {
       wrap.appendChild(wertZeile({
         label: 'Radio-Lautstaerke', get: () => radio.getHoererLautstaerke(),
         set: (v) => { radio.setHoererLautstaerke(v); merke('radio_hoerer_vol', v); },
-        min: 0, max: 100,
-        detail: 'Wie laut du den Ton des Meisters hoerst. Ein eigener Kanal, getrennt von den uebrigen Toenen.',
+        min: 0, max: 100, ohneTon: true, nurWert: true,
+        detail: 'Wie laut du den Ton des Meisters hoerst. Ein eigener Kanal, getrennt von den uebrigen Toenen. Am Ziffernblock stellen Plus und Minus die Radio-Lautstaerke ueberall.',
       }));
 
       const letzter = (_config && _config.radio_letzter_schluessel) || '';
