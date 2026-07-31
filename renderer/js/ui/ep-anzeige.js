@@ -1,7 +1,7 @@
 /**
  * Skularis — feste EP-Anzeige unten mittig.
  *
- * Zeigt "Abenteuerpunkte x von y" gut sichtbar, wenn GENAU EIN Charakter geladen
+ * Zeigt "Erfahrungspunkte x von y" gut sichtbar, wenn GENAU EIN Charakter geladen
  * ist (Editor, Abenteuertisch). Rein optisch für Sehende; Blinde bekommen die EP
  * über die Menüs. Am Meistertisch (mehrere Helden) und im Hauptmenü ausgeblendet.
  */
@@ -13,12 +13,12 @@ function box() {
 
 /**
  * EP anzeigen. frei = noch verfügbare EP, gesamt = Gesamt-EP.
- * Dargestellt als "Abenteuerpunkte frei von gesamt frei".
+ * Dargestellt als "Erfahrungspunkte frei von gesamt frei".
  */
 export function zeigeEP(frei, gesamt) {
   const b = box();
   if (!b) return;
-  b.textContent = `Abenteuerpunkte ${frei} von ${gesamt} frei`;
+  b.textContent = `Erfahrungspunkte ${frei} von ${gesamt} frei`;
   b.classList.add('sichtbar');
 }
 

@@ -5,7 +5,7 @@ const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron')
 const path = require('path');
 const fs = require('fs');
 
-const VERSION = 'Skularis 0.27';
+const VERSION = 'Skularis 0.28';
 let mainWindow = null;
 
 // Single Instance Lock

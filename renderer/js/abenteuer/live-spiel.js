@@ -263,11 +263,9 @@ export function charakterstatusScreen() {
         }));
       }
 
-      // Kampfwerte, nur lesbar
+      // Kampfwerte, nur lesbar. Die acht Attribute werden hier bewusst NICHT
+      // mehr aufgezählt (Wunsch): sie stehen im Charakterbogen.
       wrap.appendChild(abschnittTitel('Werte zum Lesen'));
-      for (const k of ['KO', 'MU', 'GE', 'KK', 'IN', 'KL', 'CH', 'FF']) {
-        wrap.appendChild(infoZeile(`${ATTR_NAME[k]} ${k}: ${char.attribute[k] || 0}`));
-      }
       wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Schaden, der über diesem Wert liegt, verursacht eine Wunde; über dem Doppelten zwei, über dem Dreifachen drei, und so weiter. Grundwert ohne Rüstung: 4 plus Konstitution durch 4.'));
       wrap.appendChild(infoZeile(`Magieresistenz: ${w.MR}`, '4 plus Mut durch 4.'));
       wrap.appendChild(infoZeile(`Geschwindigkeit: ${w.GS}`, '4 plus Gewandtheit durch 4, minus Behinderung.'));

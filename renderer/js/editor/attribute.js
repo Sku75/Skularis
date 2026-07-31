@@ -47,6 +47,37 @@ export function attributeInhalt(box) {
   box.appendChild(zeilePunkte);
   box.appendChild(zeileEP);
   summenAktualisieren();
+
+  // Energien (AsP/KaP/GuP) hier bei den anderen Werten steigern — nur, wenn ein
+  // Vorteil (Zauberer/Geweiht/Paktierer) einen Grundwert verleiht. Jeder zugekaufte
+  // Punkt kostet nach Steigerungsfaktor eins (der n-te n EP); nur die Zukäufe zählen.
+  const ENERGIE_NAME = { AsP: 'Astralpunkte', KaP: 'Karmapunkte', GuP: 'Gunstpunkte' };
+  const energien = Object.entries(char.energien || {}).filter(([, e]) => (e.basis || 0) > 0);
+  if (energien.length) {
+    box.appendChild(abschnittTitel('Energien'));
+    for (const [ename, e] of energien) {
+      const name = ENERGIE_NAME[ename] || ename;
+      const basis = e.basis || 0;
+      const mod = e.mod || 0;
+      box.appendChild(wertZeile({
+        label: `${name}, Grundwert ${basis}`,
+        get: () => e.gekauft || 0,
+        set: (v) => { e.gekauft = v; },
+        min: 0,
+        max: 999,
+        suffix: () => `zusätzlich, gesamt ${basis + mod + (e.gekauft || 0)}`,
+        onChange: () => editor.epAnsage(),
+        detail: () => {
+          const g = e.gekauft || 0;
+          const kosten = g * (g + 1) / 2;
+          return `${name}. Grundwert aus Vorteilen ${basis}${mod ? `, Aufschlag ${mod}` : ''}, `
+            + `zugekauft ${g}, gesamt ${basis + mod + g}. `
+            + `Der nächste Punkt kostet ${g + 1} EP; die ${g} zugekauften kosten zusammen ${kosten} EP. `
+            + 'Steigerungsfaktor eins.';
+        },
+      }));
+    }
+  }
 }
 
 export function attributeScreen() {

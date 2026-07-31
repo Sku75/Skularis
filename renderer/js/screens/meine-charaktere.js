@@ -1,6 +1,6 @@
 /**
  * Skularistool — Meine Charaktere (Bibliothek)
- * Auflisten, öffnen, Abenteuerpunkte hinzufügen, als HTML exportieren, löschen.
+ * Auflisten, öffnen, Erfahrungspunkte hinzufügen, als HTML exportieren, löschen.
  * Import einer externen Sephrasto-XML. Alle Charaktere liegen als .xml im
  * Ordner Charakter-Dateien.
  */
@@ -10,7 +10,7 @@ import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import * as editor from '../editor/editor.js';
 import { aktionZeile, infoZeile, abschnittTitel } from '../editor/widgets.js';
-import { auswahlDialog, zahlDialog } from '../ui/dialog.js';
+import { auswahlDialog, zahlDialog, jaNeinDialog } from '../ui/dialog.js';
 import { ladeDb } from '../core/db-laden.js';
 import { parse, serialisiere } from '../core/sephrasto-xml.js';
 import { exportHtml } from '../core/export-html.js';
@@ -55,7 +55,7 @@ function listeScreen() {
         return;
       }
       for (const c of daten) {
-        liste.appendChild(aktionZeile(c.name, () => screen.push(charakterMenu(c)), 'Öffnen, Abenteuerpunkte, Export, Löschen'));
+        liste.appendChild(aktionZeile(c.name, () => screen.push(charakterMenu(c)), 'Öffnen, Erfahrungspunkte, Export, Löschen'));
       }
     },
   };
@@ -73,8 +73,8 @@ function charakterMenu(c) {
         sounds.playOeffnen();
         editor.bearbeite(parsed);
       } },
-      { label: 'Abenteuerpunkte hinzufügen', hint: 'Erhöht die Gesamt-EP', onSelect: async () => {
-        const menge = await zahlDialog({ titel: 'Abenteuerpunkte hinzufügen', label: 'EP hinzufügen', wert: 0, min: -100000, max: 100000 });
+      { label: 'Erfahrungspunkte hinzufügen', hint: 'Erhöht die Gesamt-EP', onSelect: async () => {
+        const menge = await zahlDialog({ titel: 'Erfahrungspunkte hinzufügen', label: 'EP hinzufügen', wert: 0, min: -100000, max: 100000 });
         if (!menge) return;
         const { db, parsed } = await ladeChar(c);
         parsed.erfahrung.gesamt = (parsed.erfahrung.gesamt || 0) + menge;
@@ -89,7 +89,7 @@ function charakterMenu(c) {
         sprache.sage(`${c.name} als HTML im Ordner Charakter-Dateien gespeichert.`);
       } },
       { label: 'Charakter löschen', hint: 'Entfernt die Datei', onSelect: async () => {
-        const ja = await auswahlDialog({ titel: `${c.name} löschen?`, eintraege: [{ label: 'Ja, löschen', wert: true }, { label: 'Abbrechen', wert: false }] });
+        const ja = await jaNeinDialog({ titel: 'Charakter löschen', frage: `${c.name} wirklich löschen?`, jaLabel: 'Ja, löschen', neinLabel: 'Nein, behalten' });
         if (!ja) return;
         await ipc.bibliothekLoeschen(c.pfad);
         sounds.playLoeschen();

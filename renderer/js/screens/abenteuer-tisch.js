@@ -7,7 +7,7 @@
  *   3. Abenteuer spielen, Spieltag öffnen (Spieltag-Kreislauf)
  *
  * Der Hub kennt zwei Modi: "bearbeiten" (Speichern und zurück) und "spielen"
- * (Spieltag abschließen: Abenteuerpunkte an den Charakter, dann Hauptmenü).
+ * (Spieltag abschließen: Erfahrungspunkte an den Charakter, dann Hauptmenü).
  * Der aktive Spielstand liegt in abenteuer/state.js, gespeichert wird atomar.
  */
 import * as screen from '../ui/screen.js';
@@ -260,7 +260,7 @@ async function spieltagAbschliessen() {
   const ap = await zahlDialog({ titel: 'Abenteuertag abschließen', label: 'Erhaltene Erfahrungspunkte (EP)', wert: 0, min: 0, max: 100000 });
   if (ap === null) return;
 
-  // Beim Abschluss den Charakterbogen aktualisieren: Abenteuerpunkte,
+  // Beim Abschluss den Charakterbogen aktualisieren: Erfahrungspunkte,
   // Münzbörse und Spielinventar. Der Bogen wird frisch von der Platte geladen,
   // damit zwischenzeitliche Editor-Änderungen (Steigern) nicht verloren gehen.
   let charOk = true;
@@ -284,14 +284,14 @@ async function spieltagAbschliessen() {
   }
 
   a.apGesamt += ap;
-  protokolliere(a, `Spieltag ${a.spieltag} abgeschlossen. ${ap} Abenteuerpunkte, Finanzen und Inventar an ${a.charakterName} übertragen.`);
+  protokolliere(a, `Spieltag ${a.spieltag} abgeschlossen. ${ap} Erfahrungspunkte, Finanzen und Inventar an ${a.charakterName} übertragen.`);
   a.spieltag += 1;
   await speichere();
   sounds.playSpeichern();
 
   // Zurück zum Hauptmenü, dann die Bestätigung ansagen (überschreibt die Menü-Ansage).
   screen.zuWurzel();
-  const apText = ap > 0 ? `${ap} Abenteuerpunkte, ` : '';
+  const apText = ap > 0 ? `${ap} Erfahrungspunkte, ` : '';
   const meldung = charOk
     ? `Charakterbogen aktualisiert: ${apText}Finanzen und Inventar gespeichert. Abenteuer gespeichert, nächster Spieltag ist ${a.spieltag}. Zurück im Hauptmenü.`
     : `Abenteuer gespeichert. Achtung, der Charakterbogen konnte nicht aktualisiert werden. Zurück im Hauptmenü.`;

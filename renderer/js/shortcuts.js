@@ -120,8 +120,8 @@ export function registriereStandards() {
   registriere('Alt+ArrowLeft', () => emit('reiter-voriger'), 'Voriger Reiter');
   registriere('Alt+ArrowRight', () => emit('reiter-naechster'), 'Nächster Reiter');
 
-  // AP
-  registriere('Ctrl+P', () => emit('aktion', { aktion: 'ap_hinzufuegen' }), 'AP hinzufügen');
+  // EP
+  registriere('Ctrl+P', () => emit('aktion', { aktion: 'ap_hinzufuegen' }), 'EP hinzufügen');
 
   // Sonstiges
   registriere('Ctrl+I', () => emit('aktion', { aktion: 'info_reiter' }), 'Info-Reiter öffnen');

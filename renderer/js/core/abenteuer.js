@@ -4,7 +4,7 @@
  * Ein Abenteuer ist ein eigener Spielstand (JSON). Der Charakter nimmt teil:
  * beim Erstellen wird eine Momentaufnahme übernommen (nur zum Ansehen), der
  * Sitzungszustand (Ressourcen, Inventar, Notizen, Tagebuch, Mitspieler, Protokoll,
- * Spieltag, verdiente AP) ist veränderlich und wird gespeichert.
+ * Spieltag, verdiente EP) ist veränderlich und wird gespeichert.
  */
 import { abgeleiteteWerte } from './regeln.js';
 import { leseInventar, schreibeInventar, ORT_MANN, ORT_RUCKSACK } from './ausruestung.js';

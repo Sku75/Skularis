@@ -4,6 +4,35 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.28, 31. Juli 2026
+
+
+Energien mit EP steigern
+
+Astralpunkte, Karmapunkte und Gunstpunkte lassen sich jetzt im Editor steigern,
+und zwar bei den anderen Werten auf der Attribute-Seite (unten unter
+"Energien"). Voraussetzung ist ein Vorteil, der die Energie verleiht (Zauberer,
+Geweiht oder Paktierer). Jeder zusaetzliche Punkt kostet nach Steigerungsfaktor
+eins (der erste einen EP, der zweite zwei, und so weiter); nur die zugekauften
+Punkte zaehlen, nicht der Grundwert aus dem Vorteil. Das entspricht dem
+Ilaris-Regelwerk und geht bei der Erstellung wie spaeter beim Steigern.
+
+
+Nur noch EP, keine Abenteuerpunkte
+
+Ilaris kennt nur Erfahrungspunkte (EP). Ueberall, wo frueher "Abenteuerpunkte"
+oder "AP" stand, steht jetzt "Erfahrungspunkte" beziehungsweise "EP" - in der
+Anzeige unten mittig, in "Meine Charaktere", beim Abenteuertag-Abschluss und in
+den Tastenkuerzeln.
+
+
+Kleinere Korrekturen
+
+Der Charakterstatus zaehlt die acht Attribute nicht mehr auf (sie stehen im
+Charakterbogen). Beim Loeschen eines Charakters kommt jetzt eine klare
+Ja-Nein-Abfrage.
+
+
 Version 0.27, 31. Juli 2026
 
 
