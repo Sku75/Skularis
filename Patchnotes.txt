@@ -4,6 +4,27 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.30, 31. Juli 2026
+
+
+Jeder Charakter hat ein Waffenlos-Set
+
+Jeder Charakter bekommt jetzt automatisch ein Set "Waffenlos", das ganz vorne
+steht. Es traegt die bloße Hand als Waffe (Fertigkeit Handgemenge) und
+funktioniert am Spieltisch wie jedes andere Set: du kannst damit Attacke,
+Parade und Schaden wuerfeln, auch ohne eigene Waffe. Alte Charaktere werden beim
+Oeffnen automatisch angepasst. Das Waffenlos-Set steht in der Setverwaltung, kann
+dort aber nicht veraendert werden. Damit ist auch der Fehler behoben, dass das
+Wuerfeln ohne Waffe nicht ging.
+
+
+Schadenswurf: erst das Ergebnis
+
+Beim Schaden-Wuerfeln wird jetzt zuerst das Ergebnis angesagt ("Schaden X") und
+danach die Rechnung. Auch im Tooltip steht oben das Ergebnis (Schaden Ergebnis X)
+und darunter die Wuerfel und Boni.
+
+
 Version 0.29, 31. Juli 2026
 
 

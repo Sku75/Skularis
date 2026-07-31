@@ -376,8 +376,18 @@ function waffensetScreen(index) {
         'Haupthand und Nebenhand sind die Waffen, die du gleichzeitig führst. Der Fernkampfplatz '
         + 'ist für Bogen, Armbrust oder Wurfwaffen. Ein leerer Platz bedeutet freie Hand.'));
 
+      const fest = set.name === SET_WAFFENLOS;
+      if (fest) {
+        wrap.appendChild(infoZeile('Fester Eintrag',
+          'Das Waffenlos-Set hat jeder Charakter. Es trägt die bloße Hand und kann nicht '
+          + 'verändert werden, damit du immer waffenlos würfeln kannst.'));
+      }
       for (const slot of SLOTS) {
         const feld = slot.toLowerCase();
+        if (fest) {
+          wrap.appendChild(infoZeile(`${slot}: ${set[feld] || 'frei'}`));
+          continue;
+        }
         wrap.appendChild(aktionZeile(`${slot}: ${set[feld] || 'frei'}`, () => {
           const passend = char.waffen.filter(w => (slot === 'Fernkampf')
             === istFernkampf(db, w));

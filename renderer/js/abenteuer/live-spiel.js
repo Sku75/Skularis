@@ -10,7 +10,7 @@ import { wertZeile, infoZeile, abschnittTitel, verbindeDetail } from '../editor/
 import { zahlDialog, knopfDialog } from '../ui/dialog.js';
 import { abgeleiteteWerte, waffenwerte, waffenwerteText, fertigkeitProbenwert, wundabzug } from '../core/regeln.js';
 import { getDb } from '../core/db-laden.js';
-import { leseInventar, istFernkampf, SLOTS, SET_WAFFENLOS } from '../core/ausruestung.js';
+import { leseInventar, istFernkampf, SLOTS, SET_WAFFENLOS, ergaenzeSets } from '../core/ausruestung.js';
 import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
 import { wuerfeln, kampfProbe, schadenWurf, mitLetztemWurf, letztesKurz } from './wuerfel-kern.js';
@@ -77,6 +77,9 @@ export function kampfwerteScreen() {
       const db = getDb();
       const w = abgeleiteteWerte(char);
       const findW = (n) => (n ? (char.waffen || []).find(x => x.name === n) || null : null);
+      // Sicherstellen, dass das Waffenlos-Set mit der "Hand" vorne steht (adaptiert
+      // auch alte Charaktere) — dann würfelt Waffenlos wie jedes Set.
+      ergaenzeSets(char, db);
       const inv = leseInventar(char);
       const sets = inv.waffenSets || [];
       if (sets.length) _kampfSet = Math.max(0, Math.min(sets.length - 1, _kampfSet));

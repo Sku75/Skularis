@@ -152,20 +152,48 @@ export function inSetEnthalten(sets, waffenName) {
 }
 
 /**
+ * Die "Hand" als echte, waffenlose Standardwaffe (Ilaris-Datenbank, Fertigkeit
+ * Handgemenge). Damit funktioniert das Waffenlos-Set wie jedes Waffenset und wird
+ * von Sephrasto behalten (id bekannt). Baut das Waffenobjekt aus der Datenbank.
+ */
+export const HAND_WAFFE = 'Hand';
+function baueHand(db) {
+  const def = (db && db.waffen) ? db.waffen.find(x => x.name === HAND_WAFFE) : null;
+  return {
+    name: HAND_WAFFE, id: HAND_WAFFE, kampfstil: 'Kein Kampfstil',
+    wuerfel: def ? (parseInt(def['würfel'], 10) || 1) : 1,
+    wuerfelSeiten: def ? (parseInt(def['würfelSeiten'], 10) || 6) : 6,
+    plus: def ? (parseInt(def.plus, 10) || 0) : 0,
+    eigenschaften: '',
+    haerte: def ? (parseInt(def['härte'], 10) || 1) : 1,
+    rw: 0, wm: 0, typ: 'Nah',
+  };
+}
+
+/**
  * Die Sets in Ordnung halten:
- *   Ein Set "Waffenlos" gibt es immer, als Vergleichspunkt und für Faustkampf.
- *   Jede Waffe, die in keinem Set steht, bekommt eines — Fernkampfwaffen in den
- *   Fernkampf-Slot, alles andere in die Haupthand. So hat man nach dem Kauf der
- *   ersten Waffe sofort ein brauchbares Set, ohne etwas einstellen zu müssen.
+ *   Das Set "Waffenlos" gibt es IMMER, steht ganz vorne und trägt die "Hand" in
+ *   der Haupthand — so kann man ohne eigene Waffe würfeln (Faustkampf) und alte
+ *   Charaktere werden beim Laden automatisch angepasst. Es ist nicht veränderbar.
+ *   Jede weitere Waffe, die in keinem Set steht, bekommt eines — Fernkampfwaffen
+ *   in den Fernkampf-Slot, alles andere in die Haupthand.
  * @returns {string[]} Namen der neu angelegten Sets
  */
 export function ergaenzeSets(char, db) {
   const neu = [];
+  // Sicherstellen, dass die "Hand" in der Waffenliste steht (adaptiert Altbögen).
+  char.waffen = char.waffen || [];
+  if (!char.waffen.some(w => (w.id || w.name) === HAND_WAFFE)) {
+    char.waffen.unshift(baueHand(db));
+  }
   aendereInventar(char, (m) => {
-    if (!m.waffenSets.some(s => s.name === SET_WAFFENLOS)) {
-      m.waffenSets.unshift({ name: SET_WAFFENLOS, haupthand: '', nebenhand: '', fernkampf: '' });
-    }
+    let wl = m.waffenSets.find(s => s.name === SET_WAFFENLOS);
+    if (!wl) { wl = { name: SET_WAFFENLOS, haupthand: '', nebenhand: '', fernkampf: '' }; }
+    // Waffenlos trägt immer die Hand und steht ganz vorne.
+    wl.haupthand = HAND_WAFFE;
+    m.waffenSets = [wl, ...m.waffenSets.filter(s => s.name !== SET_WAFFENLOS)];
     for (const w of char.waffen || []) {
+      if ((w.id || w.name) === HAND_WAFFE) continue; // Hand gehört fest ins Waffenlos-Set
       if (!w.name || inSetEnthalten(m.waffenSets, w.name)) continue;
       const fern = istFernkampf(db, w);
       // Erst versuchen, die Waffe in ein Set mit freiem passendem Platz zu legen.

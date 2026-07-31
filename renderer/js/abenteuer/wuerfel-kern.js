@@ -260,9 +260,10 @@ export function schadenWurf(o) {
   const wuerfelText = anzahl ? `${anzahl} W ${seiten} ${wuerfe.join(', ')}` : 'kein Schadenswürfel';
   const bText = o.bonus ? (o.bonus > 0 ? ` plus ${o.bonus}` : ` minus ${-o.bonus}`) : '';
   const zusatz = o.bonusText ? ` (${o.bonusText})` : '';
-  const ansage = `Schaden ${o.name}. ${wuerfelText}${bText}${zusatz}. Gesamtschaden ${summe}.`;
-  // Auch den Schaden fuers Tooltip merken (erscheint dann oben im Detail).
-  _letzterWurf[o.id] = ['Letzter Wurf:', `Schaden ${o.name}`, `${wuerfelText}${bText}`, `Gesamtschaden ${summe}`].filter(Boolean);
+  // Erst das Ergebnis ansagen (Schaden X), dann die Rechnung.
+  const ansage = `Schaden ${summe}. ${o.name}. ${wuerfelText}${bText}${zusatz}.`;
+  // Auch fuers Tooltip: oben das Ergebnis, danach die Rechnung.
+  _letzterWurf[o.id] = [`Schaden Ergebnis ${summe}`, `${o.name}`, `${wuerfelText}${bText}`].filter(Boolean);
   protokolliere(a, `Schaden ${o.name}: ${wuerfelText}${bText}, gesamt ${summe}.`);
   speichere();
   zeigeErgebnis(o.id, `Schaden ${summe}`, ansage);
