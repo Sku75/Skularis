@@ -108,39 +108,7 @@ export function uebernatuerlichesScreen() {
         }
       }
 
-      // --- Energien steigern (AsP/KaP/GuP) ---
-      if (energien.length) {
-        wrap.appendChild(abschnittTitel('Energien steigern'));
-        wrap.appendChild(infoZeile(
-          'Zusätzliche Energiepunkte über den Grundwert deiner Vorteile. Links und rechts ändern den Wert.',
-          'Den Grundwert verleihen die Vorteile Zauberer, Geweiht oder Paktierer. Zusätzliche Punkte '
-          + 'kaufst du hier: jeder Punkt kostet nach Steigerungsfaktor eins, der erste einen EP, der zweite '
-          + 'zwei, und so weiter (Summe). Nur die zugekauften Punkte zählen für die Kosten, nicht der '
-          + 'Grundwert aus den Vorteilen. Das geht bei der Erstellung wie später beim Steigern.',
-        ));
-        for (const [ename, e] of energien) {
-          const name = ENERGIE_NAME[ename] || ename;
-          const basis = e.basis || 0;
-          const mod = e.mod || 0;
-          wrap.appendChild(wertZeile({
-            label: `${name}, Grundwert ${basis}`,
-            get: () => e.gekauft || 0,
-            set: (v) => { e.gekauft = v; },
-            min: 0,
-            max: 999,
-            suffix: () => `zusätzlich, gesamt ${basis + mod + (e.gekauft || 0)}`,
-            onChange: () => editor.epAnsage(),
-            detail: () => {
-              const g = e.gekauft || 0;
-              const kosten = g * (g + 1) / 2;
-              return `${name}. Grundwert aus Vorteilen ${basis}${mod ? `, Aufschlag ${mod}` : ''}, `
-                + `zugekauft ${g}, gesamt ${basis + mod + g}. `
-                + `Der nächste Punkt kostet ${g + 1} EP; die ${g} zugekauften kosten zusammen ${kosten} EP. `
-                + 'Steigerungsfaktor eins.';
-            },
-          }));
-        }
-      }
+      // (Energien werden bei den anderen Werten auf der Attribute-Seite gesteigert.)
 
       verbindeDetail(wrap);
       return wrap;
