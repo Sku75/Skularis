@@ -88,6 +88,10 @@ export function kampfwerteScreen() {
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel('Kampfwürfe'));
 
+      // Auto-Namen "Set 1/2/3" nicht mitsprechen — die Nummer sagt der Waehler
+      // (Position) schon an, sonst doppelt. Eigene Namen (z. B. Waffenlos) bleiben.
+      const setLabel = (set) => (set.name && !/^Set \d+$/.test(set.name)) ? `${set.name}, ` : '';
+
       // Werte eines Sets zusammenstellen (mit Waffe oder waffenlos/Raufen).
       const setInfo = (i) => {
         const set = sets[i];
@@ -98,7 +102,7 @@ export function kampfwerteScreen() {
           const tp = k.tp || 0;
           return {
             set, key, primaer, waffenlos: false, k, tp, schadenBonus: tp + w.SB,
-            kurz: `${set.name}, ${primaer.name}`,
+            kurz: `${setLabel(set)}${primaer.name}`,
             werte: `Attacke ${k.at === null ? 'nicht möglich' : k.at}, Parade ${k.vt === null ? 'nicht möglich' : k.vt}, Schaden ${primaer.wuerfel || 0} W ${primaer.wuerfelSeiten || 6}`,
             tooltip: waffenwerteText(char, db, primaer),
           };
@@ -108,7 +112,7 @@ export function kampfwerteScreen() {
         const at = raufen ? fertigkeitProbenwert(char, raufen, rw, true) : 0;
         return {
           set, key, primaer: null, waffenlos: true, raufen, at,
-          kurz: `${set.name}, waffenlos`,
+          kurz: `${setLabel(set)}waffenlos`,
           werte: raufen ? `Raufen ${at}, Schaden 1 W 6` : 'keine Werte',
           tooltip: 'Kampf ohne Waffe (Raufen). Schaden ein W6 plus Schadensbonus.',
         };
@@ -171,11 +175,11 @@ export function kampfwerteScreen() {
               }
               const k = info.k;
               const knoepfe = [];
-              if (k.at !== null) knoepfe.push({ label: `Attacke ${k.at}`, wert: 'at' });
-              if (k.vt !== null) knoepfe.push({ label: `Parade ${k.vt}`, wert: 'vt' });
+              if (k.at !== null) knoepfe.push({ label: 'Attacke würfeln', wert: 'at' });
+              if (k.vt !== null) knoepfe.push({ label: 'Parade würfeln', wert: 'vt' });
               if (!knoepfe.length) return;
               let wahl = knoepfe[0].wert;
-              if (knoepfe.length > 1) { wahl = await knopfDialog({ titel: `${info.primaer.name}: Attacke oder Parade`, knoepfe }); if (wahl === null) return; }
+              if (knoepfe.length > 1) { wahl = await knopfDialog({ titel: 'Angriff oder Parade', knoepfe }); if (wahl === null) return; }
               const vok = wahl === 'vt' ? 'Verteidigung' : 'Attacke';
               const pw = wahl === 'vt' ? k.vt : k.at;
               kampfProbe({ id: `${info.key}-probe`, titel: `${vok} ${info.set.name}, ${info.primaer.name}`, vokabel: vok, probenwert: pw });

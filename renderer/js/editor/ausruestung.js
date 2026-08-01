@@ -410,7 +410,7 @@ function waffensetScreen(index) {
 
       if (set.name !== SET_WAFFENLOS) {
         wrap.appendChild(aktionZeile(`Set ${set.name} umbenennen`, async () => {
-          const v = await textDialog({ titel: 'Set umbenennen', label: 'Name', wert: set.name });
+          const v = await textDialog({ titel: 'Set umbenennen', label: 'Name', wert: /^Set \d+$/.test(set.name) ? '' : set.name });
           if (v === null || !v.trim()) return;
           aendereInventar(char, (m) => { m.waffenSets[index].name = v.trim(); });
           screen.refresh(); sprache.sage(`Set heißt jetzt ${v.trim()}.`);

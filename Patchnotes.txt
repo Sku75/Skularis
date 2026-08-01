@@ -4,6 +4,20 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.45, 1. August 2026
+
+
+Kaempfen: klarere Set-Ansage und Attacke-Parade-Fenster
+
+Beim Waffenset-Waehler wird die Set-Nummer nicht mehr doppelt gesagt: der Waehler
+sagt schon die Nummer, deshalb faellt der Auto-Name "Set 1" in der Ansage weg.
+Eigene Namen (z. B. Waffenlos) bleiben. Beim Umbenennen eines Auto-Sets ist das
+Feld jetzt leer, damit du einen eigenen Namen vergeben kannst.
+
+Das Fenster nach "Attacke oder Parade wuerfeln" bietet jetzt schlicht
+"Attacke wuerfeln" und "Parade wuerfeln" - ohne die Zahlenwerte mit vorzulesen.
+
+
 Version 0.44, 1. August 2026
 
 
