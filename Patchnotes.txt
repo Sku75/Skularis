@@ -4,6 +4,22 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.50, 1. August 2026
+
+
+EP-Erstattung durchgehend sichtbar
+
+Die Anzeige der freien Erfahrungspunkte wird jetzt bei jeder Aenderung sofort
+und ueberall aktualisiert - auch beim Zurueckkaufen eines Wertes mit Pfeil links.
+Vorher stimmte die Sprachansage zwar, die dauerhafte Anzeige unten blieb aber bis
+zum naechsten Bildschirmwechsel stehen; dadurch wirkte die Erstattung "mal ja,
+mal nein". Rechnerisch war sie immer korrekt: die ausgegebenen EP werden bei
+jeder Aktion komplett aus dem Charakter neu berechnet.
+
+Ausserdem: Beim Loeschen eines Talents werden hinterlegte Restkosten mit
+entfernt, damit ein spaeteres erneutes Hinzufuegen den richtigen Preis nimmt.
+
+
 Version 0.49, 1. August 2026
 
 

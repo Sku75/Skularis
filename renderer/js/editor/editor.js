@@ -20,7 +20,7 @@ import * as sounds from '../sounds.js';
 import * as reiterHub from '../ui/reiter-hub.js';
 import { ladeDb } from '../core/db-laden.js';
 import { createCharakter, neuberechne, verfuegbareEP } from '../core/character.js';
-import { zeigeEP } from '../ui/ep-anzeige.js';
+import { zeigeEP, aktualisiereEP } from '../ui/ep-anzeige.js';
 import { serialisiere } from '../core/sephrasto-xml.js';
 import { zahlDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
 import { beschreibungScreen } from './beschreibung.js';
@@ -65,7 +65,11 @@ export function oeffneFertigkeiten() {
 /** EP neu berechnen; gibt die verfügbaren EP zurück. */
 export function aktualisiere() {
   neuberechne(char, db);
-  return verfuegbareEP(char);
+  const frei = verfuegbareEP(char);
+  // Die (falls sichtbare) EP-Anzeige unten sofort mitziehen, damit jede
+  // Erstattung durchgehend sichtbar ist — nicht nur in der Sprachansage.
+  aktualisiereEP(frei, char.erfahrung.gesamt || 0);
+  return frei;
 }
 
 /** Kurze EP-Ansage-Zusatzinfo (für wertZeile.onChange). */

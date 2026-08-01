@@ -159,6 +159,11 @@ export function setzeTalent(c, name) {
 
 export function entferneTalent(c, name) {
   c.talente = (c.talente || []).filter(n => n !== name);
+  // Restkosten/Kommentar mit entfernen, damit ein spaeteres erneutes Hinzufuegen
+  // nicht den alten (womoeglich variablen) Preis erbt. Die EP-Summe zaehlt zwar
+  // nur, was in c.talente steht — aber so bleibt der Zustand sauber.
+  if (c.talentKosten) delete c.talentKosten[name];
+  if (c.talentKommentar) delete c.talentKommentar[name];
 }
 
 /** Ausgegebene EP neu berechnen und im Charakter ablegen. Gibt die Aufschlüsselung zurück. */
