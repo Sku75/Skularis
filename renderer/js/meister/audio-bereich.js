@@ -65,22 +65,18 @@ function schluesselDetail(key) {
 
 // --- Aktionen je Datei (von Tastatur UND Schaltflaechen genutzt) ---------
 
-async function tuAbspielen(d, loopKanal) {
+async function tuAbspielen(d, kanal) {
+  const loopKanal = kanal === 'stimmung' ? 'stimmung' : 'musik';
   try {
-    // Laeuft dieser Klang schon (als Schleife oder einmal)? Dann anhalten.
-    if (player.laeuftPfad(loopKanal) === d.pfad) { player.stoppeKanal(loopKanal); sprache.sage(`${d.name} gestoppt.`); return; }
-    if (player.spontanAktiv(d.pfad)) { player.stoppeSpontan(d.pfad); sprache.sage(`${d.name} gestoppt.`); return; }
-    // Sonst fragen: einmal oder in Schleife (Fokus auf "einmal").
-    const wahl = await knopfDialog({
-      titel: d.name,
-      knoepfe: [
-        { label: 'Einmal spielen', wert: 'einmal' },
-        { label: 'In Schleife spielen', wert: 'schleife' },
-      ],
-    });
-    if (wahl === null) return;
-    if (wahl === 'schleife') { await player.spieleSchleife(loopKanal, d); sprache.sage(`${d.name} laeuft in Schleife.`); }
-    else { await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`); }
+    if (kanal === 'spontan') {
+      // Spontansounds spielen einmal; laeuft er schon, anhalten.
+      if (player.spontanAktiv(d.pfad)) { player.stoppeSpontan(d.pfad); sprache.sage(`${d.name} gestoppt.`); return; }
+      await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`);
+    } else {
+      // Musik/Stimmung laufen in Schleife; laeuft es schon, anhalten.
+      if (player.laeuftPfad(loopKanal) === d.pfad) { player.stoppeKanal(loopKanal); sprache.sage(`${d.name} gestoppt.`); return; }
+      await player.spieleSchleife(loopKanal, d); sprache.sage(`${d.name} laeuft in Schleife.`);
+    }
   } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
 }
 
@@ -96,36 +92,64 @@ async function tuEinspielen(d) {
   catch (e) { console.error('Einspielen:', e); sprache.sage('Einspielen nicht moeglich.'); }
 }
 
-// Eine Datei-Zeile mit drei Schaltflaechen: Abspielen, Vorhoeren, Einspielen.
-// Alle drei sind echte, fokussierbare Knoepfe (Maus wie Tastatur/NVDA). Am
-// Zeilenende steht der Titel sichtbar (fuer Sehende); die Knoepfe tragen den
-// Titel in ihrer Beschriftung, damit die Sprachausgabe "Abspielen, Name" sagt.
-function baueDateiZeile(d, loopKanal) {
+// Das Fenster mit den drei Optionen (Blind: per Enter; Sehende: per Klick auf
+// den Titel). Fokus liegt auf "Abspielen".
+async function oeffneAudioDialog(d, kanal) {
+  const wahl = await knopfDialog({
+    titel: d.name,
+    knoepfe: [
+      { label: 'Abspielen', wert: 'ab' },
+      { label: 'Vorhoeren', wert: 'vor' },
+      { label: 'Einspielen', wert: 'ein' },
+    ],
+  });
+  if (wahl === 'ab') tuAbspielen(d, kanal);
+  else if (wahl === 'vor') tuVorhoeren(d);
+  else if (wahl === 'ein') tuEinspielen(d);
+}
+
+// Eine Datei-Zeile. Die ganze Zeile ist EIN fokussierbarer Punkt: mit den
+// Pfeiltasten faehrt man die Titel ab (Sprachausgabe liest den Titel), Enter
+// oeffnet das Fenster mit den drei Optionen. Fuer Sehende stehen zusaetzlich drei
+// sichtbare Schaltflaechen in der Zeile (Abspielen, Vorhoeren, Einspielen), die
+// per Maus direkt wirken; sie liegen bewusst NICHT im Screenreader-Fokus. Ein
+// Klick auf den Titel (statt auf eine Schaltflaeche) oeffnet ebenfalls das Fenster.
+function baueDateiZeile(d, kanal) {
   const zeile = document.createElement('div');
-  zeile.className = 'db-row audio-zeile';
+  zeile.className = 'db-btn db-menu__item audio-zeile';
+  zeile.tabIndex = 0;
+  zeile.setAttribute('role', 'button');
+  zeile.setAttribute('aria-label', d.name);
   zeile.style.display = 'flex';
   zeile.style.alignItems = 'center';
   zeile.style.gap = '8px';
   zeile.style.flexWrap = 'wrap';
 
-  const macheBtn = (text, aktion, detail) => {
+  const aktiviere = () => oeffneAudioDialog(d, kanal);
+  zeile.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); aktiviere(); }
+  });
+  zeile.addEventListener('click', (e) => {
+    // Klick auf eine der drei Schaltflaechen: die macht ihre eigene Aktion.
+    if (e.target.closest && e.target.closest('.audio-zeile__btn')) return;
+    sounds.playClick(); aktiviere();
+  });
+
+  // Sichtbare Schaltflaechen fuer Sehende (Maus). Nicht im Screenreader-Fokus.
+  const macheBtn = (text, aktion) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'db-btn';
-    b.style.flex = '0 0 auto';
+    b.className = 'db-btn audio-zeile__btn';
     b.textContent = text;
-    b.setAttribute('aria-label', `${text}, ${d.name}`);
-    if (detail) b.__detail = detail;
-    b.addEventListener('click', () => { sounds.playClick(); aktion(); });
+    b.tabIndex = -1;
+    b.setAttribute('aria-hidden', 'true');
+    b.style.flex = '0 0 auto';
+    b.addEventListener('click', (e) => { e.stopPropagation(); sounds.playClick(); aktion(); });
     return b;
   };
-
-  zeile.appendChild(macheBtn('Abspielen', () => tuAbspielen(d, loopKanal),
-    ['Abspielen: fragt einmal oder in Schleife. Laeuft der Klang schon, haelt Abspielen ihn an.']));
-  zeile.appendChild(macheBtn('Vorhoeren', () => tuVorhoeren(d),
-    ['Vorhoeren: nur fuer dich. Dein Live-Ton wird fuer dich ausgeblendet, die Spieler hoeren den Stream weiter. Nochmal Vorhoeren beendet es.']));
-  zeile.appendChild(macheBtn('Einspielen', () => tuEinspielen(d),
-    ['Einspielen: legt den Klang ueber die laufende Musik; die Musik wird solange leiser und danach wieder voll.']));
+  zeile.appendChild(macheBtn('Abspielen', () => tuAbspielen(d, kanal)));
+  zeile.appendChild(macheBtn('Vorhoeren', () => tuVorhoeren(d)));
+  zeile.appendChild(macheBtn('Einspielen', () => tuEinspielen(d)));
 
   const name = document.createElement('span');
   name.className = 'audio-zeile__name';
@@ -142,7 +166,6 @@ function baueDateiZeile(d, loopKanal) {
  * Schleifen-Kanal (Hintergrundstimmung getrennt von Musik).
  */
 function ordnerScreen(pfad, kanal, titel) {
-  const loopKanal = kanal === 'stimmung' ? 'stimmung' : 'musik';
   const scr = {
     title: titel,
     _inhalt: null,
@@ -169,7 +192,7 @@ function ordnerScreen(pfad, kanal, titel) {
       const sub = document.createElement('p');
       sub.className = 'db-menu__sub';
       sub.setAttribute('aria-hidden', 'true');
-      sub.textContent = 'Je Titel drei Schaltflaechen: Abspielen, Vorhoeren, Einspielen. Pfeiltasten bewegen, Eingabetaste aktiviert. Escape zurueck.';
+      sub.textContent = 'Mit den Pfeiltasten die Titel abhoeren, Eingabetaste oeffnet die drei Optionen (Abspielen, Vorhoeren, Einspielen). Sehende koennen die Schaltflaechen anklicken. Escape zurueck.';
       wrap.appendChild(sub);
 
       // Unterordner (jeweils ein Schalter zum Oeffnen).
@@ -189,8 +212,8 @@ function ordnerScreen(pfad, kanal, titel) {
         }
       }
 
-      // Dateien als Zeilen mit drei Schaltflaechen.
-      for (const d of dateien) wrap.appendChild(baueDateiZeile(d, loopKanal));
+      // Dateien als Titel-Zeilen (Enter oeffnet das Optionen-Fenster).
+      for (const d of dateien) wrap.appendChild(baueDateiZeile(d, kanal));
 
       if (!inhalt.ordner.length && !inhalt.dateien.length) {
         const leer = document.createElement('div');

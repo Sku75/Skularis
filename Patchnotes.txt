@@ -4,6 +4,20 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.40, 1. August 2026
+
+
+Audio-Listen: Titel abhoeren, Enter oeffnet die drei Optionen
+
+Die Audio-Listen bedienen sich jetzt sauber fuer alle: Mit den Pfeiltasten faehrst
+du die Titel ab und hoerst sie vorgelesen. Eingabetaste oeffnet ein Fenster mit
+den drei Optionen Abspielen, Vorhoeren und Einspielen (Fokus auf Abspielen).
+Sehende sehen in jeder Zeile zusaetzlich drei Schaltflaechen und koennen sie mit
+der Maus direkt anklicken; ein Klick auf den Titel oeffnet ebenfalls das Fenster.
+Die Schaltflaechen liegen bewusst nicht im Screenreader-Weg, damit das Abhoeren
+der Titel schnell bleibt.
+
+
 Version 0.39, 1. August 2026
 
 
