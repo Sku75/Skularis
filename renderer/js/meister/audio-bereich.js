@@ -25,6 +25,7 @@ let _wurzeln = null;         // { audioDaten, musik, stimmung, spontan, meineAud
 let _config = null;          // gespeicherte Werte (Lautstaerken, letzter Schluessel)
 let _schluessel = '';        // aktueller Radio-Schluessel (Meister)
 let _statusEl = null;        // Live-Statuszeile (wird von Radio-Rueckmeldungen aktualisiert)
+let _verbunden = false;      // Spieler wirklich verbunden (Ton kommt an)
 
 async function ladeGrunddaten() {
   if (!_config) {
@@ -358,14 +359,46 @@ function sendenBeenden() {
 function spielerScreen() {
   const scr = {
     title: 'Audio und Radio',
+    _input: null,
     build() {
       const wrap = document.createElement('div');
       wrap.className = 'db-menu ed-bereich';
-      wrap.appendChild(abschnittTitel('Radio, Tisch anhoeren'));
 
-      const verbunden = radio.istAktiv() && radio.rolle() === 'hoerer';
-      const status = infoZeile(verbunden ? 'Mit dem Tisch verbunden.' : 'Nicht verbunden.',
-        'Gib den Schluessel deines Meisters ein, um seinen Ton zu hoeren.');
+      // NICHT verbunden: das Menue schrumpft auf Schluessel-Eingabe und Verbinden.
+      if (!_verbunden) {
+        wrap.appendChild(abschnittTitel('Tisch anhoeren'));
+
+        const lbl = document.createElement('label');
+        lbl.setAttribute('for', 'radio-schluessel');
+        lbl.textContent = 'Schluessel eingeben:';
+        lbl.style.display = 'block';
+        wrap.appendChild(lbl);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'radio-schluessel';
+        input.className = 'db-input';
+        input.setAttribute('aria-label', 'Schluessel eingeben');
+        input.value = (_config && _config.radio_letzter_schluessel) || '';
+        input.style.display = 'block';
+        input.style.width = '100%';
+        input.style.maxWidth = '320px';
+        input.style.margin = '6px 0 12px';
+        input.style.padding = '8px';
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); starteVerbinden(input.value); } });
+        wrap.appendChild(input);
+        scr._input = input;
+
+        wrap.appendChild(aktionZeile('Verbinden', () => starteVerbinden(scr._input ? scr._input.value : ''),
+          'mit dem Tisch des Meisters verbinden'));
+
+        verbindeDetail(wrap);
+        return wrap;
+      }
+
+      // VERBUNDEN: das ganze Menue.
+      wrap.appendChild(abschnittTitel('Radio, Tisch anhoeren'));
+      const status = infoZeile('Mit dem Tisch verbunden.', 'Du hoerst jetzt den Ton des Meisters.');
       wrap.appendChild(status);
       _statusEl = status;
 
@@ -373,48 +406,35 @@ function spielerScreen() {
         label: 'Radio-Lautstaerke', get: () => radio.getHoererLautstaerke(),
         set: (v) => { radio.setHoererLautstaerke(v); merke('radio_hoerer_vol', v); },
         min: 0, max: 100, ohneTon: true, nurWert: true,
-        detail: 'Wie laut du den Ton des Meisters hoerst. Ein eigener Kanal, getrennt von den uebrigen Toenen. Am Ziffernblock stellen Plus und Minus die Radio-Lautstaerke ueberall.',
+        detail: 'Wie laut du den Ton des Meisters hoerst. Ein eigener Kanal. Am Ziffernblock stellen Plus und Minus die Radio-Lautstaerke ueberall.',
       }));
 
-      const letzter = (_config && _config.radio_letzter_schluessel) || '';
-      wrap.appendChild(aktionZeile('Tisch anhoeren', () => tischAnhoeren(letzter),
-        letzter ? `Schluessel eingeben (zuletzt ${letzter})` : 'Schluessel des Meisters eingeben'));
-
-      if (letzter) {
-        wrap.appendChild(aktionZeile(`Mit letztem Schluessel verbinden, ${letzter}`, () => verbinde(letzter),
-          'ohne erneutes Eingeben verbinden'));
-      }
-
-      if (verbunden) {
-        wrap.appendChild(aktionZeile('Verbindung trennen', () => { radio.stopp(); setzeStatus('Nicht verbunden.'); screen.refresh(); sprache.sage('Verbindung getrennt.'); }));
-      }
+      wrap.appendChild(aktionZeile('Verbindung trennen', () => {
+        radio.stopp(); _verbunden = false; screen.refresh(); sprache.sage('Verbindung getrennt.');
+      }));
 
       verbindeDetail(wrap);
       return wrap;
     },
     onShow() {
       if (!_config) { ladeGrunddaten().then(() => screen.refresh()); }
-      sprache.sage('Radio. Tisch anhoeren.');
+      if (!_verbunden && scr._input) { try { scr._input.focus(); scr._input.select(); } catch { /* egal */ } }
+      sprache.sage(_verbunden ? 'Mit dem Tisch verbunden.' : 'Radio. Schluessel eingeben und verbinden.');
     },
   };
   return scr;
 }
 
-async function tischAnhoeren(vorgabe) {
-  const key = await textDialog({ titel: 'Tisch anhoeren', label: 'Schluessel des Meisters', wert: vorgabe || '' });
-  if (key === null || !key.trim()) return;
-  verbinde(key.trim().toLowerCase());
-}
-
-function verbinde(key) {
+function starteVerbinden(rohKey) {
+  const key = String(rohKey || '').trim().toLowerCase();
+  if (!key) { sprache.sage('Bitte zuerst den Schluessel eingeben.'); return; }
   merke('radio_letzter_schluessel', key);
   sprache.sage('Verbinde mit dem Tisch, einen Moment.');
   radio.starteHoeren(key, {
-    onVerbunden: () => { setzeStatus('Mit dem Tisch verbunden.'); screen.refresh(); sprache.sage('Verbunden. Du hoerst jetzt den Tisch.'); },
-    onGetrennt: () => { setzeStatus('Nicht verbunden.'); screen.refresh(); sprache.sage('Verbindung getrennt.'); },
-    onFehler: (t) => { setzeStatus('Nicht verbunden.'); sprache.sage(t); },
+    onVerbunden: () => { _verbunden = true; screen.refresh(); sprache.sage('Verbunden. Du hoerst jetzt den Tisch.'); },
+    onGetrennt: () => { _verbunden = false; screen.refresh(); sprache.sage('Verbindung getrennt.'); },
+    onFehler: (t) => { _verbunden = false; screen.refresh(); sprache.sage(t); },
   });
-  screen.refresh();
 }
 
 // --- Einstieg ------------------------------------------------------------

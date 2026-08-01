@@ -4,6 +4,18 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.42, 1. August 2026
+
+
+Spieler-Audio: erst verbinden, dann das ganze Menue
+
+Am Abenteuertisch zeigt der Audio-Bereich jetzt, solange du nicht verbunden bist,
+nur das Noetige: ein Feld "Schluessel eingeben" und darunter die Schaltflaeche
+"Verbinden". Der zuletzt benutzte Schluessel steht schon im Feld. Sobald du
+verbunden bist, erscheint das ganze Menue (Radio-Lautstaerke und Verbindung
+trennen).
+
+
 Version 0.41, 1. August 2026
 
 
