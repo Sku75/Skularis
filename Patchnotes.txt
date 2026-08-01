@@ -4,6 +4,20 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.43, 1. August 2026
+
+
+Mehr Optionen je Klang, Lautstaerke-Fix am Meistertisch
+
+Das Auswahl-Fenster beim Meister (Eingabetaste auf einem Klang) bietet jetzt:
+Abspielen, Abspielen in Schleife, Vorhoeren, Einspielen, Stop und Abbrechen. Fuer
+Sehende stehen dieselben Schaltflaechen in der Zeile.
+
+Ausserdem behoben: Plus und Minus am Ziffernblock regeln beim Meister jetzt die
+eigene Audio-Lautstaerke (vorher tat sich nichts, weil dort kein Radio-Empfang
+laeuft). Beim Spieler regeln sie weiterhin die Radio-Lautstaerke.
+
+
 Version 0.42, 1. August 2026
 
 

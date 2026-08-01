@@ -66,19 +66,25 @@ function schluesselDetail(key) {
 
 // --- Aktionen je Datei (von Tastatur UND Schaltflaechen genutzt) ---------
 
-async function tuAbspielen(d, kanal) {
+async function tuEinmal(d) {
+  try { await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`); }
+  catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
+}
+
+async function tuSchleife(d, kanal) {
   const loopKanal = kanal === 'stimmung' ? 'stimmung' : 'musik';
-  try {
-    if (kanal === 'spontan') {
-      // Spontansounds spielen einmal; laeuft er schon, anhalten.
-      if (player.spontanAktiv(d.pfad)) { player.stoppeSpontan(d.pfad); sprache.sage(`${d.name} gestoppt.`); return; }
-      await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`);
-    } else {
-      // Musik/Stimmung laufen in Schleife; laeuft es schon, anhalten.
-      if (player.laeuftPfad(loopKanal) === d.pfad) { player.stoppeKanal(loopKanal); sprache.sage(`${d.name} gestoppt.`); return; }
-      await player.spieleSchleife(loopKanal, d); sprache.sage(`${d.name} laeuft in Schleife.`);
-    }
-  } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
+  try { await player.spieleSchleife(loopKanal, d); sprache.sage(`${d.name} laeuft in Schleife.`); }
+  catch (e) { console.error('Audio Schleife:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
+}
+
+// Diesen Klang anhalten, egal wie er gerade laeuft (Schleife, einmal oder Vorhoeren).
+function tuStop(d, kanal) {
+  const loopKanal = kanal === 'stimmung' ? 'stimmung' : 'musik';
+  let gestoppt = false;
+  if (player.vorhoerenPfad() === d.pfad) { player.beendeVorhoeren(); gestoppt = true; }
+  if (player.laeuftPfad(loopKanal) === d.pfad) { player.stoppeKanal(loopKanal); gestoppt = true; }
+  if (player.spontanAktiv(d.pfad)) { player.stoppeSpontan(d.pfad); gestoppt = true; }
+  sprache.sage(gestoppt ? `${d.name} gestoppt.` : `${d.name} laeuft gerade nicht.`);
 }
 
 async function tuVorhoeren(d) {
@@ -99,14 +105,19 @@ async function oeffneAudioDialog(d, kanal) {
   const wahl = await knopfDialog({
     titel: d.name,
     knoepfe: [
-      { label: 'Abspielen', wert: 'ab' },
+      { label: 'Abspielen', wert: 'einmal' },
+      { label: 'Abspielen in Schleife', wert: 'schleife' },
       { label: 'Vorhoeren', wert: 'vor' },
       { label: 'Einspielen', wert: 'ein' },
+      { label: 'Stop', wert: 'stop' },
     ],
   });
-  if (wahl === 'ab') tuAbspielen(d, kanal);
+  // knopfDialog ergaenzt selbst einen Abbrechen-Knopf (liefert null).
+  if (wahl === 'einmal') tuEinmal(d);
+  else if (wahl === 'schleife') tuSchleife(d, kanal);
   else if (wahl === 'vor') tuVorhoeren(d);
   else if (wahl === 'ein') tuEinspielen(d);
+  else if (wahl === 'stop') tuStop(d, kanal);
 }
 
 // Eine Datei-Zeile. Die ganze Zeile ist EIN fokussierbarer Punkt: mit den
@@ -148,9 +159,11 @@ function baueDateiZeile(d, kanal) {
     b.addEventListener('click', (e) => { e.stopPropagation(); sounds.playClick(); aktion(); });
     return b;
   };
-  zeile.appendChild(macheBtn('Abspielen', () => tuAbspielen(d, kanal)));
+  zeile.appendChild(macheBtn('Abspielen', () => tuEinmal(d)));
+  zeile.appendChild(macheBtn('Schleife', () => tuSchleife(d, kanal)));
   zeile.appendChild(macheBtn('Vorhoeren', () => tuVorhoeren(d)));
   zeile.appendChild(macheBtn('Einspielen', () => tuEinspielen(d)));
+  zeile.appendChild(macheBtn('Stop', () => tuStop(d, kanal)));
 
   const name = document.createElement('span');
   name.className = 'audio-zeile__name';
@@ -193,7 +206,7 @@ function ordnerScreen(pfad, kanal, titel) {
       const sub = document.createElement('p');
       sub.className = 'db-menu__sub';
       sub.setAttribute('aria-hidden', 'true');
-      sub.textContent = 'Mit den Pfeiltasten die Titel abhoeren, Eingabetaste oeffnet die drei Optionen (Abspielen, Vorhoeren, Einspielen). Sehende koennen die Schaltflaechen anklicken. Escape zurueck.';
+      sub.textContent = 'Mit den Pfeiltasten die Titel abhoeren, Eingabetaste oeffnet die Optionen (Abspielen, Abspielen in Schleife, Vorhoeren, Einspielen, Stop). Sehende koennen die Schaltflaechen anklicken. Escape zurueck.';
       wrap.appendChild(sub);
 
       // Unterordner (jeweils ein Schalter zum Oeffnen).
