@@ -90,7 +90,8 @@ function ordnerScreen(pfad, kanal, titel) {
         items.push({
           label: d.name,
           hint: 'Enter: waehlen einmal oder in Schleife. Strg und Enter: nur fuer dich vorhoeren',
-          detail: ['Enter oeffnet die Auswahl: einmal spielen (Fokus) oder in Schleife spielen (Pfeil runter).',
+          detail: ['Enter oeffnet die Auswahl: einmal spielen (Fokus), in Schleife spielen oder einspielen.',
+            'Einspielen legt den Klang ueber die laufende Musik: die Musik wird solange leiser und danach wieder voll (mit Ueberblende).',
             'Laeuft der Klang schon, haelt Enter ihn an.',
             'Strg und Enter: privat vorhoeren — dein Live-Ton wird fuer dich ausgeblendet, die Spieler hoeren den Stream weiter. Nochmal Strg und Enter beendet das Vorhoeren.'],
           onSelect: async () => {
@@ -104,10 +105,12 @@ function ordnerScreen(pfad, kanal, titel) {
                 knoepfe: [
                   { label: 'Einmal spielen', wert: 'einmal' },
                   { label: 'In Schleife spielen', wert: 'schleife' },
+                  { label: 'Einspielen ueber die laufende Musik', wert: 'einspielen' },
                 ],
               });
               if (wahl === null) return;
               if (wahl === 'schleife') { await player.spieleSchleife(loopKanal, d); sprache.sage(`${d.name} laeuft in Schleife.`); }
+              else if (wahl === 'einspielen') { await player.spieleEin(d); sprache.sage(`${d.name} wird eingespielt, die laufende Musik ist solange leiser.`); }
               else { await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`); }
             } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
           },

@@ -117,6 +117,48 @@ export async function spieleEinmal(datei) {
   rampe(gain.gain, 1, FADE_SPONTAN);
 }
 
+/**
+ * Eine Datei EINSPIELEN (ducking): die laufenden Schleifen werden auf die Haelfte
+ * abgesenkt und der eingespielte Klang wird darueber gelegt (gleichzeitig). Ist er
+ * durch, blenden die Schleifen wieder auf voll. Alles mit weichen Ueberblenden.
+ * Wird ueber den mixBus gespielt, also hoeren es auch die Spieler im Radio.
+ */
+export async function spieleEin(datei) {
+  const puffer = await ladePuffer(datei.pfad);
+  const c = ctx();
+  const dur = puffer.duration || 0;
+  const t0 = c.currentTime;
+  const ein = 0.35, aus = 0.5;
+  const loops = ['musik', 'stimmung'].map(k => _laeuft[k]).filter(Boolean);
+
+  // Ducking: laufende Schleifen weich auf die Haelfte.
+  for (const l of loops) rampe(l.gain.gain, 0.5, ein);
+
+  const source = c.createBufferSource();
+  source.buffer = puffer;
+  const gain = c.createGain();
+  source.connect(gain);
+  gain.connect(_mixBus);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.linearRampToValueAtTime(1, t0 + ein); // einblenden
+  source.start();
+
+  const zurueck = () => { for (const l of loops) rampe(l.gain.gain, 1, aus); };
+
+  if (dur > ein + aus) {
+    // Gegen Ende ausblenden und die Schleifen gleichzeitig wieder hochziehen
+    // (echte Ueberblende).
+    const tAus = t0 + dur - aus;
+    gain.gain.setValueAtTime(1, tAus);
+    gain.gain.linearRampToValueAtTime(0.0001, tAus + aus);
+    for (const l of loops) { l.gain.gain.setValueAtTime(0.5, tAus); l.gain.gain.linearRampToValueAtTime(1, tAus + aus); }
+    source.onended = () => { try { gain.disconnect(); } catch { /* egal */ } };
+  } else {
+    // Sehr kurzer Klang: erst am Ende die Schleifen wieder hochblenden.
+    source.onended = () => { zurueck(); try { gain.disconnect(); } catch { /* egal */ } };
+  }
+}
+
 /** Einen Schleifen-Kanal stoppen (mit Ausblenden). */
 export function stoppeKanal(kanal) {
   if (_laeuft[kanal]) { blendeAus(_laeuft[kanal]); _laeuft[kanal] = null; }

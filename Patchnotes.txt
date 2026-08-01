@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.38, 1. August 2026
+
+
+Dritte Option: Einspielen ueber die laufende Musik
+
+Die Enter-Auswahl auf einer Audio-Datei hat jetzt eine dritte Moeglichkeit:
+"Einspielen ueber die laufende Musik". Dabei laeuft die aktuelle Musik weiter,
+wird aber solange auf die halbe Lautstaerke abgesenkt, waehrend der eingespielte
+Klang darueber gelegt wird. Ist er durch, blendet die Musik wieder auf voll —
+alles mit weichen Ueberblenden. Gut fuer kurze Effekte oder einen Sprecher ueber
+der Hintergrundmusik.
+
+
 Version 0.37, 1. August 2026
 
 
