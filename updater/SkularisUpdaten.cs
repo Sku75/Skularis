@@ -113,6 +113,16 @@ class SkularisUpdaten
                 if (File.Exists(Path.Combine(d, "Skularis.exe"))) { try { LoescheOrdner(d); } catch { } }
             }
 
+            // Beilagen an der Wurzel mit aktualisieren (v. a. die Patchnotes), damit
+            // sie zur neuen Version passen. Nutzerdaten und die eigene Updater-Exe
+            // bleiben unberührt.
+            string paketWurzel = Path.GetDirectoryName(neuProgramm);
+            foreach (var name in new[] { "Patchnotes.txt", "Skularis Starten.bat" })
+            {
+                string q = Path.Combine(paketWurzel, name);
+                if (File.Exists(q)) { try { File.Copy(q, Path.Combine(wurzel, name), true); } catch { } }
+            }
+
             try { Directory.Delete(tmp, true); } catch { }
 
             Fertig("Skularis wurde auf Version " + neueVersion + " aktualisiert.\n\n" +

@@ -4,6 +4,18 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.49, 1. August 2026
+
+
+Patchnotes wachsen beim Update mit
+
+Bisher tauschte das Update nur den Programmordner aus, die Patchnotes-Datei
+daneben (die man direkt öffnet) blieb aber alt. Jetzt schreibt Skularis beim
+Start seine mitgelieferte, zur Version passende Patchnotes an die richtige
+Stelle - so sind die Patchnotes nach jedem Update aktuell. Der Updater legt sie
+zusätzlich beim Einspielen gleich mit ab.
+
+
 Version 0.48, 1. August 2026
 
 

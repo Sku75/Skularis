@@ -5,7 +5,7 @@ const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron')
 const path = require('path');
 const fs = require('fs');
 
-const VERSION = 'Skularis 0.48';
+const VERSION = 'Skularis 0.49';
 let mainWindow = null;
 
 // Single Instance Lock
@@ -76,6 +76,27 @@ function getAppPfad() {
     return app.getAppPath(); // → resources/app/
   }
   return path.resolve(__dirname, '..');
+}
+
+/**
+ * Die Patchnotes an der Portable-Wurzel aktuell halten. Der Updater tauscht nur
+ * den Programmordner; die Patchnotes.txt daneben (die man direkt oeffnet) bliebe
+ * sonst alt. Beim Start kopieren wir die mitgelieferte, immer zur Version
+ * passende Patchnotes aus dem Programmordner an die Wurzel, wenn sie fehlt oder
+ * sich unterscheidet. So wachsen die Patchnotes bei jedem Update mit.
+ */
+function aktualisierePatchnotesWurzel() {
+  if (!app.isPackaged) return;
+  try {
+    const quelle = path.join(getAppPfad(), 'Patchnotes.txt');
+    const ziel = path.join(getBasisPfad(), 'Patchnotes.txt');
+    if (path.resolve(quelle) === path.resolve(ziel)) return;
+    if (!fs.existsSync(quelle)) return;
+    const neu = fs.readFileSync(quelle, 'utf-8');
+    let alt = null;
+    try { alt = fs.readFileSync(ziel, 'utf-8'); } catch { alt = null; }
+    if (alt !== neu) fs.writeFileSync(ziel, neu);
+  } catch (e) { console.error('Patchnotes-Wurzel:', e); }
 }
 
 // Bibliothek für gespeicherte Charaktere (Sephrasto-.xml)
@@ -197,6 +218,7 @@ app.whenReady().then(() => {
   migriereNutzerdaten();
   migriereMeisterStruktur();
   ensureMeisterOrdner();
+  aktualisierePatchnotesWurzel();
   createWindow();
   const xmlFile = process.argv.find(a => a.endsWith('.xml'));
   if (xmlFile) {
