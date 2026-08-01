@@ -175,6 +175,18 @@ ipcMain.handle('skularis:szenenpacks-speichern', (_event, data) => {
   return fileOps.jsonSpeichern(szenenpacksPfad(), data.inhalt);
 });
 
+// --- Audio-Playlists (Verweise auf Sounds, im Ordner "Meister\Daten-sets") ---
+function playlistsPfad() {
+  const { getMeisterDatenOrdner } = require('./main');
+  return path.join(getMeisterDatenOrdner(), 'Playlists.json');
+}
+ipcMain.handle('skularis:playlists-laden', () => {
+  return fileOps.jsonLaden(playlistsPfad());
+});
+ipcMain.handle('skularis:playlists-speichern', (_event, data) => {
+  return fileOps.jsonSpeichern(playlistsPfad(), data.inhalt);
+});
+
 // --- Audio (Musik, Hintergrundstimmung, Spontansounds) ---
 ipcMain.handle('skularis:audio-wurzeln', () => {
   const { getAudioOrdner } = require('./main');

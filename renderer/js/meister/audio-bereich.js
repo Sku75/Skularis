@@ -14,7 +14,7 @@ import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
-import { textDialog, knopfDialog } from '../ui/dialog.js';
+import { textDialog, knopfDialog, jaNeinDialog } from '../ui/dialog.js';
 import { abschnittTitel, aktionZeile, infoZeile, wertZeile, verbindeDetail } from '../editor/widgets.js';
 import * as player from './audio-player.js';
 import * as radio from '../net/radio.js';
@@ -26,6 +26,9 @@ let _config = null;          // gespeicherte Werte (Lautstaerken, letzter Schlue
 let _schluessel = '';        // aktueller Radio-Schluessel (Meister)
 let _statusEl = null;        // Live-Statuszeile (wird von Radio-Rueckmeldungen aktualisiert)
 let _verbunden = false;      // Spieler wirklich verbunden (Ton kommt an)
+let _playlists = null;       // { auto:bool, listen:[{name, sounds:[{name,pfad}]}] }
+let _autoWeiter = false;     // Playlist: automatisch zum naechsten Titel
+let _plToken = 0;            // laufende Playlist-Wiedergabe (Abbruch-Marke)
 
 async function ladeGrunddaten() {
   if (!_config) {
@@ -110,14 +113,16 @@ async function oeffneAudioDialog(d, kanal) {
       { label: 'Vorhoeren', wert: 'vor' },
       { label: 'Einspielen', wert: 'ein' },
       { label: 'Stop', wert: 'stop' },
+      { label: 'Zu Playlist hinzufuegen', wert: 'playlist' },
     ],
   });
-  // knopfDialog ergaenzt selbst einen Abbrechen-Knopf (liefert null).
+  // Escape schliesst das Fenster (liefert null) — kein Abbrechen-Knopf noetig.
   if (wahl === 'einmal') tuEinmal(d);
   else if (wahl === 'schleife') tuSchleife(d, kanal);
   else if (wahl === 'vor') tuVorhoeren(d);
   else if (wahl === 'ein') tuEinspielen(d);
   else if (wahl === 'stop') tuStop(d, kanal);
+  else if (wahl === 'playlist') zuPlaylistHinzufuegen(d);
 }
 
 // Eine Datei-Zeile. Die ganze Zeile ist EIN fokussierbarer Punkt: mit den
@@ -267,16 +272,111 @@ function ordnerScreen(pfad, kanal, titel) {
   return scr;
 }
 
-// --- Hauptschirm Meister -------------------------------------------------
+// --- Playlists (nur Verweise auf Bibliotheks-Sounds) --------------------
+
+async function ladePlaylists() {
+  if (_playlists) return;
+  try {
+    const r = await ipc.playlistsLaden();
+    const d = r && r.inhalt ? JSON.parse(r.inhalt) : null;
+    _playlists = (d && Array.isArray(d.listen)) ? d : { auto: false, listen: [] };
+  } catch { _playlists = { auto: false, listen: [] }; }
+  _autoWeiter = !!_playlists.auto;
+}
+
+function speicherePlaylists() {
+  _playlists = _playlists || { auto: false, listen: [] };
+  _playlists.auto = _autoWeiter;
+  try { ipc.playlistsSpeichern(JSON.stringify(_playlists)); } catch { /* egal */ }
+}
+
+/** Alles stoppen: laufende Klaenge, Vorhoeren, Playlist und das Radio (Uebertragung). */
+export function alleStoppen() {
+  _plToken += 1;
+  try { player.stoppeAlles(); } catch { /* egal */ }
+  try { if (player.istVorhoeren()) player.beendeVorhoeren(); } catch { /* egal */ }
+  try { radio.stopp(); } catch { /* egal */ }
+  _verbunden = false;
+}
+
+// Einen Sound zu einer Playlist hinzufuegen (nur ein Verweis auf die Datei).
+async function zuPlaylistHinzufuegen(d) {
+  await ladePlaylists();
+  const knoepfe = (_playlists.listen || []).map((pl, i) => ({ label: pl.name, wert: `p${i}` }));
+  knoepfe.push({ label: 'Neue Playlist', wert: 'neu' });
+  const wahl = await knopfDialog({ titel: `${d.name} zu Playlist`, knoepfe });
+  if (wahl === null) return;
+  let pl;
+  if (wahl === 'neu') {
+    const n = await textDialog({ titel: 'Neue Playlist', label: 'Name der Playlist' });
+    if (n === null || !n.trim()) return;
+    pl = { name: n.trim(), sounds: [] };
+    _playlists.listen.push(pl);
+  } else {
+    pl = _playlists.listen[parseInt(wahl.slice(1), 10)];
+  }
+  if (!pl) return;
+  pl.sounds.push({ name: d.name, pfad: d.pfad });
+  speicherePlaylists();
+  sprache.sage(`${d.name} zu ${pl.name} hinzugefuegt.`);
+}
+
+// Eine Playlist ab einem Titel sequenziell abspielen (nur bei Auto weiter).
+function spielePlaylist(pl, startIndex) {
+  const liste = pl.sounds || [];
+  const token = ++_plToken;
+  const los = async (i) => {
+    if (i < 0 || i >= liste.length || token !== _plToken) return;
+    try {
+      await player.spieleEinmal(liste[i], () => { if (token === _plToken && _autoWeiter) los(i + 1); });
+      sprache.sage(`${liste[i].name}.`);
+    } catch (e) { console.error('Playlist:', e); if (token === _plToken && _autoWeiter) los(i + 1); }
+  };
+  los(startIndex);
+}
+
+function playlistTitelAbspielen(pl, sIndex) {
+  if (_autoWeiter) spielePlaylist(pl, sIndex);
+  else tuEinmal(pl.sounds[sIndex]);
+}
+
+// Kleiner Zurueck-Knopf (nur fuer die Maus; Blinde nutzen Escape).
+function rueckKnopf(wrap) {
+  if (screen.tiefe() > 1) {
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'db-btn ed-zurueck';
+    back.textContent = 'Zurueck';
+    back.setAttribute('aria-label', 'Zurueck');
+    back.tabIndex = -1;
+    back.addEventListener('click', () => { screen.zurueck(); });
+    wrap.appendChild(back);
+  }
+}
+
+// --- Hauptschirm Meister: klare Reihenfolge -----------------------------
 
 function meisterScreen() {
+  return menuScreen({
+    title: 'Audio',
+    subtitle: 'Bibliothek, Playlists, Verbindung, Lautstaerken. Strg und F12 stoppt alles. Escape zurueck.',
+    items: [
+      { label: 'Bibliothek', hint: 'deine Klaenge nach Ordnern', onSelect: () => screen.push(bibliothekScreen()) },
+      { label: 'Playlists', hint: 'eigene Zusammenstellungen, Auto abspielen', onSelect: () => screen.push(playlistsScreen()) },
+      { label: 'Verbindung', hint: 'Schluessel und Senden ans Radio', onSelect: () => screen.push(verbindungScreen()) },
+      { label: 'Lautstaerken', hint: 'eigene Audio-Lautstaerke', onSelect: () => screen.push(lautstaerkenScreen()) },
+      { label: 'Alles stoppen', hint: 'alle Klaenge und das Senden beenden', onSelect: () => { alleStoppen(); sprache.sage('Alles gestoppt.'); } },
+    ],
+  });
+}
+
+function bibliothekScreen() {
   const scr = {
-    title: 'Audio und Radio',
+    title: 'Bibliothek',
     build() {
       const wrap = document.createElement('div');
       wrap.className = 'db-menu ed-bereich';
-      wrap.appendChild(abschnittTitel('Klaenge'));
-
+      wrap.appendChild(abschnittTitel('Bibliothek'));
       const meine = _wurzeln && _wurzeln.meineAudios;
       wrap.appendChild(aktionZeile(
         meine ? `Meine Audios, ${ordnerName(meine)}` : 'Meine Audios, Ordner waehlen',
@@ -287,62 +387,190 @@ function meisterScreen() {
           _wurzeln = await ipc.audioWurzeln();
           screen.refresh();
           sprache.sage(`Ordner ${ordnerName(r.pfad)} gewaehlt.`);
-        },
-        meine ? 'deine eigene Sammlung, laeuft als Musik in Schleife' : 'einen Ordner mit deinen Audios waehlen'));
-
+        }, meine ? 'deine eigene Sammlung' : 'einen Ordner mit deinen Audios waehlen'));
       if (_wurzeln) {
-        wrap.appendChild(aktionZeile('Musik', () => screen.push(ordnerScreen(_wurzeln.musik, 'musik', 'Musik')), 'laeuft in Schleife'));
-        wrap.appendChild(aktionZeile('Hintergrundstimmung', () => screen.push(ordnerScreen(_wurzeln.stimmung, 'stimmung', 'Hintergrundstimmung')), 'laeuft in Schleife'));
-        wrap.appendChild(aktionZeile('Spontansounds', () => screen.push(ordnerScreen(_wurzeln.spontan, 'spontan', 'Spontansounds')), 'spielt einmal'));
+        wrap.appendChild(aktionZeile('Musik', () => screen.push(ordnerScreen(_wurzeln.musik, 'musik', 'Musik')), 'oeffnen'));
+        wrap.appendChild(aktionZeile('Hintergrundstimmung', () => screen.push(ordnerScreen(_wurzeln.stimmung, 'stimmung', 'Hintergrundstimmung')), 'oeffnen'));
+        wrap.appendChild(aktionZeile('Spontansounds', () => screen.push(ordnerScreen(_wurzeln.spontan, 'spontan', 'Spontansounds')), 'oeffnen'));
       }
+      verbindeDetail(wrap);
+      rueckKnopf(wrap);
+      return wrap;
+    },
+    onShow() { if (!_wurzeln) { ladeGrunddaten().then(() => screen.refresh()); } sprache.sage('Bibliothek.'); },
+  };
+  return scr;
+}
 
-      const musikLaeuft = player.laeuftName('musik');
-      const stimmungLaeuft = player.laeuftName('stimmung');
-      wrap.appendChild(aktionZeile(musikLaeuft ? `Musik stoppen, laeuft ${musikLaeuft}` : 'Musik stoppen',
-        () => { player.stoppeKanal('musik'); screen.refresh(); sprache.sage('Musik gestoppt.'); }));
-      wrap.appendChild(aktionZeile(stimmungLaeuft ? `Hintergrundstimmung stoppen, laeuft ${stimmungLaeuft}` : 'Hintergrundstimmung stoppen',
-        () => { player.stoppeKanal('stimmung'); screen.refresh(); sprache.sage('Hintergrundstimmung gestoppt.'); }));
-      wrap.appendChild(aktionZeile('Alles stoppen', () => { player.stoppeAlles(); screen.refresh(); sprache.sage('Alle Klaenge gestoppt.'); }));
-
+function lautstaerkenScreen() {
+  return {
+    title: 'Lautstaerken',
+    build() {
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel('Lautstaerken'));
       wrap.appendChild(wertZeile({
         label: 'Meine Audio-Lautstaerke', get: () => player.getMonitorLautstaerke(),
         set: (v) => { player.setMonitorLautstaerke(v); merke('audio_monitor_vol', v); },
         min: 0, max: 100, ohneTon: true, nurWert: true,
-        detail: 'Wie laut du die Klaenge selbst hoerst. Aendert nicht, wie laut die Spieler hoeren.',
+        detail: 'Wie laut du die Klaenge selbst hoerst. Aendert nicht, wie laut die Spieler hoeren. Am Ziffernblock regeln Plus und Minus das ueberall.',
       }));
+      verbindeDetail(wrap);
+      rueckKnopf(wrap);
+      return wrap;
+    },
+    onShow() { sprache.sage('Lautstaerken.'); },
+  };
+}
 
-      wrap.appendChild(abschnittTitel('Radio senden'));
+function verbindungScreen() {
+  const scr = {
+    title: 'Verbindung',
+    build() {
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel('Verbindung, Radio senden'));
       const senden = radio.istAktiv() && radio.rolle() === 'sender';
       const status = infoZeile(senden ? `Sende. ${radio.hoererAnzahl()} Hoerer verbunden.` : 'Radio aus.',
         'Erzeuge einen Schluessel, gib ihn deinen Spielern, dann starte das Senden.');
       wrap.appendChild(status);
       _statusEl = status;
-
       const schluesselText = _schluessel ? `Schluessel: ${_schluessel.slice(0, 3)} ${_schluessel.slice(3)}` : 'Noch kein Schluessel';
       wrap.appendChild(infoZeile(schluesselText, schluesselDetail(_schluessel)));
-
       wrap.appendChild(aktionZeile('Schluessel erzeugen', () => {
         _schluessel = radio.generiereSchluessel();
         merke('radio_letzter_schluessel', _schluessel);
         screen.refresh();
-        // Kurze Ansage; zum ruhigen Nachlesen steht der Schluessel im Tooltip der
-        // Schluessel-Zeile (drei Zeichen je Zeile).
         sprache.sage(`Neuer Schluessel erzeugt: ${_schluessel}. Zum Nachlesen steht er im Tooltip der Schluessel-Zeile, drei Zeichen je Zeile.`);
       }, 'einen neuen, zufaelligen Radio-Schluessel'));
-
       wrap.appendChild(aktionZeile(senden ? 'Senden beenden' : 'Senden starten',
         () => (senden ? sendenBeenden() : sendenStarten()),
         senden ? 'das Radio ausschalten' : 'ab jetzt hoeren verbundene Spieler mit'));
-
       verbindeDetail(wrap);
+      rueckKnopf(wrap);
       return wrap;
     },
-    onShow() {
-      if (!_wurzeln) { ladeGrunddaten().then(() => screen.refresh()); }
-      sprache.sage('Audio und Radio. Klaenge oben, Radio unten.');
-    },
+    onShow() { sprache.sage('Verbindung.'); },
   };
   return scr;
+}
+
+function playlistsScreen() {
+  const scr = {
+    title: 'Playlists',
+    build() {
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel('Playlists'));
+      // Ganz oben: Auto abspielen an/aus.
+      wrap.appendChild(aktionZeile(`Auto abspielen: ${_autoWeiter ? 'an' : 'aus'}`, () => {
+        _autoWeiter = !_autoWeiter; speicherePlaylists(); screen.refresh();
+        sprache.sage(_autoWeiter ? 'Auto abspielen an. Die ganze Playlist laeuft durch.' : 'Auto abspielen aus. Es laeuft nur ein Titel.');
+      }, 'an: ganze Playlist laeuft durch; aus: nur ein Titel'));
+      wrap.appendChild(aktionZeile('Neue Playlist', async () => {
+        const n = await textDialog({ titel: 'Neue Playlist', label: 'Name der Playlist' });
+        if (n === null || !n.trim()) return;
+        _playlists.listen.push({ name: n.trim(), sounds: [] });
+        speicherePlaylists(); screen.refresh(); sprache.sage(`Playlist ${n.trim()} angelegt.`);
+      }, 'eine neue Zusammenstellung anlegen'));
+      const listen = (_playlists && _playlists.listen) || [];
+      if (!listen.length) {
+        wrap.appendChild(infoZeile('Noch keine Playlists.', 'Lege oben eine an, oder fuege in der Bibliothek Sounds ueber "Zu Playlist hinzufuegen" hinzu.'));
+      }
+      listen.forEach((pl, i) => {
+        wrap.appendChild(aktionZeile(`${pl.name}, ${pl.sounds.length} Titel`, () => screen.push(playlistScreen(i)), 'oeffnen'));
+      });
+      verbindeDetail(wrap);
+      rueckKnopf(wrap);
+      return wrap;
+    },
+    onShow() { if (!_playlists) { ladePlaylists().then(() => screen.refresh()); } sprache.sage('Playlists.'); },
+  };
+  return scr;
+}
+
+function playlistScreen(index) {
+  const scr = {
+    title: 'Playlist',
+    build() {
+      const pl = _playlists.listen[index];
+      if (!pl) { screen.pop(); return document.createElement('div'); }
+      this.title = pl.name;
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel(pl.name));
+      wrap.appendChild(infoZeile(`Auto abspielen: ${_autoWeiter ? 'an' : 'aus'}`, 'Umschalten in der Playlist-Uebersicht. An: der naechste Titel folgt von selbst.'));
+      (pl.sounds || []).forEach((s, si) => wrap.appendChild(bauePlaylistZeile(pl, index, si)));
+      if (!pl.sounds.length) wrap.appendChild(infoZeile('Diese Playlist ist leer.', 'Fuege in der Bibliothek Sounds ueber "Zu Playlist hinzufuegen" hinzu.'));
+      wrap.appendChild(aktionZeile('Playlist umbenennen', async () => {
+        const v = await textDialog({ titel: 'Playlist umbenennen', label: 'Name', wert: pl.name });
+        if (v === null || !v.trim()) return; pl.name = v.trim(); speicherePlaylists(); screen.refresh(); sprache.sage(`Heisst jetzt ${v.trim()}.`);
+      }));
+      wrap.appendChild(aktionZeile('Playlist loeschen', async () => {
+        if (!await jaNeinDialog({ titel: 'Loeschen', frage: `Playlist ${pl.name} wirklich loeschen? Die Sounds bleiben in der Bibliothek.` })) return;
+        _playlists.listen.splice(index, 1); speicherePlaylists(); screen.pop(); sprache.sage('Playlist geloescht.');
+      }));
+      verbindeDetail(wrap);
+      rueckKnopf(wrap);
+      return wrap;
+    },
+    onShow() { sprache.sage('Playlist.'); },
+    onBack() { if (player.istVorhoeren()) player.beendeVorhoeren(); return true; },
+  };
+  return scr;
+}
+
+function bauePlaylistZeile(pl, plIndex, sIndex) {
+  const s = pl.sounds[sIndex];
+  const zeile = document.createElement('div');
+  zeile.className = 'db-btn db-menu__item audio-zeile';
+  zeile.tabIndex = 0;
+  zeile.setAttribute('role', 'button');
+  zeile.setAttribute('aria-label', s.name);
+  zeile.style.display = 'flex';
+  zeile.style.alignItems = 'center';
+  zeile.style.gap = '8px';
+  zeile.style.flexWrap = 'wrap';
+  const aktiviere = () => oeffnePlaylistDialog(pl, plIndex, sIndex);
+  zeile.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); aktiviere(); } });
+  zeile.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('.audio-zeile__btn')) return; sounds.playClick(); aktiviere(); });
+  const mk = (t, fn) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'db-btn audio-zeile__btn'; b.textContent = t;
+    b.tabIndex = -1; b.setAttribute('aria-hidden', 'true'); b.style.flex = '0 0 auto';
+    b.addEventListener('click', (e) => { e.stopPropagation(); sounds.playClick(); fn(); });
+    return b;
+  };
+  zeile.appendChild(mk('Abspielen', () => playlistTitelAbspielen(pl, sIndex)));
+  zeile.appendChild(mk('Schleife', () => tuSchleife(s, 'musik')));
+  zeile.appendChild(mk('Vorhoeren', () => tuVorhoeren(s)));
+  zeile.appendChild(mk('Einspielen', () => tuEinspielen(s)));
+  zeile.appendChild(mk('Stop', () => { _plToken += 1; tuStop(s, 'musik'); }));
+  const name = document.createElement('span');
+  name.setAttribute('aria-hidden', 'true'); name.style.flex = '1 1 auto'; name.textContent = s.name;
+  zeile.appendChild(name);
+  return zeile;
+}
+
+async function oeffnePlaylistDialog(pl, plIndex, sIndex) {
+  const s = pl.sounds[sIndex];
+  const wahl = await knopfDialog({
+    titel: s.name,
+    knoepfe: [
+      { label: 'Abspielen', wert: 'ab' },
+      { label: 'Abspielen in Schleife', wert: 'schleife' },
+      { label: 'Vorhoeren', wert: 'vor' },
+      { label: 'Einspielen', wert: 'ein' },
+      { label: 'Stop', wert: 'stop' },
+      { label: 'Aus Playlist entfernen', wert: 'weg' },
+    ],
+  });
+  if (wahl === 'ab') playlistTitelAbspielen(pl, sIndex);
+  else if (wahl === 'schleife') tuSchleife(s, 'musik');
+  else if (wahl === 'vor') tuVorhoeren(s);
+  else if (wahl === 'ein') tuEinspielen(s);
+  else if (wahl === 'stop') { _plToken += 1; tuStop(s, 'musik'); }
+  else if (wahl === 'weg') { pl.sounds.splice(sIndex, 1); speicherePlaylists(); screen.refresh(); sprache.sage(`${s.name} aus der Playlist entfernt.`); }
 }
 
 function sendenStarten() {

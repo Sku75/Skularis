@@ -100,8 +100,13 @@ export async function spieleSchleife(kanal, datei) {
   _laeuft[kanal] = { source, gain, name: datei.name, pfad: datei.pfad };
 }
 
-/** Einen Spontansound einmal abspielen (darf sich ueberlagern). */
-export async function spieleEinmal(datei) {
+/**
+ * Einen Klang einmal abspielen (darf sich ueberlagern).
+ * @param {{pfad:string, name:string}} datei
+ * @param {Function} [onEnde] wird gerufen, wenn der Klang NATUERLICH zu Ende ist
+ *   (nicht beim manuellen Stoppen) — fuer automatisches Weiterspielen in Playlists.
+ */
+export async function spieleEinmal(datei, onEnde) {
   const puffer = await ladePuffer(datei.pfad);
   const c = ctx();
   const source = c.createBufferSource();
@@ -110,9 +115,13 @@ export async function spieleEinmal(datei) {
   gain.gain.value = 0.0001;
   source.connect(gain);
   gain.connect(_mixBus);
-  const eintrag = { source, gain, name: datei.name, pfad: datei.pfad };
+  const eintrag = { source, gain, name: datei.name, pfad: datei.pfad, gestoppt: false };
   _spontan.add(eintrag);
-  source.onended = () => { try { gain.disconnect(); } catch { /* egal */ } _spontan.delete(eintrag); };
+  source.onended = () => {
+    try { gain.disconnect(); } catch { /* egal */ }
+    _spontan.delete(eintrag);
+    if (!eintrag.gestoppt && typeof onEnde === 'function') { try { onEnde(); } catch { /* egal */ } }
+  };
   source.start();
   rampe(gain.gain, 1, FADE_SPONTAN);
 }
@@ -168,7 +177,7 @@ export function stoppeKanal(kanal) {
 export function stoppeAlles() {
   stoppeKanal('musik');
   stoppeKanal('stimmung');
-  for (const e of _spontan) { try { e.source.stop(); } catch { /* egal */ } }
+  for (const e of _spontan) { e.gestoppt = true; try { e.source.stop(); } catch { /* egal */ } }
   _spontan.clear();
 }
 
@@ -190,7 +199,7 @@ export function spontanAktiv(pfad) {
 
 /** Alle Spontansounds mit diesem Pfad ausblenden und stoppen. */
 export function stoppeSpontan(pfad) {
-  for (const e of _spontan) if (e.pfad === pfad) blendeAus(e, FADE_SPONTAN + 0.15);
+  for (const e of _spontan) if (e.pfad === pfad) { e.gestoppt = true; blendeAus(e, FADE_SPONTAN + 0.15); }
 }
 
 /** Eigene Abhoer-Lautstaerke (0 bis 100) — beeinflusst NICHT die Hoerer. */

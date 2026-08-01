@@ -4,6 +4,27 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.46, 1. August 2026
+
+
+Audio-Bereich neu geordnet, Playlists, einfachere Fenster
+
+Der Audio-Bereich am Meistertisch ist neu sortiert: Bibliothek, Playlists,
+Verbindung, Lautstaerken. In der Bibliothek hat jeder Klang jetzt "Abspielen",
+"Abspielen in Schleife", "Vorhoeren", "Einspielen", "Stop" und "Zu Playlist
+hinzufuegen" - kein automatisches Schleifen mehr, du entscheidest je Klang.
+
+Playlists sind eigene Zusammenstellungen; sie verweisen nur auf deine Sounds
+(nichts wird kopiert). Ganz oben steht "Auto abspielen an/aus": an laeuft die
+ganze Playlist durch, aus nur ein Titel.
+
+Strg und F12 stoppt ueberall sofort alles (Klaenge, Playlist und das Senden).
+
+Ausserdem sind die Auswahl-Fenster (z. B. Wuerfel, Attacke oder Parade) schlichter:
+grosse Schaltflaechen, kein Abbrechen-Knopf mehr (Escape geht zurueck), Pfeile
+wechseln, Eingabetaste oder Klick waehlt - und es wird nur noch kurz angesagt.
+
+
 Version 0.45, 1. August 2026
 
 

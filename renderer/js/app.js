@@ -13,7 +13,7 @@ import * as screen from './ui/screen.js';
 import * as reiterHub from './ui/reiter-hub.js';
 import * as startScreen from './screens/start.js';
 import { hatInhalt } from './core/infotext.js';
-import { audioBereichScreen } from './meister/audio-bereich.js';
+import { audioBereichScreen, alleStoppen as audioAlleStoppen } from './meister/audio-bereich.js';
 import * as radio from './net/radio.js';
 import * as audioPlayer from './meister/audio-player.js';
 
@@ -99,6 +99,15 @@ function registriereEscape() {
 // Spieler-Menue. Ausnahme: An einem Tisch-Hub behandelt der Hub F12 selbst
 // (am Meistertisch die Meister-Version mit Schluessel und Senden).
 function registriereAudioTaste() {
+  // Strg und F12: alle Uebertragungen stoppen (Klaenge, Playlist, Radio).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'F12' || !e.ctrlKey || e.altKey || e.shiftKey) return;
+    if (document.querySelector('dialog[open]')) return;
+    e.preventDefault();
+    try { audioAlleStoppen(); } catch { /* egal */ }
+    sprache.sage('Alles gestoppt.');
+  }, true);
+
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'F12' || e.ctrlKey || e.altKey || e.shiftKey) return;
     if (document.querySelector('dialog[open]')) return;

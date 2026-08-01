@@ -224,21 +224,21 @@ export function knopfDialog({ titel, frage, knoepfe }) {
   return new Promise((resolve) => {
     sounds.playClick();
     const dlg = baueDialog(titel);
+    // Grosse, farbige Text-Schaltflaechen. KEIN Abbrechen-Knopf — Escape geht
+    // zurueck; Pfeile wechseln, Eingabetaste (oder Klick) waehlt.
     const knopfHtml = knoepfe
-      .map((k, i) => `<button class="db-btn${i === 0 ? ' db-btn--primary' : ''} db-dialog__wahl" data-i="${i}">${k.label}</button>`)
+      .map((k, i) => `<button class="db-btn db-btn--primary db-dialog__wahl" data-i="${i}">${k.label}</button>`)
       .join('');
     dlg.insertAdjacentHTML('beforeend', `
       <div class="db-dialog__header"><span class="db-dialog__title">${titel}</span></div>
       ${frage ? `<div class="db-dialog__body"><p class="db-dialog__label">${frage}</p></div>` : ''}
       <div class="db-dialog__footer db-dialog__footer--spalte">
         ${knopfHtml}
-        <button class="db-btn" id="dlg-ab">Abbrechen</button>
       </div>`);
     document.body.appendChild(dlg);
     const fertig = (val) => { dlg.close(); dlg.remove(); resolve(val); };
     const knopfEls = Array.from(dlg.querySelectorAll('.db-dialog__wahl'));
     knopfEls.forEach((b) => b.addEventListener('click', () => fertig(knoepfe[+b.dataset.i].wert)));
-    dlg.querySelector('#dlg-ab').addEventListener('click', () => fertig(null));
     let idx = 0;
     const fokus = (i) => { idx = Math.max(0, Math.min(knopfEls.length - 1, i)); knopfEls[idx].focus(); };
     dlg.addEventListener('keydown', (e) => {
@@ -254,7 +254,9 @@ export function knopfDialog({ titel, frage, knoepfe }) {
     });
     dlg.showModal();
     fokus(0);
-    melde(dlg, `${titel}.${frage ? ' ' + frage + '.' : ''} ${knoepfe.length} Möglichkeiten. Pfeil rauf und runter, Eingabetaste wählt, Escape bricht ab.`);
+    // Kurze Ansage: nur Titel/Frage — den fokussierten Knopf liest der
+    // Screenreader selbst; die Bedienung (Pfeile, Eingabetaste, Escape) ist Standard.
+    melde(dlg, `${titel}${frage ? '. ' + frage : ''}.`);
   });
 }
 
