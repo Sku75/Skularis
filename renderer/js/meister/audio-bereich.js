@@ -14,7 +14,7 @@ import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
-import { textDialog } from '../ui/dialog.js';
+import { textDialog, knopfDialog } from '../ui/dialog.js';
 import { abschnittTitel, aktionZeile, infoZeile, wertZeile, verbindeDetail } from '../editor/widgets.js';
 import * as player from './audio-player.js';
 import * as radio from '../net/radio.js';
@@ -84,22 +84,31 @@ function ordnerScreen(pfad, kanal, titel) {
         items.push({ label: o.name + ' (Ordner)', hint: 'Enter oeffnet den Ordner', onSelect: () => screen.push(ordnerScreen(o.pfad, kanal, o.name)) });
       }
       for (const d of inhalt.dateien) {
-        const spielHint = kanal === 'spontan' ? 'Enter spielt einmal, nochmal Enter stoppt' : 'Enter spielt in Schleife, nochmal Enter stoppt';
+        // Schleifen laufen in einem eigenen Kanal je nach Ordner (Hintergrund-
+        // stimmung getrennt von Musik), sonst in der Musik-Schleife.
+        const loopKanal = kanal === 'stimmung' ? 'stimmung' : 'musik';
         items.push({
           label: d.name,
-          hint: `${spielHint}. Strg und Enter: nur fuer dich vorhoeren`,
-          detail: [spielHint + '.', 'Strg und Enter: privat vorhoeren — dein Live-Ton wird fuer dich ausgeblendet, die Spieler hoeren den Stream weiter. Nochmal Strg und Enter beendet das Vorhoeren.'],
+          hint: 'Enter: waehlen einmal oder in Schleife. Strg und Enter: nur fuer dich vorhoeren',
+          detail: ['Enter oeffnet die Auswahl: einmal spielen (Fokus) oder in Schleife spielen (Pfeil runter).',
+            'Laeuft der Klang schon, haelt Enter ihn an.',
+            'Strg und Enter: privat vorhoeren — dein Live-Ton wird fuer dich ausgeblendet, die Spieler hoeren den Stream weiter. Nochmal Strg und Enter beendet das Vorhoeren.'],
           onSelect: async () => {
             try {
-              if (kanal === 'spontan') {
-                // Nochmal Enter auf einem laufenden Spontansound haelt ihn an.
-                if (player.spontanAktiv(d.pfad)) { player.stoppeSpontan(d.pfad); sprache.sage(`${d.name} gestoppt.`); }
-                else { await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`); }
-              } else {
-                // Laeuft dieser Klang im Kanal schon, haelt Enter ihn an; sonst starten.
-                if (player.laeuftPfad(kanal) === d.pfad) { player.stoppeKanal(kanal); sprache.sage(`${d.name} gestoppt.`); }
-                else { await player.spieleSchleife(kanal, d); sprache.sage(`${d.name} laeuft.`); }
-              }
+              // Laeuft dieser Klang schon (als Schleife oder einmal)? Dann stoppen.
+              if (player.laeuftPfad(loopKanal) === d.pfad) { player.stoppeKanal(loopKanal); sprache.sage(`${d.name} gestoppt.`); return; }
+              if (player.spontanAktiv(d.pfad)) { player.stoppeSpontan(d.pfad); sprache.sage(`${d.name} gestoppt.`); return; }
+              // Sonst fragen: einmal oder in Schleife (Fokus auf "einmal").
+              const wahl = await knopfDialog({
+                titel: d.name,
+                knoepfe: [
+                  { label: 'Einmal spielen', wert: 'einmal' },
+                  { label: 'In Schleife spielen', wert: 'schleife' },
+                ],
+              });
+              if (wahl === null) return;
+              if (wahl === 'schleife') { await player.spieleSchleife(loopKanal, d); sprache.sage(`${d.name} laeuft in Schleife.`); }
+              else { await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`); }
             } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
           },
           // Strg und Enter: privates Vorhoeren an/aus (der Stream fuer die Spieler
