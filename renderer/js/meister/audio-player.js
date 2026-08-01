@@ -28,7 +28,7 @@ let _ctx = null;
 let _mixBus = null;
 let _monitor = null;
 let _radioDest = null;
-let _monitorVol = 0.8;
+let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
 
 // Laufende Klaenge je Kanal. musik/stimmung: genau einer; spontan: mehrere.
 const _laeuft = { musik: null, stimmung: null };

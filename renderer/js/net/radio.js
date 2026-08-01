@@ -29,7 +29,7 @@ let _peer = null;
 let _rolle = null;         // 'sender' | 'hoerer'
 const _calls = new Set();  // Sender: verbundene Hoerer
 let _audioEl = null;       // Hoerer: Wiedergabe-Element
-let _hoererVol = 0.8;
+let _hoererVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
 
 /** Einen kurzen Zahlen-Schluessel erzeugen: sechs Ziffern (z. B. "123456"). */
 export function generiereSchluessel() {

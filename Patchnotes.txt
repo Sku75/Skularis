@@ -4,6 +4,17 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.41, 1. August 2026
+
+
+Standard-Lautstaerke 25 Prozent
+
+Beim allerersten Start stehen alle Lautstaerken jetzt auf 25 Prozent (die
+allgemeinen Toene, die eigene Audio-Lautstaerke und die Radio-Lautstaerke) -
+angenehmer als vorher. Sobald du eine Lautstaerke verstellst, wird dein Wert
+gemerkt und beim naechsten Mal wieder verwendet.
+
+
 Version 0.40, 1. August 2026
 
 

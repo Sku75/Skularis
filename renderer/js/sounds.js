@@ -84,7 +84,7 @@ const DEFAULT_VOLUME_FACTOR = 0.55;  // Ereignistoene (Wuerfeln, Speichern, Fehl
 const EBENE_VOLUME = 0.30;
 
 let _soundAn = true;
-let _globalVolume = 0.5;
+let _globalVolume = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
 const _audioCache = {};
 let _audioCtx = null;
 
