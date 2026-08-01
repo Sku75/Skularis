@@ -63,15 +63,90 @@ function schluesselDetail(key) {
   return zeilen;
 }
 
+// --- Aktionen je Datei (von Tastatur UND Schaltflaechen genutzt) ---------
+
+async function tuAbspielen(d, loopKanal) {
+  try {
+    // Laeuft dieser Klang schon (als Schleife oder einmal)? Dann anhalten.
+    if (player.laeuftPfad(loopKanal) === d.pfad) { player.stoppeKanal(loopKanal); sprache.sage(`${d.name} gestoppt.`); return; }
+    if (player.spontanAktiv(d.pfad)) { player.stoppeSpontan(d.pfad); sprache.sage(`${d.name} gestoppt.`); return; }
+    // Sonst fragen: einmal oder in Schleife (Fokus auf "einmal").
+    const wahl = await knopfDialog({
+      titel: d.name,
+      knoepfe: [
+        { label: 'Einmal spielen', wert: 'einmal' },
+        { label: 'In Schleife spielen', wert: 'schleife' },
+      ],
+    });
+    if (wahl === null) return;
+    if (wahl === 'schleife') { await player.spieleSchleife(loopKanal, d); sprache.sage(`${d.name} laeuft in Schleife.`); }
+    else { await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`); }
+  } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
+}
+
+async function tuVorhoeren(d) {
+  try {
+    if (player.vorhoerenPfad() === d.pfad) { player.beendeVorhoeren(); sprache.sage('Vorhoeren beendet. Dein Live-Ton ist wieder da.'); }
+    else { await player.starteVorhoeren(d); sprache.sage(`Vorhoeren ${d.name}. Nur du hoerst das, die Spieler hoeren den Stream weiter.`); }
+  } catch (e) { console.error('Vorhoeren:', e); sprache.sage('Vorhoeren nicht moeglich.'); }
+}
+
+async function tuEinspielen(d) {
+  try { await player.spieleEin(d); sprache.sage(`${d.name} wird eingespielt, die laufende Musik ist solange leiser.`); }
+  catch (e) { console.error('Einspielen:', e); sprache.sage('Einspielen nicht moeglich.'); }
+}
+
+// Eine Datei-Zeile mit drei Schaltflaechen: Abspielen, Vorhoeren, Einspielen.
+// Alle drei sind echte, fokussierbare Knoepfe (Maus wie Tastatur/NVDA). Am
+// Zeilenende steht der Titel sichtbar (fuer Sehende); die Knoepfe tragen den
+// Titel in ihrer Beschriftung, damit die Sprachausgabe "Abspielen, Name" sagt.
+function baueDateiZeile(d, loopKanal) {
+  const zeile = document.createElement('div');
+  zeile.className = 'db-row audio-zeile';
+  zeile.style.display = 'flex';
+  zeile.style.alignItems = 'center';
+  zeile.style.gap = '8px';
+  zeile.style.flexWrap = 'wrap';
+
+  const macheBtn = (text, aktion, detail) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'db-btn';
+    b.style.flex = '0 0 auto';
+    b.textContent = text;
+    b.setAttribute('aria-label', `${text}, ${d.name}`);
+    if (detail) b.__detail = detail;
+    b.addEventListener('click', () => { sounds.playClick(); aktion(); });
+    return b;
+  };
+
+  zeile.appendChild(macheBtn('Abspielen', () => tuAbspielen(d, loopKanal),
+    ['Abspielen: fragt einmal oder in Schleife. Laeuft der Klang schon, haelt Abspielen ihn an.']));
+  zeile.appendChild(macheBtn('Vorhoeren', () => tuVorhoeren(d),
+    ['Vorhoeren: nur fuer dich. Dein Live-Ton wird fuer dich ausgeblendet, die Spieler hoeren den Stream weiter. Nochmal Vorhoeren beendet es.']));
+  zeile.appendChild(macheBtn('Einspielen', () => tuEinspielen(d),
+    ['Einspielen: legt den Klang ueber die laufende Musik; die Musik wird solange leiser und danach wieder voll.']));
+
+  const name = document.createElement('span');
+  name.className = 'audio-zeile__name';
+  name.setAttribute('aria-hidden', 'true');
+  name.style.flex = '1 1 auto';
+  name.textContent = d.name;
+  zeile.appendChild(name);
+  return zeile;
+}
+
 /**
- * Ein Audio-Ordner als Menue: Unterordner zum Weiterblaettern, Dateien zum
- * Abspielen. kanal bestimmt das Verhalten: musik/stimmung laufen in Schleife
- * (mit Ueberblenden), spontan spielt einmal.
+ * Ein Audio-Ordner: Unterordner zum Weiterblaettern und Dateien mit je drei
+ * Schaltflaechen (Abspielen, Vorhoeren, Einspielen). kanal bestimmt den
+ * Schleifen-Kanal (Hintergrundstimmung getrennt von Musik).
  */
 function ordnerScreen(pfad, kanal, titel) {
+  const loopKanal = kanal === 'stimmung' ? 'stimmung' : 'musik';
   const scr = {
     title: titel,
     _inhalt: null,
+    __filter: '',
     async lade() {
       try { scr._inhalt = await ipc.audioInhalt(pfad); }
       catch { scr._inhalt = { ordner: [], dateien: [] }; }
@@ -79,63 +154,73 @@ function ordnerScreen(pfad, kanal, titel) {
     },
     build() {
       const inhalt = scr._inhalt || { ordner: [], dateien: [] };
-      const items = [];
+      const q = (scr.__filter || '').toLowerCase();
+      const dateien = q ? inhalt.dateien.filter(d => d.name.toLowerCase().includes(q)) : inhalt.dateien;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+
+      const h = document.createElement('div');
+      h.className = 'db-menu__title';
+      h.setAttribute('aria-hidden', 'true');
+      h.textContent = scr.__filter ? `${titel}, Filter ${scr.__filter}, ${dateien.length} Treffer` : titel;
+      wrap.appendChild(h);
+
+      const sub = document.createElement('p');
+      sub.className = 'db-menu__sub';
+      sub.setAttribute('aria-hidden', 'true');
+      sub.textContent = 'Je Titel drei Schaltflaechen: Abspielen, Vorhoeren, Einspielen. Pfeiltasten bewegen, Eingabetaste aktiviert. Escape zurueck.';
+      wrap.appendChild(sub);
+
+      // Unterordner (jeweils ein Schalter zum Oeffnen).
       for (const o of inhalt.ordner) {
-        items.push({ label: o.name + ' (Ordner)', hint: 'Enter oeffnet den Ordner', onSelect: () => screen.push(ordnerScreen(o.pfad, kanal, o.name)) });
+        wrap.appendChild(aktionZeile(`${o.name} (Ordner)`, () => screen.push(ordnerScreen(o.pfad, kanal, o.name)), 'Ordner oeffnen'));
       }
-      for (const d of inhalt.dateien) {
-        // Schleifen laufen in einem eigenen Kanal je nach Ordner (Hintergrund-
-        // stimmung getrennt von Musik), sonst in der Musik-Schleife.
-        const loopKanal = kanal === 'stimmung' ? 'stimmung' : 'musik';
-        items.push({
-          label: d.name,
-          hint: 'Enter: waehlen einmal oder in Schleife. Strg und Enter: nur fuer dich vorhoeren',
-          detail: ['Enter oeffnet die Auswahl: einmal spielen (Fokus), in Schleife spielen oder einspielen.',
-            'Einspielen legt den Klang ueber die laufende Musik: die Musik wird solange leiser und danach wieder voll (mit Ueberblende).',
-            'Laeuft der Klang schon, haelt Enter ihn an.',
-            'Strg und Enter: privat vorhoeren — dein Live-Ton wird fuer dich ausgeblendet, die Spieler hoeren den Stream weiter. Nochmal Strg und Enter beendet das Vorhoeren.'],
-          onSelect: async () => {
-            try {
-              // Laeuft dieser Klang schon (als Schleife oder einmal)? Dann stoppen.
-              if (player.laeuftPfad(loopKanal) === d.pfad) { player.stoppeKanal(loopKanal); sprache.sage(`${d.name} gestoppt.`); return; }
-              if (player.spontanAktiv(d.pfad)) { player.stoppeSpontan(d.pfad); sprache.sage(`${d.name} gestoppt.`); return; }
-              // Sonst fragen: einmal oder in Schleife (Fokus auf "einmal").
-              const wahl = await knopfDialog({
-                titel: d.name,
-                knoepfe: [
-                  { label: 'Einmal spielen', wert: 'einmal' },
-                  { label: 'In Schleife spielen', wert: 'schleife' },
-                  { label: 'Einspielen ueber die laufende Musik', wert: 'einspielen' },
-                ],
-              });
-              if (wahl === null) return;
-              if (wahl === 'schleife') { await player.spieleSchleife(loopKanal, d); sprache.sage(`${d.name} laeuft in Schleife.`); }
-              else if (wahl === 'einspielen') { await player.spieleEin(d); sprache.sage(`${d.name} wird eingespielt, die laufende Musik ist solange leiser.`); }
-              else { await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`); }
-            } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
-          },
-          // Strg und Enter: privates Vorhoeren an/aus (der Stream fuer die Spieler
-          // laeuft unveraendert weiter).
-          onCtrlEnter: async () => {
-            try {
-              if (player.vorhoerenPfad() === d.pfad) {
-                player.beendeVorhoeren();
-                sprache.sage('Vorhoeren beendet. Dein Live-Ton ist wieder da.');
-              } else {
-                await player.starteVorhoeren(d);
-                sprache.sage(`Vorhoeren ${d.name}. Nur du hoerst das, die Spieler hoeren den Stream weiter. Strg und Enter beendet.`);
-              }
-            } catch (e) { console.error('Vorhoeren:', e); sprache.sage('Vorhoeren nicht moeglich.'); }
-          },
-        });
+
+      // Filter bei vielen Dateien.
+      if (inhalt.dateien.length >= 12) {
+        if (!scr.__filter) {
+          wrap.appendChild(aktionZeile('Filtern', async () => {
+            const e = await textDialog({ titel: 'Filtern', label: 'Suchbegriff eingeben, dann Eingabetaste' });
+            if (e === null) return; scr.__filter = e.trim(); screen.refresh();
+          }, 'die Liste durchsuchen'));
+        } else {
+          wrap.appendChild(aktionZeile('Filter aufheben', () => { scr.__filter = ''; screen.refresh(); }, `zeigt wieder alle ${inhalt.dateien.length}`));
+        }
       }
-      return menuScreen({
-        title: this.title,
-        subtitle: 'Enter spielt. Escape zurueck.',
-        items,
-        leer: 'Dieser Ordner ist leer. Lege Audio-Dateien hinein.',
-        filter: items.length >= 10,
-      }).build();
+
+      // Dateien als Zeilen mit drei Schaltflaechen.
+      for (const d of dateien) wrap.appendChild(baueDateiZeile(d, loopKanal));
+
+      if (!inhalt.ordner.length && !inhalt.dateien.length) {
+        const leer = document.createElement('div');
+        leer.className = 'db-menu__empty';
+        leer.tabIndex = 0;
+        leer.setAttribute('aria-label', 'Dieser Ordner ist leer. Lege Audio-Dateien hinein.');
+        leer.textContent = 'Dieser Ordner ist leer. Lege Audio-Dateien hinein.';
+        wrap.appendChild(leer);
+      } else if (scr.__filter && !dateien.length) {
+        const leer = document.createElement('div');
+        leer.className = 'db-menu__empty';
+        leer.tabIndex = 0;
+        leer.setAttribute('aria-label', 'Keine Treffer.');
+        leer.textContent = 'Keine Treffer.';
+        wrap.appendChild(leer);
+      }
+
+      verbindeDetail(wrap);
+
+      if (screen.tiefe() > 1) {
+        const back = document.createElement('button');
+        back.type = 'button';
+        back.className = 'db-btn ed-zurueck';
+        back.textContent = 'Zurueck';
+        back.setAttribute('aria-label', 'Zurueck');
+        back.tabIndex = -1;
+        back.addEventListener('click', () => { screen.zurueck(); });
+        wrap.appendChild(back);
+      }
+      return wrap;
     },
     onShow() { if (scr._inhalt === null) scr.lade(); },
     // Verlaesst man den Ordner, ein laufendes Vorhoeren beenden (sonst bliebe der

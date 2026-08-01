@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.39, 1. August 2026
+
+
+Drei Schaltflaechen je Klang (auch fuer Sehende)
+
+Im Audio-Bereich hat jetzt jeder Titel drei sichtbare Schaltflaechen davor:
+Abspielen, Vorhoeren und Einspielen. Sie lassen sich mit der Maus anklicken und
+genauso per Tastatur und Sprachausgabe bedienen (Pfeiltasten hin, Eingabetaste
+aktiviert). Abspielen fragt wie gewohnt einmal oder in Schleife (und haelt einen
+laufenden Klang an), Vorhoeren ist das private Vorhoeren, Einspielen legt den
+Klang ueber die laufende Musik. Bei vielen Dateien gibt es oben einen Filter.
+
+
 Version 0.38, 1. August 2026
 
 
