@@ -84,9 +84,11 @@ function ordnerScreen(pfad, kanal, titel) {
         items.push({ label: o.name + ' (Ordner)', hint: 'Enter oeffnet den Ordner', onSelect: () => screen.push(ordnerScreen(o.pfad, kanal, o.name)) });
       }
       for (const d of inhalt.dateien) {
+        const spielHint = kanal === 'spontan' ? 'Enter spielt einmal, nochmal Enter stoppt' : 'Enter spielt in Schleife, nochmal Enter stoppt';
         items.push({
           label: d.name,
-          hint: kanal === 'spontan' ? 'Enter spielt einmal, nochmal Enter stoppt' : 'Enter spielt in Schleife, nochmal Enter stoppt',
+          hint: `${spielHint}. Strg und Enter: nur fuer dich vorhoeren`,
+          detail: [spielHint + '.', 'Strg und Enter: privat vorhoeren — dein Live-Ton wird fuer dich ausgeblendet, die Spieler hoeren den Stream weiter. Nochmal Strg und Enter beendet das Vorhoeren.'],
           onSelect: async () => {
             try {
               if (kanal === 'spontan') {
@@ -100,6 +102,19 @@ function ordnerScreen(pfad, kanal, titel) {
               }
             } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
           },
+          // Strg und Enter: privates Vorhoeren an/aus (der Stream fuer die Spieler
+          // laeuft unveraendert weiter).
+          onCtrlEnter: async () => {
+            try {
+              if (player.vorhoerenPfad() === d.pfad) {
+                player.beendeVorhoeren();
+                sprache.sage('Vorhoeren beendet. Dein Live-Ton ist wieder da.');
+              } else {
+                await player.starteVorhoeren(d);
+                sprache.sage(`Vorhoeren ${d.name}. Nur du hoerst das, die Spieler hoeren den Stream weiter. Strg und Enter beendet.`);
+              }
+            } catch (e) { console.error('Vorhoeren:', e); sprache.sage('Vorhoeren nicht moeglich.'); }
+          },
         });
       }
       return menuScreen({
@@ -111,6 +126,9 @@ function ordnerScreen(pfad, kanal, titel) {
       }).build();
     },
     onShow() { if (scr._inhalt === null) scr.lade(); },
+    // Verlaesst man den Ordner, ein laufendes Vorhoeren beenden (sonst bliebe der
+    // Live-Ton fuer den Meister stumm). Der Spieler-Stream ist davon unberuehrt.
+    onBack() { if (player.istVorhoeren()) player.beendeVorhoeren(); return true; },
   };
   return scr;
 }

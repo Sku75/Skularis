@@ -154,8 +154,53 @@ export function stoppeSpontan(pfad) {
 /** Eigene Abhoer-Lautstaerke (0 bis 100) — beeinflusst NICHT die Hoerer. */
 export function setMonitorLautstaerke(prozent) {
   _monitorVol = Math.max(0, Math.min(1, prozent / 100));
-  if (_monitor) rampe(_monitor.gain, Math.max(0.0001, _monitorVol), 0.15);
+  // Beim Vorhoeren bleibt der Live-Mix fuer den Meister stumm; die Lautstaerke
+  // wirkt dann auf das Vorhoeren. Sonst regelt sie den Live-Mix.
+  if (_preview) rampe(_preview.gain.gain, Math.max(0.0001, _monitorVol), 0.15);
+  else if (_monitor) rampe(_monitor.gain, Math.max(0.0001, _monitorVol), 0.15);
 }
+
+// --- Vorhoeren (Probehoeren, nur fuer den Meister) -----------------------
+//
+// Der Meister kann eine Datei privat vorhoeren: sein Live-Mix wird ausgeblendet
+// und die Datei laeuft nur auf seinen Boxen (nicht ins Radio, radioDest bleibt
+// unangetastet). Die Spieler hoeren den Stream unveraendert weiter. Beim Beenden
+// blendet der Live-Mix fuer den Meister wieder ein.
+let _preview = null;
+
+function stoppeVorschau() {
+  if (!_preview) return;
+  try { rampe(_preview.gain.gain, 0, 0.2); _preview.source.stop(ctx().currentTime + 0.25); }
+  catch { /* schon gestoppt */ }
+  _preview = null;
+}
+
+/** Eine Datei privat vorhoeren (Live-Mix fuer den Meister aus). */
+export async function starteVorhoeren(datei) {
+  const puffer = await ladePuffer(datei.pfad);
+  const c = ctx();
+  stoppeVorschau();
+  rampe(_monitor.gain, 0, 0.4); // Meister hoert den Live-Mix nicht mehr
+  const source = c.createBufferSource();
+  source.buffer = puffer;
+  source.loop = true;
+  const gain = c.createGain();
+  gain.gain.value = 0.0001;
+  source.connect(gain);
+  gain.connect(c.destination); // NUR zu den Boxen, nicht ins Radio
+  source.start();
+  rampe(gain.gain, Math.max(0.0001, _monitorVol), 0.4);
+  _preview = { source, gain, pfad: datei.pfad, name: datei.name };
+}
+
+/** Vorhoeren beenden und den Live-Mix fuer den Meister wieder einblenden. */
+export function beendeVorhoeren() {
+  stoppeVorschau();
+  if (_monitor) rampe(_monitor.gain, Math.max(0.0001, _monitorVol), 0.4);
+}
+
+export function istVorhoeren() { return Boolean(_preview); }
+export function vorhoerenPfad() { return _preview ? _preview.pfad : null; }
 
 export function getMonitorLautstaerke() {
   return Math.round(_monitorVol * 100);

@@ -4,6 +4,20 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.36, 1. August 2026
+
+
+Vorhoeren fuer den Meister (Strg und Enter)
+
+Im Audio-Bereich kannst du eine Datei jetzt privat vorhoeren: Steht der Fokus auf
+einer Audio-Datei und du druckst Strg und Enter, wird dein eigener Live-Ton fuer
+dich ausgeblendet und die Datei nur fuer dich eingeblendet. Die Spieler hoeren
+den laufenden Stream unveraendert weiter. Noch einmal Strg und Enter beendet das
+Vorhoeren, dann blendet dein Live-Ton wieder ein. So kannst du in Ruhe die
+naechste Musik aussuchen, ohne dass die Spieler es mitbekommen. (Enter spielt wie
+gewohnt in den Stream; Strg und Enter ist das private Vorhoeren.)
+
+
 Version 0.35, 1. August 2026
 
 

@@ -169,6 +169,7 @@ export function menuScreen(opts) {
         b.setAttribute('aria-label', it.label);
 
         b.__detail = (it.detail !== undefined) ? it.detail : (it.hint || '');
+        b.__item = it; // fuer Sondertasten wie Strg und Eingabetaste
 
         b.addEventListener('click', () => {
           if (it.disabled) { sounds.playError(); return; }
@@ -190,6 +191,17 @@ export function menuScreen(opts) {
         const b = e.target.closest('.db-menu__item');
         if (!b) { detail.textContent = ''; return; }
         resolveDetail(b).then((t) => { if (document.activeElement === b) detail.textContent = t; });
+      });
+
+      // Strg und Eingabetaste: Sonderaktion eines Eintrags (z. B. Vorhoeren im
+      // Audio-Bereich). Nur wenn der Eintrag ein onCtrlEnter anbietet.
+      list.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' || !e.ctrlKey) return;
+        const b = e.target.closest('.db-menu__item');
+        if (!b || !b.__item || typeof b.__item.onCtrlEnter !== 'function') return;
+        e.preventDefault();
+        e.stopPropagation();
+        try { b.__item.onCtrlEnter(); } catch (err) { console.error('Strg-Eingabe-Aktion:', err); }
       });
 
       if (screen.tiefe() > 1) {
