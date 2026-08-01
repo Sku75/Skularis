@@ -4,6 +4,17 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.44, 1. August 2026
+
+
+Astralspeicher Stab bei Magiern
+
+Im Editor steht bei Magiern (mit Astralenergie) direkt unter den Astralpunkten
+ein neuer Schieber "Astralspeicher Stab" von 0 bis 50. Du stellst ihn von Hand
+mit Pfeil links und rechts ein, so wie die Astralpunkte; er kostet keine
+Erfahrungspunkte und wird mit dem Charakter gespeichert.
+
+
 Version 0.43, 1. August 2026
 
 

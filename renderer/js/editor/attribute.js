@@ -76,6 +76,21 @@ export function attributeInhalt(box) {
             + 'Steigerungsfaktor eins.';
         },
       }));
+
+      // Direkt unter den Astralpunkten: ein von Hand einstellbarer Schieber fuer
+      // den Astralspeicher eines Zauberstabs (0 bis 50, wie in der Tradition).
+      // Kostet keine EP, wird nur eingestellt.
+      if (ename === 'AsP') {
+        box.appendChild(wertZeile({
+          label: 'Astralspeicher Stab',
+          get: () => char.astralspeicherStab || 0,
+          set: (v) => { char.astralspeicherStab = v; },
+          min: 0,
+          max: 50,
+          suffix: () => 'von 50',
+          detail: 'Zusaetzlicher Astralspeicher in einem Zauberstab, 0 bis 50. Von Hand einstellbar mit Pfeil links und rechts; kostet keine Erfahrungspunkte.',
+        }));
+      }
     }
   }
 }
