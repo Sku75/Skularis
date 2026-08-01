@@ -4,6 +4,15 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.47, 1. August 2026
+
+
+Neuer Würfelklang
+
+Der Klang beim Würfeln wurde gegen einen angenehmeren, klareren Würfelwurf
+ausgetauscht. Sonst ändert sich nichts.
+
+
 Version 0.46, 1. August 2026
 
 
