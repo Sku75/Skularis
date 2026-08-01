@@ -214,13 +214,9 @@ function ordnerScreen(pfad, kanal, titel) {
       sub.textContent = 'Mit den Pfeiltasten die Titel abhoeren, Eingabetaste oeffnet die Optionen (Abspielen, Abspielen in Schleife, Vorhoeren, Einspielen, Stop). Sehende koennen die Schaltflaechen anklicken. Escape zurueck.';
       wrap.appendChild(sub);
 
-      // Unterordner (jeweils ein Schalter zum Oeffnen).
-      for (const o of inhalt.ordner) {
-        wrap.appendChild(aktionZeile(`${o.name} (Ordner)`, () => screen.push(ordnerScreen(o.pfad, kanal, o.name)), 'Ordner oeffnen'));
-      }
-
-      // Filter bei vielen Dateien.
-      if (inhalt.dateien.length >= 12) {
+      // Filter ganz oben: in jedem Pfad, der Audiodateien enthaelt, damit man
+      // schnell durchsuchen kann (steht vor den Unterordnern und Titeln).
+      if (inhalt.dateien.length > 0) {
         if (!scr.__filter) {
           wrap.appendChild(aktionZeile('Filtern', async () => {
             const e = await textDialog({ titel: 'Filtern', label: 'Suchbegriff eingeben, dann Eingabetaste' });
@@ -229,6 +225,11 @@ function ordnerScreen(pfad, kanal, titel) {
         } else {
           wrap.appendChild(aktionZeile('Filter aufheben', () => { scr.__filter = ''; screen.refresh(); }, `zeigt wieder alle ${inhalt.dateien.length}`));
         }
+      }
+
+      // Unterordner (jeweils ein Schalter zum Oeffnen).
+      for (const o of inhalt.ordner) {
+        wrap.appendChild(aktionZeile(`${o.name} (Ordner)`, () => screen.push(ordnerScreen(o.pfad, kanal, o.name)), 'Ordner oeffnen'));
       }
 
       // Dateien als Titel-Zeilen (Enter oeffnet das Optionen-Fenster).
@@ -492,6 +493,7 @@ function playlistsScreen() {
 function playlistScreen(index) {
   const scr = {
     title: 'Playlist',
+    __filter: '',
     build() {
       const pl = _playlists.listen[index];
       if (!pl) { screen.pop(); return document.createElement('div'); }
@@ -500,8 +502,24 @@ function playlistScreen(index) {
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel(pl.name));
       wrap.appendChild(infoZeile(`Auto abspielen: ${_autoWeiter ? 'an' : 'aus'}`, 'Umschalten in der Playlist-Uebersicht. An: der naechste Titel folgt von selbst.'));
-      (pl.sounds || []).forEach((s, si) => wrap.appendChild(bauePlaylistZeile(pl, index, si)));
+
+      // Filter oben: wie in der Bibliothek, in jedem Pfad mit Titeln.
+      const q = (scr.__filter || '').toLowerCase();
+      const treffer = (pl.sounds || []).map((s, si) => ({ s, si })).filter(x => !q || x.s.name.toLowerCase().includes(q));
+      if ((pl.sounds || []).length > 0) {
+        if (!scr.__filter) {
+          wrap.appendChild(aktionZeile('Filtern', async () => {
+            const e = await textDialog({ titel: 'Filtern', label: 'Suchbegriff eingeben, dann Eingabetaste' });
+            if (e === null) return; scr.__filter = e.trim(); screen.refresh();
+          }, 'die Titel durchsuchen'));
+        } else {
+          wrap.appendChild(aktionZeile('Filter aufheben', () => { scr.__filter = ''; screen.refresh(); }, `zeigt wieder alle ${pl.sounds.length}`));
+        }
+      }
+
+      treffer.forEach((x) => wrap.appendChild(bauePlaylistZeile(pl, index, x.si)));
       if (!pl.sounds.length) wrap.appendChild(infoZeile('Diese Playlist ist leer.', 'Fuege in der Bibliothek Sounds ueber "Zu Playlist hinzufuegen" hinzu.'));
+      else if (scr.__filter && !treffer.length) wrap.appendChild(infoZeile('Keine Treffer.', 'Filter mit "Filter aufheben" zuruecksetzen.'));
       wrap.appendChild(aktionZeile('Playlist umbenennen', async () => {
         const v = await textDialog({ titel: 'Playlist umbenennen', label: 'Name', wert: pl.name });
         if (v === null || !v.trim()) return; pl.name = v.trim(); speicherePlaylists(); screen.refresh(); sprache.sage(`Heisst jetzt ${v.trim()}.`);

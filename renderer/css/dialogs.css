@@ -1,22 +1,32 @@
 /* Skularis Alpha 0.02.03 — Modale Dialoge (HTML <dialog> + ARIA) */
 
 /* === Dialog-Grundstil === */
+/* WICHTIG: reset.css setzt "* { margin: 0 }" und ueberschreibt damit die
+   UA-Regel "dialog:modal { margin: auto }". Ohne das margin:auto hier landet
+   der modale Dialog oben links. Fuer Sehbehinderte muss er MITTIG stehen. */
 .db-dialog {
+  margin: auto;                 /* zentriert den modalen Dialog im Fenster */
   background: var(--db-bg-elevated);
   color: var(--db-text-primary);
-  border: 1px solid var(--db-border-medium);
+  /* Deutlicher, viereckiger Rahmen, damit das Fenster leicht zu finden ist. */
+  border: 3px solid var(--db-gold);
   border-radius: var(--db-radius-lg);
   padding: 0;
-  min-width: 360px;
-  max-width: 560px;
-  max-height: 80vh;
+  min-width: 420px;
+  max-width: 620px;
+  max-height: 82vh;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.6),
-    0 0 0 1px var(--db-border-subtle);
+    0 12px 48px rgba(0, 0, 0, 0.75),
+    0 0 0 2px rgba(0, 0, 0, 0.6);
   overflow: hidden;
 }
+/* Der Hintergrund graut/dunkelt kraeftig aus, sodass der Inhalt dahinter kaum
+   noch zu lesen ist und der Blick auf dem mittigen Fenster liegt. Der Effekt
+   verschwindet automatisch beim Schliessen; folgt gleich ein weiterer Dialog,
+   bleibt er (jeder Dialog bringt seinen eigenen Hintergrund mit). */
 .db-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.84);
+  backdrop-filter: grayscale(0.95) blur(2px);
 }
 
 /* === Dialog-Header === */
@@ -89,6 +99,24 @@
   padding: var(--db-space-md) var(--db-space-lg);
   border-top: 1px solid var(--db-border-subtle);
   background: var(--db-bg-primary);
+}
+
+/* Auswahl-Fenster (z. B. "1 oder 3 Wuerfel"): grosse, farbige Text-Knoepfe
+   untereinander, mittig im Rahmen. So liegen die Optionen klar in der Mitte. */
+.db-dialog__footer--spalte {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--db-space-md);
+  padding: var(--db-space-lg);
+}
+.db-dialog__wahl {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+  font-size: calc(var(--db-font-size-lg) + var(--db-font-offset));
+  font-weight: 700;
+  padding: var(--db-space-md) var(--db-space-lg);
 }
 
 /* === Dialog-Varianten === */

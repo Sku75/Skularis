@@ -13,6 +13,7 @@ import * as screen from './ui/screen.js';
 import * as reiterHub from './ui/reiter-hub.js';
 import * as startScreen from './screens/start.js';
 import { hatInhalt } from './core/infotext.js';
+import { knopfDialog } from './ui/dialog.js';
 import { audioBereichScreen, alleStoppen as audioAlleStoppen } from './meister/audio-bereich.js';
 import * as radio from './net/radio.js';
 import * as audioPlayer from './meister/audio-player.js';
@@ -154,14 +155,72 @@ function registriereRadioLautstaerke() {
 
 // --- Beenden ---
 
-function registriereQuit() {
-  on('app-beenden', () => beenden());
+let _beendenLaeuft = false;
 
-  // Fenster-Schließen (X) — keine ungespeicherten Daten auf Menü-Ebene.
+function registriereQuit() {
+  // Menüpunkt "Skularis beenden": mit derselben Abfrage wie Strg+Q.
+  on('app-beenden', async () => { if (await beendenAblauf()) beenden(); });
+
+  // Fenster-Schließen (X): dieselbe Abfrage. Bricht der Nutzer ab, bleibt das
+  // Fenster offen (Antwort false); sonst schließt der Hauptprozess.
   if (ipc && ipc.onVorSchliessen) {
-    ipc.onVorSchliessen(() => {
-      if (ipc.antworteSchliessen) ipc.antworteSchliessen(true);
+    ipc.onVorSchliessen(async () => {
+      const ok = await beendenAblauf();
+      if (ipc.antworteSchliessen) ipc.antworteSchliessen(ok);
     });
+  }
+}
+
+/**
+ * Beenden-Ablauf mit Rückfrage: Ist ein Charakter im Editor oder ein Abenteuer
+ * offen, wird gefragt und auf Wunsch gespeichert. Sonst wird ohne Nachfrage
+ * beendet. Gibt true zurück, wenn wirklich beendet werden soll (der Aufrufer
+ * beendet dann), false bei Abbruch. Speichert hier, quittet aber NICHT selbst.
+ */
+async function beendenAblauf() {
+  if (_beendenLaeuft) return false;            // keine doppelte Abfrage
+  // Ein offener Dialog hat Vorrang — nicht mittendrin die Beenden-Abfrage stapeln.
+  if (document.querySelector('dialog[open]')) return false;
+  _beendenLaeuft = true;
+  try {
+    let editorMod = null, stateMod = null;
+    try { editorMod = await import('./editor/editor.js'); } catch { /* egal */ }
+    try { stateMod = await import('./abenteuer/state.js'); } catch { /* egal */ }
+    const editorAuf = !!(editorMod && editorMod.editorOffen && editorMod.editorOffen());
+    const ab = stateMod && stateMod.getAbenteuer && stateMod.getAbenteuer();
+
+    if (editorAuf) {
+      const w = await knopfDialog({
+        titel: 'Skularis beenden',
+        frage: 'Du bearbeitest gerade einen Charakter.',
+        knoepfe: [
+          { label: 'Speichern und beenden', wert: 'speichern' },
+          { label: 'Ohne Speichern beenden', wert: 'ohne' },
+          { label: 'Abbrechen', wert: 'abbrechen' },
+        ],
+      });
+      if (!w || w === 'abbrechen') return false;
+      if (w === 'speichern') { try { await editorMod.speichere(); } catch { /* egal */ } }
+      return true;
+    }
+    if (ab) {
+      const w = await knopfDialog({
+        titel: 'Skularis beenden',
+        frage: 'Ein Abenteuer ist geöffnet.',
+        knoepfe: [
+          { label: 'Speichern und beenden', wert: 'speichern' },
+          { label: 'Beenden ohne Speichern', wert: 'ohne' },
+          { label: 'Abbrechen', wert: 'abbrechen' },
+        ],
+      });
+      if (!w || w === 'abbrechen') return false;
+      if (w === 'speichern') { try { await stateMod.speichere(); } catch { /* egal */ } }
+      return true;
+    }
+    // Nichts offen: ohne Nachfrage beenden.
+    return true;
+  } finally {
+    _beendenLaeuft = false;
   }
 }
 
@@ -192,6 +251,10 @@ function registriereShortcuts() {
   shortcuts.registriere('Ctrl++', () => schriftAendern(1), 'Schrift vergrößern');
   shortcuts.registriere('Ctrl+-', () => schriftAendern(-1), 'Schrift verkleinern');
   shortcuts.registriere('Ctrl+0', () => schriftReset(), 'Schrift zurücksetzen');
+
+  // Strg und Q: Skularis beenden. Ist ein Charakter oder ein Abenteuer offen,
+  // wird vorher gefragt und auf Wunsch gespeichert.
+  shortcuts.registriere('Ctrl+Q', async () => { if (await beendenAblauf()) beenden(); }, 'Skularis beenden');
 
   // Shift halten und Pfeil: Tooltip. Strg und I oder Doppelklick: Info-Fenster.
   // Beides steuert das Info-Fenster auf der rechten Bildschirmhälfte

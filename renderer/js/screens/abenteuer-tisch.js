@@ -222,7 +222,7 @@ function oeffneHubSpieler(modus) {
         ],
       });
       if (w === 'ja') { await speichere(); sounds.playSpeichern(); }
-      if (w === 'ja' || w === 'nein') versteckeEP(); // Charakter nicht mehr geladen
+      if (w === 'ja' || w === 'nein') { versteckeEP(); setAbenteuer(null); } // Charakter/Abenteuer nicht mehr geladen
       return w || 'abbrechen';
     },
   });

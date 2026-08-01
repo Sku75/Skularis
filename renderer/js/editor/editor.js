@@ -38,10 +38,13 @@ const ipc = window.skularis?.ipc;
 
 let db = null;
 let char = null;
+let _offen = false; // ob der Editor-Hub gerade offen ist (fuer die Beenden-Abfrage)
 
 export function getChar() { return char; }
 export function getDb() { return db; }
 export function setChar(c) { char = c; }
+/** Ist der Charakter-Editor gerade geoeffnet? (fuer Strg+Q / Fenster schliessen) */
+export function editorOffen() { return _offen; }
 
 /** Den Editor-Hub anzeigen (vom Assistenten nach der Paketauswahl genutzt). */
 export function oeffneHub() {
@@ -259,6 +262,7 @@ function editorPunkte() {
 /** Den Editor-Hub mit F-Tasten öffnen. ersetzen: die Stammdaten-Seite ersetzen. */
 export function oeffneEditorHub(ersetzen) {
   aktualisiere();
+  _offen = true;
   editorHub = reiterHub.oeffneHub({
     titel: editorTitel,
     subtitle: 'Mit F1 bis F12 direkt zum Bereich. Escape verlässt die Erstellung.',
@@ -274,6 +278,7 @@ export function oeffneEditorHub(ersetzen) {
         ],
       });
       if (w === 'ja') await speichere();
+      if (w === 'ja' || w === 'nein') _offen = false;
       return w || 'abbrechen';
     },
   });
@@ -308,6 +313,7 @@ export async function speichere() {
 /** Speichern und danach den Editor verlassen, zurück auf die vorige Ebene. */
 async function speichernUndSchliessen() {
   if (await speichere()) {
+    _offen = false;
     if (editorHub) editorHub.verlasse(); else screen.pop();
     sprache.sageZusatz('Editor geschlossen.');
   }
@@ -322,5 +328,5 @@ function zeigeBogen() {
 
 /** Den Editor mit Rückfrage schließen (verwirft nicht gespeicherte Änderungen). */
 async function schliesse() {
-  if (await darfVerlassen()) screen.pop();
+  if (await darfVerlassen()) { _offen = false; screen.pop(); }
 }

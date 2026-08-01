@@ -4,6 +4,30 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.48, 1. August 2026
+
+
+Fenster mittig und abgedunkelt, Astralspeicher im Abenteuer, Strg+Q, Filter überall
+
+Fenster (Würfeln, Auswahl, Rückfragen) erscheinen jetzt in der Bildschirmmitte
+statt oben links, mit einem deutlichen viereckigen Rahmen. Der Hintergrund
+dunkelt dabei kräftig ab und graut aus, sodass der Blick klar auf dem Fenster
+liegt. Nach Bestätigen oder Escape verschwindet der Effekt wieder.
+
+Astralspeicher Stab wirkt jetzt im Abenteuer: Der im Editor eingestellte Wert
+(0 bis 50) ist das Maximum. Im Charakterstatus steht ein eigener Zähler
+"Astralspeicher Stab", der voll startet und den du wie die anderen Ressourcen
+verwaltest - darüber hinaus geht nicht.
+
+Strg und Q beendet Skularis. Ist gerade ein Charakter im Editor oder ein
+Abenteuer offen, wird vorher gefragt und auf Wunsch gespeichert. Ist nichts
+offen, wird ohne Nachfrage beendet. Das Schließen über das Fenster-X fragt jetzt
+genauso nach.
+
+In der Audio-Bibliothek steht in jedem Pfad mit Titeln oben ein "Filtern", auch
+in den Playlists - so findest du einen Klang schnell.
+
+
 Version 0.47, 1. August 2026
 
 

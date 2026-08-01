@@ -19,6 +19,7 @@ import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKa
 const RES_NAME = {
   Wunden: 'Wunden', Erschoepfung: 'Erschöpfung', SchiP: 'Schicksalspunkte',
   AsP: 'Astralpunkte', KaP: 'Karmapunkte', GuP: 'Gunstpunkte',
+  AstralspeicherStab: 'Astralspeicher Stab',
 };
 const ATTR_NAME = {
   KO: 'Konstitution', MU: 'Mut', GE: 'Gewandtheit', KK: 'Körperkraft',

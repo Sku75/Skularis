@@ -26,6 +26,11 @@ export function ressourcenAusCharakter(char) {
       if (max > 0) res[k] = { aktuell: max, max };
     }
   }
+  // Astralspeicher eines Zauberstabs: der im Editor eingestellte Wert (0 bis 50)
+  // ist das Maximum. Im Abenteuer startet der Speicher voll und wird als eigener
+  // Zaehler verwaltet; drueber geht nicht (die Ressourcen-Zeile klemmt auf max).
+  const stab = char.astralspeicherStab || 0;
+  if (stab > 0) res.AstralspeicherStab = { aktuell: stab, max: stab };
   return res;
 }
 
@@ -105,6 +110,13 @@ export function parseAbenteuer(text) {
   a.mitspieler = a.mitspieler || [];
   a.protokoll = a.protokoll || [];
   a.apGesamt = a.apGesamt || 0;
+
+  // Nachruesten: hat der Charakter einen Astralspeicher-Stab, aber das Abenteuer
+  // kennt die Ressource noch nicht (aelterer Spielstand), dann einmalig voll anlegen.
+  const stab = (a.charakter && a.charakter.astralspeicherStab) || 0;
+  if (stab > 0 && !a.ressourcen.AstralspeicherStab) {
+    a.ressourcen.AstralspeicherStab = { aktuell: stab, max: stab };
+  }
 
   // Journal aus altem Format (a.tagebuch[] + a.notizen-String) migrieren.
   if (!Array.isArray(a.journal)) {
