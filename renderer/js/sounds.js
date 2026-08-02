@@ -6,12 +6,9 @@
 import * as einstellungen from './daten/einstellungen.js';
 
 const SOUND_MAP = {
-  // Sax-Jingles (kurz) fuer die selteneren "Moment"-Ereignisse, damit die
-  // Klangwelt einheitlicher wirkt. Die haeufigen Navigations-/Klick-Toene
-  // (Menue durchgehen, Auswaehlen) bleiben bewusst die alten Klicks.
-  start:          'sax-start.wav',
+  start:          'Skularis Logo.wav',
   click:          'sound3.wav',
-  bing:           'sax-bestaetigen.wav',
+  bing:           'Sound1.wav',
   error:          'sound 15.wav',
   // Bildschirmwechsel: zwei Töne aufwärts beim Vorgehen, dieselben zwei Töne
   // abwärts beim Zurückgehen. Gleiche Klangfarbe, gespiegelte Richtung, damit
@@ -26,10 +23,10 @@ const SOUND_MAP = {
   // Anschlag am Listenrand: derselbe Klang wie 'error', nur leiser. Danach wird
   // die aktuelle Zeile erneut vorgelesen, damit der Ton die Ansage nicht verdeckt.
   grenze:         'sound 15.wav',
-  oeffnen:        'sax-oeffnen.wav',
-  speichern:      'sax-speichern.wav',
+  oeffnen:        'oeffnen-neu.wav',
+  speichern:      'close-save.wav',
   loeschen:       'sound 8.wav',
-  sonderinhalt:   'sax-sonderinhalt.wav',
+  sonderinhalt:   'sound2.wav',
   navigation:     'nav.wav',
   eingabe_start:  'eingabe-auf.wav',
   eingabe_ende:   'info-zu.wav',

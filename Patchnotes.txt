@@ -4,6 +4,16 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.56, 2. August 2026
+
+
+Alte Töne wieder da
+
+Die in 0.54 eingeführten Saxophon-Jingles sind wieder zurückgenommen. Start,
+Bestätigen, Öffnen, Speichern und Sonderinhalt klingen wieder wie im alten,
+bewährten Ton-Set.
+
+
 Version 0.55, 2. August 2026
 
 
