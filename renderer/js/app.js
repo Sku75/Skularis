@@ -209,10 +209,13 @@ async function beendenAblauf() {
       if (w === 'speichern') { try { await editorMod.speichere(); } catch { /* egal */ } }
       return true;
     }
-    if (ab) {
+    // An einem Tisch (Abenteuer- ODER Meistertisch) IMMER nachfragen — auch wenn
+    // scheinbar nichts geaendert wurde. hubAktiv() ist wahr, solange ein Tisch-Hub
+    // offen ist (auch in dessen Unterschirmen).
+    if (ab || (reiterHub.hubAktiv && reiterHub.hubAktiv())) {
       const w = await knopfDialog({
         titel: 'Skularis beenden',
-        frage: 'Ein Abenteuer ist geöffnet.',
+        frage: 'Du bist an einem Tisch. Skularis wirklich beenden?',
         knoepfe: [
           { label: 'Speichern und beenden', wert: 'speichern' },
           { label: 'Beenden ohne Speichern', wert: 'ohne' },
@@ -220,10 +223,13 @@ async function beendenAblauf() {
         ],
       });
       if (!w || w === 'abbrechen') return false;
-      if (w === 'speichern') { try { await stateMod.speichere(); } catch { /* egal */ } }
+      if (w === 'speichern') {
+        try { if (stateMod && stateMod.speichere) await stateMod.speichere(); } catch { /* egal */ }
+        try { const m = await import('./meister/state.js'); if (m && m.speichere) await m.speichere(); } catch { /* egal */ }
+      }
       return true;
     }
-    // Nichts offen: ohne Nachfrage beenden.
+    // Nichts offen (Hauptmenue): ohne Nachfrage beenden.
     return true;
   } finally {
     _beendenLaeuft = false;

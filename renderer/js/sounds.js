@@ -16,10 +16,11 @@ const SOUND_MAP = {
   tab:            'ebene-vor.wav',
   schliessen:     'ebene-zurueck.wav',
   wuerfel:        'wuerfel.wav',
-  // Info-Fenster (Tooltip und Strg und I): Papier blättert auf, Buch schlägt zu.
-  // Neue, aufeinander abgestimmte Bedientöne (gleiche Lautheit).
-  buch_auf:       'info-auf.wav',
-  buch_zu:        'info-zu.wav',
+  // Info-Fenster (Tooltip mit Shift und Pfeil-runter, Strg und I): beim Öffnen der
+  // bisherige Schließ-Klang, beim Schließen DERSELBE Klang rückwärts und 30 Prozent
+  // leiser — so gehören Auf und Zu klar zusammen, gespiegelt.
+  buch_auf:       'info-zu.wav',
+  buch_zu:        'info-zu-rev.wav',
   // Anschlag am Listenrand: derselbe Klang wie 'error', nur leiser. Danach wird
   // die aktuelle Zeile erneut vorgelesen, damit der Ton die Ansage nicht verdeckt.
   grenze:         'sound 15.wav',

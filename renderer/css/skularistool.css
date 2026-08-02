@@ -100,6 +100,42 @@
 .ed-zeile { cursor: default; }
 .ed-info { opacity: 0.85; font-size: calc(1rem + var(--db-font-offset, 0px)); }
 
+/* Wert-Text füllt die Mitte, die Stell-Knöpfe sitzen an den Rändern. */
+.ed-zeile__text { flex: 1 1 auto; }
+
+/* Sichtbare, große Minus/Plus-Knöpfe zum Verstellen mit der Maus. Für den
+   Screenreader ausgeblendet (aria-hidden); die Tastatur bedient die Zeile
+   direkt per Pfeil links/rechts. Optisch groß und klar, damit auch Sehende
+   und Menschen mit Sehrest den Wert bequem ändern können. */
+.ed-zeile__stell {
+  flex: 0 0 auto;
+  width: 2.6rem;
+  height: 2.6rem;
+  min-width: 2.6rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.08s ease;
+  user-select: none;
+}
+.ed-zeile__stell:hover:not(:disabled) { background: currentColor; }
+/* Beim Hover das Zeichen in Gegenfarbe zeigen (Kontrast). */
+.ed-zeile__stell--minus:hover:not(:disabled),
+.ed-zeile__stell--plus:hover:not(:disabled) {
+  color: var(--db-bg-primary, #000);
+  transform: scale(1.08);
+}
+.ed-zeile__stell:active:not(:disabled) { transform: scale(0.94); }
+.ed-zeile__stell:disabled { opacity: 0.25; cursor: default; }
+
 .ed-zeile:focus-visible,
 .ed-info:focus-visible,
 .ed-feld input:focus-visible {

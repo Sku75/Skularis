@@ -25,9 +25,30 @@ export function wertZeile(o) {
   row.tabIndex = 0;
   if (o.detail !== undefined) row.__detail = o.detail;
 
+  // Sichtbarer Minus-Knopf (links) — auch für Sehende/Maus gut bedienbar.
+  // aria-hidden + tabindex -1: die Tastatur-/Screenreader-Bedienung läuft
+  // unverändert über die Zeile selbst (Pfeil links/rechts), die Knöpfe sind
+  // rein optisch und mit der Maus klickbar.
+  const btnMinus = document.createElement('button');
+  btnMinus.type = 'button';
+  btnMinus.className = 'ed-zeile__stell ed-zeile__stell--minus';
+  btnMinus.textContent = '−';
+  btnMinus.tabIndex = -1;
+  btnMinus.setAttribute('aria-hidden', 'true');
+
   const text = document.createElement('span');
   text.className = 'ed-zeile__text';
+
+  const btnPlus = document.createElement('button');
+  btnPlus.type = 'button';
+  btnPlus.className = 'ed-zeile__stell ed-zeile__stell--plus';
+  btnPlus.textContent = '+';
+  btnPlus.tabIndex = -1;
+  btnPlus.setAttribute('aria-hidden', 'true');
+
+  row.appendChild(btnMinus);
   row.appendChild(text);
+  row.appendChild(btnPlus);
 
   const render = () => {
     const v = o.get();
@@ -37,11 +58,36 @@ export function wertZeile(o) {
     row.setAttribute('data-sr-label', t);
     row.dataset.srValue = t;
     row.setAttribute('aria-label', t);
+    // Knöpfe optisch sperren, wenn der Rand erreicht ist.
+    btnMinus.disabled = v <= o.min;
+    btnPlus.disabled = v >= o.max;
     // Detail kann vom Wert abhängen (z. B. Probenwert) → Cache verwerfen
     if (o.detail !== undefined) { row.__detail = o.detail; delete row.__detailText; }
     row.dispatchEvent(new CustomEvent('detail-refresh', { bubbles: true }));
   };
   render();
+
+  // Gemeinsame Verstell-Logik für Tastatur UND die sichtbaren Knöpfe.
+  const verstelle = (delta) => {
+    const v = o.get();
+    const nv = Math.max(o.min, Math.min(o.max, v + delta));
+    if (nv === v) { if (!o.ohneTon) sounds.playError(); return; }
+    o.set(nv);
+    // o.ohneTon: kein Klick beim Verstellen (z. B. bei Lautstaerke-Reglern).
+    if (!o.ohneTon) { if (delta > 0) sounds.playWertHoch(); else sounds.playWertRunter(); }
+    render();
+    const zusatz = o.onChange ? (o.onChange(nv, delta) || '') : '';
+    // o.nurWert: nur die Zahl ansagen (z. B. Lautstaerke), sonst Label und Wert.
+    sprache.sage(o.nurWert ? `${nv}` : `${o.label} ${nv}${zusatz ? ', ' + zusatz : ''}`);
+  };
+
+  // Maus-Klick auf die Knöpfe: verstellen, ohne der Zeile den Fokus zu stehlen
+  // (mousedown verhindern hält den Tastatur-Fokus auf der Zeile).
+  const klick = (delta) => (e) => { e.preventDefault(); e.stopPropagation(); row.focus(); verstelle(delta); };
+  btnMinus.addEventListener('mousedown', (e) => e.preventDefault());
+  btnPlus.addEventListener('mousedown', (e) => e.preventDefault());
+  btnMinus.addEventListener('click', klick(-1));
+  btnPlus.addEventListener('click', klick(1));
 
   row.addEventListener('keydown', (e) => {
     // Enter öffnet optional eine Detailebene (z. B. Talente der Fertigkeit)
@@ -57,16 +103,7 @@ export function wertZeile(o) {
     else return;
     e.preventDefault();
     e.stopPropagation();
-    const v = o.get();
-    const nv = Math.max(o.min, Math.min(o.max, v + delta));
-    if (nv === v) { if (!o.ohneTon) sounds.playError(); return; }
-    o.set(nv);
-    // o.ohneTon: kein Klick beim Verstellen (z. B. bei Lautstaerke-Reglern).
-    if (!o.ohneTon) { if (delta > 0) sounds.playWertHoch(); else sounds.playWertRunter(); }
-    render();
-    const zusatz = o.onChange ? (o.onChange(nv, delta) || '') : '';
-    // o.nurWert: nur die Zahl ansagen (z. B. Lautstaerke), sonst Label und Wert.
-    sprache.sage(o.nurWert ? `${nv}` : `${o.label} ${nv}${zusatz ? ', ' + zusatz : ''}`);
+    verstelle(delta);
   });
 
   row.__render = render;

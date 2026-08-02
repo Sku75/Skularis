@@ -5,7 +5,7 @@ const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron')
 const path = require('path');
 const fs = require('fs');
 
-const VERSION = 'Skularis 0.52';
+const VERSION = 'Skularis 0.53';
 let mainWindow = null;
 
 // Single Instance Lock
@@ -14,10 +14,9 @@ if (!gotLock) { app.quit(); }
 else {
   app.on('second-instance', (_event, argv) => {
     const xmlFile = argv.find(a => a.endsWith('.xml'));
-    if (xmlFile && mainWindow) {
-      mainWindow.webContents.send('skularis:datei-von-cli', { pfad: xmlFile });
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
+    if (mainWindow) {
+      if (xmlFile) mainWindow.webContents.send('skularis:datei-von-cli', { pfad: xmlFile });
+      holeNachVorne();
     }
   });
 }
@@ -170,6 +169,31 @@ function getDatenPfad() {
   return path.join(getAppPfad(), 'daten');
 }
 
+/**
+ * Bringt das Fenster zuverlässig in den Vordergrund und gibt ihm den Tastatur-
+ * Fokus. Unter Windows landet ein frisch gestartetes Fenster (besonders wenn es
+ * aus dem Updater/aus einer .bat heraus startet) sonst gern im Hintergrund —
+ * dann sieht der Screenreader-Nutzer Skularis nicht und NVDA spricht nicht.
+ * Der kurze AlwaysOnTop-Puls hebt das Fenster über alle anderen, danach wird er
+ * wieder gelöst, damit sich normale Fenster später wieder davorlegen können.
+ */
+function holeNachVorne() {
+  if (!mainWindow) return;
+  try {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    if (!mainWindow.isVisible()) mainWindow.show();
+    mainWindow.setAlwaysOnTop(true);
+    mainWindow.show();          // hebt und aktiviert das Fenster
+    mainWindow.moveTop();
+    mainWindow.focus();
+    if (app.focus) app.focus({ steal: true });
+    // AlwaysOnTop nur kurz halten, dann lösen.
+    setTimeout(() => { try { if (mainWindow) mainWindow.setAlwaysOnTop(false); } catch { /* egal */ } }, 400);
+    // Zweiter Anlauf, falls das System den ersten Fokuswechsel verschluckt hat.
+    setTimeout(() => { try { if (mainWindow) mainWindow.focus(); } catch { /* egal */ } }, 250);
+  } catch { /* egal */ }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -199,8 +223,7 @@ function createWindow() {
   });
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    mainWindow.focus();
+    holeNachVorne();
   });
 
   mainWindow.on('close', (e) => {

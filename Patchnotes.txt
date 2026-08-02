@@ -4,6 +4,38 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.53, 2. August 2026
+
+
+Sauberer Programmstart, Rückfrage an den Tischen, sichtbare Plus/Minus-Knöpfe
+
+Programmstart: Skularis kommt beim Öffnen jetzt zuverlässig in den Vordergrund
+und bekommt den Tastatur-Fokus. Vorher landete das Fenster manchmal im
+Hintergrund - dann war es schwer zu finden und NVDA sprach nicht. (Der
+Windows-Hinweis zur Netzwerk-Freigabe nach einem Update ist ein Fenster von
+Windows selbst; er erscheint, weil der Programmordner bei jedem Update einen
+neuen Namen hat, und lässt sich von Skularis aus nicht unterdrücken.)
+
+Beenden mit Strg und Q: am Abenteuertisch UND am Meistertisch kommt jetzt IMMER
+eine Rückfrage (Speichern und beenden / Beenden ohne Speichern / Abbrechen).
+Vorher ging der Meistertisch bei Strg und Q ohne Nachfrage zu.
+
+Verstellbare Werte (Wunden, Erschöpfung, Attribute, Energien, Waffenset im Kampf
+und überall sonst) haben jetzt zusätzlich zu den Pfeiltasten sichtbare, große
+Minus- und Plus-Knöpfe links und rechts vom Wert. So lässt sich alles auch mit
+der Maus und mit Sehrest bequem einstellen. Am Rand (kleinster/größter Wert)
+sind die Knöpfe abgeblendet. Für den Screenreader ändert sich nichts - die
+Bedienung per Pfeil links und rechts bleibt wie gewohnt.
+
+Neue Klänge fürs Info-Fenster: Beim Öffnen (Shift und Pfeil-runter) klingt jetzt
+der frühere Schließ-Ton, beim Schließen derselbe Ton rückwärts und etwas leiser.
+So gehören Auf und Zu hörbar zusammen.
+
+Sechs fertige Musik-Playlists sind vorbereitet (Taverne und Fest, Kampf und
+Finale, Reise und Erkundung, Ruhe am Lagerfeuer, Mystisch und Bedrohlich, Sieg
+und Abschied) - im Audio-Bereich unter "Playlists".
+
+
 Version 0.52, 2. August 2026
 
 
