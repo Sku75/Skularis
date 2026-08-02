@@ -14,9 +14,19 @@
 import * as editor from './editor.js';
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
+import * as sounds from '../sounds.js';
 import { assistentSeite, textFeld } from './assistent-seite.js';
 import { aussehenInhalt } from './aussehen.js';
 import { hintergrundInhalt } from './hintergrund.js';
+import { wuerfleName, SPEZIES, KULTUREN } from '../daten/namen-daten.js';
+
+/** Zufälligen aventurischen Namen erwürfeln (ohne Auswahlfenster). */
+function wuerfelNameZufaellig() {
+  const sp = SPEZIES[Math.floor(Math.random() * SPEZIES.length)];
+  const ku = KULTUREN[Math.floor(Math.random() * KULTUREN.length)];
+  const ge = Math.random() < 0.5 ? 'maennlich' : 'weiblich';
+  return wuerfleName(sp, ku, ge);
+}
 
 const SCHRITTE = ['Name', 'Aussehen', 'Hintergrund', 'Abschluss'];
 let index = 0;
@@ -69,6 +79,21 @@ function nameSeite() {
       feld = textFeld({ label: 'Name des Charakters', id: 'vorlage-name', wert: char.name || '' });
       feld.__detail = 'Der Name deines Helden. Standard ist der Name der Vorlage, den du überschreiben kannst.';
       box.appendChild(feld);
+
+      // "Name würfeln"-Knopf direkt unter dem Namensfeld: setzt einen zufälligen
+      // Namen ins Feld, erneut drücken bringt den nächsten.
+      const wuerfelBtn = document.createElement('button');
+      wuerfelBtn.type = 'button';
+      wuerfelBtn.className = 'db-btn ed-aktion';
+      wuerfelBtn.textContent = 'Name würfeln';
+      wuerfelBtn.setAttribute('aria-label', 'Name würfeln. Setzt einen zufälligen Namen ins Namensfeld. Erneut drücken für den nächsten.');
+      wuerfelBtn.addEventListener('click', () => {
+        const name = wuerfelNameZufaellig();
+        feld.__eingabe.value = name;
+        sounds.playWuerfel();
+        sprache.sage(name);
+      });
+      box.appendChild(wuerfelBtn);
 
       apFeld = textFeld({
         label: 'Gewünschte Gesamt-Erfahrungspunkte',

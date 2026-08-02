@@ -6,9 +6,12 @@
 import * as einstellungen from './daten/einstellungen.js';
 
 const SOUND_MAP = {
-  start:          'Skularis Logo.wav',
+  // Sax-Jingles (kurz) fuer die selteneren "Moment"-Ereignisse, damit die
+  // Klangwelt einheitlicher wirkt. Die haeufigen Navigations-/Klick-Toene
+  // (Menue durchgehen, Auswaehlen) bleiben bewusst die alten Klicks.
+  start:          'sax-start.wav',
   click:          'sound3.wav',
-  bing:           'Sound1.wav',
+  bing:           'sax-bestaetigen.wav',
   error:          'sound 15.wav',
   // Bildschirmwechsel: zwei Töne aufwärts beim Vorgehen, dieselben zwei Töne
   // abwärts beim Zurückgehen. Gleiche Klangfarbe, gespiegelte Richtung, damit
@@ -16,18 +19,17 @@ const SOUND_MAP = {
   tab:            'ebene-vor.wav',
   schliessen:     'ebene-zurueck.wav',
   wuerfel:        'wuerfel.wav',
-  // Info-Fenster (Tooltip mit Shift und Pfeil-runter, Strg und I): beim Öffnen der
-  // bisherige Schließ-Klang, beim Schließen DERSELBE Klang rückwärts und 30 Prozent
-  // leiser — so gehören Auf und Zu klar zusammen, gespiegelt.
-  buch_auf:       'info-zu.wav',
-  buch_zu:        'info-zu-rev.wav',
+  // Info-Fenster (Tooltip mit Shift und Pfeil-runter, Strg und I): der frühere,
+  // vom Nutzer bevorzugte Ton (Auf = info-auf, Zu = info-zu).
+  buch_auf:       'info-auf.wav',
+  buch_zu:        'info-zu.wav',
   // Anschlag am Listenrand: derselbe Klang wie 'error', nur leiser. Danach wird
   // die aktuelle Zeile erneut vorgelesen, damit der Ton die Ansage nicht verdeckt.
   grenze:         'sound 15.wav',
-  oeffnen:        'oeffnen-neu.wav',
-  speichern:      'close-save.wav',
+  oeffnen:        'sax-oeffnen.wav',
+  speichern:      'sax-speichern.wav',
   loeschen:       'sound 8.wav',
-  sonderinhalt:   'sound2.wav',
+  sonderinhalt:   'sax-sonderinhalt.wav',
   navigation:     'nav.wav',
   eingabe_start:  'eingabe-auf.wav',
   eingabe_ende:   'info-zu.wav',

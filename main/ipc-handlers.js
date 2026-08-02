@@ -3,6 +3,7 @@
  */
 const { ipcMain, app } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const fileOps = require('./file-operations');
 const settings = require('./settings');
 
@@ -191,7 +192,14 @@ ipcMain.handle('skularis:playlists-speichern', (_event, data) => {
 ipcMain.handle('skularis:audio-wurzeln', () => {
   const { getAudioOrdner } = require('./main');
   const wurzel = getAudioOrdner();
-  const meine = settings.laden().audio_meine_pfad || null;
+  // Gespeicherten "Meine Audios"-Pfad nur zurueckgeben, wenn er noch existiert.
+  // Ist der Ordner verschwunden (verschoben/geloescht/umbenannt), die Einstellung
+  // leeren, damit kein toter Eintrag im Menue stehen bleibt.
+  let meine = settings.laden().audio_meine_pfad || null;
+  if (meine && !fs.existsSync(meine)) {
+    settings.setWert('audio_meine_pfad', null);
+    meine = null;
+  }
   return {
     audioDaten: wurzel,
     musik: path.join(wurzel, 'Musik'),

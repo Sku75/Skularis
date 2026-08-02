@@ -12,7 +12,7 @@ import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
-import { auswahlDialog, jaNeinDialog, textDialog } from '../ui/dialog.js';
+import { knopfDialog, jaNeinDialog, textDialog } from '../ui/dialog.js';
 import { getMeister, speichere } from './state.js';
 import { leererStatblock, protokolliere } from '../core/meister-abenteuer.js';
 import { SPEZIES, KULTUREN, wuerfleName } from '../daten/namen-daten.js';
@@ -31,10 +31,12 @@ function ordne(liste, zuerst) {
 }
 
 async function neuErwuerfeln() {
-  const spezies = await auswahlDialog({ titel: 'Spezies wählen', eintraege: ordne(SPEZIES, zuletzt.spezies) });
+  // Reine Schaltflächen-Auswahl (kein Tippfilter, kein Abbrechen-Knopf) — Escape
+  // bricht ab. Zuletzt Gewähltes steht oben, damit man mit Enter durchkommt.
+  const spezies = await knopfDialog({ titel: 'Spezies wählen', knoepfe: ordne(SPEZIES, zuletzt.spezies) });
   if (spezies === null) return null;
   zuletzt.spezies = spezies;
-  const kultur = await auswahlDialog({ titel: 'Kultur wählen', eintraege: ordne(KULTUREN, zuletzt.kultur) });
+  const kultur = await knopfDialog({ titel: 'Kultur wählen', knoepfe: ordne(KULTUREN, zuletzt.kultur) });
   if (kultur === null) return null;
   zuletzt.kultur = kultur;
   const geschEintraege = [
@@ -42,7 +44,7 @@ async function neuErwuerfeln() {
     { label: 'weiblich', wert: 'weiblich' },
   ];
   if (zuletzt.geschlecht === 'weiblich') geschEintraege.reverse();
-  const geschlecht = await auswahlDialog({ titel: 'Geschlecht wählen', eintraege: geschEintraege });
+  const geschlecht = await knopfDialog({ titel: 'Geschlecht wählen', knoepfe: geschEintraege });
   if (geschlecht === null) return null;
   zuletzt.geschlecht = geschlecht;
   sounds.playWuerfel();

@@ -4,6 +4,43 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.54, 2. August 2026
+
+
+Drei Audio-Kanäle mit Überblenden, Hintergrund-Regler, Name würfeln, Sax-Töne
+
+Audio: Abspielen, Hintergrund und Einspielen sind jetzt drei getrennte Kanäle.
+Startest du auf einem Kanal etwas Neues, wird der bisherige Klang DIESES Kanals
+weich ausgeblendet und der neue eingeblendet (Überblenden) - nichts stapelt sich
+mehr übereinander. Vorher lief beim erneuten Abspielen der alte Klang einfach
+weiter.
+
+Neuer Regler "Hintergrund-Lautstärke (wie gesendet)" bei den Meister-Lautstärken:
+So kannst du den Hintergrund leiser stellen, wenn die Spieler ihn zu laut finden.
+Er wirkt sofort auf einen laufenden Hintergrund und auf alles Neue.
+
+"Meine Audios": Zeigt ein gespeicherter Ordner ins Leere (verschoben, gelöscht
+oder umbenannt), wird er jetzt automatisch aus dem Menü entfernt, statt als toter
+Eintrag stehen zu bleiben.
+
+Name würfeln: In der assistierten Erstellung und beim Erstellen aus einer Vorlage
+steht jetzt direkt unter dem Namensfeld ein Knopf "Name würfeln". Er setzt einen
+zufälligen aventurischen Namen ins Feld; erneut drücken bringt den nächsten. Im
+freien Editor bewusst nicht.
+
+Namensgenerator am Meistertisch: Spezies, Kultur und Geschlecht wählst du jetzt
+über reine Schaltflächen (kein Tippfilter, kein Abbrechen-Knopf) - Escape bricht
+ab.
+
+Klänge: Neue, dezente Saxophon-Jingles für Start, Bestätigen, Öffnen, Speichern
+und Sonderinhalt. Das Durchgehen im Menü bleibt der gewohnte Klick. Der Ton des
+Info-Fensters (Shift und Pfeil-runter) ist wieder der frühere.
+
+Audio-Bibliothek: Umlaute in den Namen korrigiert (Vögel, Münzen, Tür, Höhle,
+Überland, Morgendämmerung); korrektes Deutsch wie Feuer oder Trauer blieb
+unangetastet.
+
+
 Version 0.53, 2. August 2026
 
 

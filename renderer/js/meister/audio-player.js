@@ -1,6 +1,6 @@
 /**
- * Skularis — Audio-Player fuer den Meister (Musik, Hintergrundstimmung,
- * Spontansounds), mit sanftem Ein- und Ausblenden und Ueberblenden.
+ * Skularis — Audio-Player fuer den Meister (Musik/Hintergrund/Einspielen),
+ * mit sanftem Ein- und Ausblenden und Ueberblenden.
  *
  * Aufbau des Klanggraphen (Web Audio):
  *
@@ -13,27 +13,31 @@
  * Meister fuer sich, ohne die Hoerer zu beeinflussen) und zum anderen in voller
  * Staerke an radioDest — das ist der Strom, den das Radio an die Spieler sendet.
  *
- * Musik und Hintergrundstimmung laufen in Schleife; startet man einen neuen Klang
- * im selben Kanal, wird der alte weich aus- und der neue eingeblendet
- * (Ueberblenden). Spontansounds spielen einmal und duerfen sich ueberlagern.
+ * DREI monophone Kanaele, die der Meister starten kann:
+ *   - 'abspielen'    normale Lautstaerke
+ *   - 'hintergrund'  leiser (75 Prozent runter), fuer Stimmung unter dem Spiel
+ *   - 'einspielen'   kurzes Darueberlegen; senkt die anderen beiden solange (Ducking)
+ * Jeder Kanal steht fuer sich: startet man auf einem Kanal etwas Neues, wird der
+ * bisherige Klang DIESES Kanals weich ausgeblendet und der neue eingeblendet
+ * (Ueberblenden). Nichts stapelt sich mehr uebereinander.
  */
 
 const ipc = window.skularis?.ipc;
 
-const FADE_EIN = 1.4;      // Sekunden: Musik/Stimmung einblenden
+const FADE_EIN = 1.4;      // Sekunden: Schleife/Klang einblenden
+const FADE_EIN_KURZ = 0.3; // Sekunden: einmalige Klaenge zuegig einblenden
 const FADE_AUS = 1.2;      // Sekunden: ausblenden beim Stoppen/Wechseln
-const FADE_SPONTAN = 0.08; // Sekunden: kurze Einblende gegen Knacken
 
 let _ctx = null;
 let _mixBus = null;
 let _monitor = null;
 let _radioDest = null;
 let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
+let _hintergrundVol = 0.25; // wie laut der Hintergrund-Kanal in den Mix (und damit in den Stream) geht
 
-// Laufende Klaenge je Kanal. musik/stimmung: genau einer; spontan: mehrere.
-const _laeuft = { musik: null, stimmung: null };
-const _spontan = new Set();
-const _eingespielt = new Set(); // laufende Einspiel-Overlays (Ducking), stoppbar
+// Die drei Kanaele. Je Kanal genau EIN laufender Klang (oder null).
+const _kanaele = { abspielen: null, hintergrund: null, einspielen: null };
+const KANAELE = ['abspielen', 'hintergrund', 'einspielen'];
 const _decodeCache = new Map(); // pfad -> AudioBuffer
 
 function ctx() {
@@ -79,62 +83,66 @@ function blendeAus(eintrag, dauer = FADE_AUS) {
   } catch { /* schon gestoppt */ }
 }
 
-/**
- * Musik oder Hintergrundstimmung abspielen (Schleife, mit Ueberblenden).
- * @param {'musik'|'stimmung'} kanal
- * @param {{pfad:string, name:string}} datei
- * @param {number} [pegel=1] Ziel-Lautstaerke 0..1. Fuer den "Hintergrund"-Modus
- *   wird 0.25 uebergeben (75 Prozent leiser), ohne den Regler zu verstellen —
- *   der Klang kommt einfach schon leise in den Mix und damit in den Stream.
- */
-export async function spieleSchleife(kanal, datei, pegel = 1) {
-  const puffer = await ladePuffer(datei.pfad);
-  const c = ctx();
-  const source = c.createBufferSource();
-  source.buffer = puffer;
-  source.loop = true;
-  const gain = c.createGain();
-  gain.gain.value = 0.0001;
-  source.connect(gain);
-  gain.connect(_mixBus);
-  // Den bisherigen Klang dieses Kanals ausblenden, den neuen einblenden.
-  blendeAus(_laeuft[kanal]);
-  source.start();
-  rampe(gain.gain, pegel, FADE_EIN);
-  _laeuft[kanal] = { source, gain, name: datei.name, pfad: datei.pfad, pegel };
+/** Den Kanal-Slot nur freigeben, wenn noch DERSELBE Eintrag drinsteht (Race-Schutz). */
+function gibFrei(kanal, eintrag) {
+  if (_kanaele[kanal] === eintrag) _kanaele[kanal] = null;
 }
 
 /**
- * Einen Klang einmal abspielen (darf sich ueberlagern).
+ * Einen Klang auf einem Kanal starten. Blendet den bisherigen Klang DIESES
+ * Kanals weich aus (Ueberblenden) und den neuen ein.
+ * @param {'abspielen'|'hintergrund'|'einspielen'} kanal
  * @param {{pfad:string, name:string}} datei
- * @param {Function} [onEnde] wird gerufen, wenn der Klang NATUERLICH zu Ende ist
- *   (nicht beim manuellen Stoppen) — fuer automatisches Weiterspielen in Playlists.
+ * @param {object} [opts]
+ * @param {boolean} [opts.loop=false]  in Schleife
+ * @param {number}  [opts.pegel=1]     Ziel-Lautstaerke 0..1 (Hintergrund: 0.25)
+ * @param {Function}[opts.onEnde]      Aufruf bei NATUERLICHEM Ende (Playlist-Weiter)
  */
-export async function spieleEinmal(datei, onEnde, pegel = 1) {
+export async function spieleKanal(kanal, datei, opts = {}) {
+  const { loop = false, pegel = 1, onEnde } = opts;
   const puffer = await ladePuffer(datei.pfad);
   const c = ctx();
   const source = c.createBufferSource();
   source.buffer = puffer;
+  source.loop = loop;
   const gain = c.createGain();
   gain.gain.value = 0.0001;
   source.connect(gain);
   gain.connect(_mixBus);
-  const eintrag = { source, gain, name: datei.name, pfad: datei.pfad, gestoppt: false };
-  _spontan.add(eintrag);
+  // Bisherigen Klang dieses Kanals ausblenden.
+  const alt = _kanaele[kanal];
+  if (alt) { alt.gestoppt = true; if (alt.zurueck) { try { alt.zurueck(); } catch { /* egal */ } } blendeAus(alt); }
+  const eintrag = { source, gain, name: datei.name, pfad: datei.pfad, pegel, loop, gestoppt: false };
+  _kanaele[kanal] = eintrag;
   source.onended = () => {
     try { gain.disconnect(); } catch { /* egal */ }
-    _spontan.delete(eintrag);
+    gibFrei(kanal, eintrag);
     if (!eintrag.gestoppt && typeof onEnde === 'function') { try { onEnde(); } catch { /* egal */ } }
   };
   source.start();
-  rampe(gain.gain, pegel, FADE_SPONTAN);
+  rampe(gain.gain, pegel, loop ? FADE_EIN : FADE_EIN_KURZ);
+}
+
+// --- Alt-API (Rueckwaertskompatibilitaet) --------------------------------
+// Frueher gab es 'musik'/'stimmung'. Neue Zuordnung: musik->abspielen,
+// stimmung->hintergrund. So laufen aeltere Aufrufer weiter.
+function altKanal(kanal) { return kanal === 'stimmung' || kanal === 'hintergrund' ? 'hintergrund' : 'abspielen'; }
+
+export async function spieleSchleife(kanal, datei, pegel = 1) {
+  return spieleKanal(altKanal(kanal), datei, { loop: true, pegel });
+}
+
+/** Einen Klang einmal auf dem Abspielen-Kanal spielen (crossfade, kein Stapeln). */
+export async function spieleEinmal(datei, onEnde, pegel = 1) {
+  return spieleKanal('abspielen', datei, { loop: false, pegel, onEnde });
 }
 
 /**
- * Eine Datei EINSPIELEN (ducking): die laufenden Schleifen werden auf die Haelfte
- * abgesenkt und der eingespielte Klang wird darueber gelegt (gleichzeitig). Ist er
- * durch, blenden die Schleifen wieder auf voll. Alles mit weichen Ueberblenden.
- * Wird ueber den mixBus gespielt, also hoeren es auch die Spieler im Radio.
+ * Eine Datei EINSPIELEN (ducking): die laufenden Kanaele Abspielen und Hintergrund
+ * werden weich auf die Haelfte abgesenkt und der eingespielte Klang darueber gelegt.
+ * Ist er durch, blenden die anderen Kanaele wieder auf ihren jeweiligen Pegel hoch.
+ * Der Einspiel-Kanal ist ebenfalls monophon: ein neues Einspielen blendet das alte
+ * ueber. Wird ueber den mixBus gespielt, also hoeren es auch die Spieler im Radio.
  */
 export async function spieleEin(datei) {
   const puffer = await ladePuffer(datei.pfad);
@@ -142,10 +150,15 @@ export async function spieleEin(datei) {
   const dur = puffer.duration || 0;
   const t0 = c.currentTime;
   const ein = 0.35, aus = 0.5;
-  const loops = ['musik', 'stimmung'].map(k => _laeuft[k]).filter(Boolean);
 
-  // Ducking: laufende Schleifen weich auf die Haelfte.
-  for (const l of loops) rampe(l.gain.gain, 0.5, ein);
+  // Vorheriges Einspielen weich ausblenden (die anderen Kanaele bleiben geduckt,
+  // das neue Einspielen haelt sie ja weiter leiser).
+  const altEin = _kanaele.einspielen;
+  if (altEin) { altEin.gestoppt = true; try { rampe(altEin.gain.gain, 0, 0.25); altEin.source.stop(c.currentTime + 0.3); } catch { /* egal */ } }
+
+  // Die beiden anderen Kanaele ducken (auf die Haelfte ihres eigenen Pegels).
+  const loops = ['abspielen', 'hintergrund'].map(k => _kanaele[k]).filter(Boolean);
+  for (const l of loops) rampe(l.gain.gain, Math.max(0.0001, (l.pegel || 1) * 0.5), ein);
 
   const source = c.createBufferSource();
   source.buffer = puffer;
@@ -156,73 +169,87 @@ export async function spieleEin(datei) {
   gain.gain.linearRampToValueAtTime(1, t0 + ein); // einblenden
   source.start();
 
-  const zurueck = () => { for (const l of loops) rampe(l.gain.gain, 1, aus); };
+  // Die geduckten Kanaele wieder auf ihren jeweiligen Pegel hochziehen.
+  const zurueck = () => { for (const l of loops) rampe(l.gain.gain, Math.max(0.0001, l.pegel || 1), aus); };
 
-  // Overlay erfassen, damit "Alles stoppen" (Strg+F12) es auch beendet.
-  const eintrag = { source, gain, loops, zurueck, gestoppt: false };
-  _eingespielt.add(eintrag);
+  const eintrag = { source, gain, name: datei.name, pfad: datei.pfad, loops, zurueck, gestoppt: false };
+  _kanaele.einspielen = eintrag;
 
   if (dur > ein + aus) {
-    // Gegen Ende ausblenden und die Schleifen gleichzeitig wieder hochziehen
-    // (echte Ueberblende).
+    // Gegen Ende ausblenden und die Kanaele gleichzeitig wieder hoch (echte Ueberblende).
     const tAus = t0 + dur - aus;
     gain.gain.setValueAtTime(1, tAus);
     gain.gain.linearRampToValueAtTime(0.0001, tAus + aus);
-    for (const l of loops) { l.gain.gain.setValueAtTime(0.5, tAus); l.gain.gain.linearRampToValueAtTime(1, tAus + aus); }
-    source.onended = () => { _eingespielt.delete(eintrag); try { gain.disconnect(); } catch { /* egal */ } };
+    for (const l of loops) {
+      const ziel = Math.max(0.0001, l.pegel || 1);
+      l.gain.gain.setValueAtTime(Math.max(0.0001, ziel * 0.5), tAus);
+      l.gain.gain.linearRampToValueAtTime(ziel, tAus + aus);
+    }
+    source.onended = () => { gibFrei('einspielen', eintrag); try { gain.disconnect(); } catch { /* egal */ } };
   } else {
-    // Sehr kurzer Klang: erst am Ende die Schleifen wieder hochblenden.
-    source.onended = () => { _eingespielt.delete(eintrag); zurueck(); try { gain.disconnect(); } catch { /* egal */ } };
+    // Sehr kurzer Klang: erst am Ende die Kanaele wieder hochblenden.
+    source.onended = () => { gibFrei('einspielen', eintrag); if (!eintrag.gestoppt) zurueck(); try { gain.disconnect(); } catch { /* egal */ } };
   }
 }
 
-/** Einen Schleifen-Kanal stoppen (mit Ausblenden). */
+/** Einen Kanal stoppen (mit Ausblenden). Bei Einspielen die geduckten Kanaele zurueck. */
 export function stoppeKanal(kanal) {
-  if (_laeuft[kanal]) { blendeAus(_laeuft[kanal]); _laeuft[kanal] = null; }
+  const e = _kanaele[kanal];
+  if (!e) return;
+  _kanaele[kanal] = null;
+  e.gestoppt = true;
+  if (e.zurueck) { try { e.zurueck(); } catch { /* egal */ } }
+  blendeAus(e);
 }
 
 /**
- * Alles stoppen: beide Schleifen, alle Spontansounds, alle Einspiel-Overlays
- * und ein laufendes Vorhoeren. Fuer Strg+F12 "Alles stoppen" — es darf nichts
- * uebrig bleiben, egal ob Musik, Hintergrund, Spontan, Eingespieltes oder
- * Vorhoeren.
+ * Alles stoppen: alle drei Kanaele und ein laufendes Vorhoeren. Fuer Strg+F12
+ * "Alles stoppen" — es darf nichts uebrig bleiben.
  */
 export function stoppeAlles() {
-  stoppeKanal('musik');
-  stoppeKanal('stimmung');
-  for (const e of _spontan) { e.gestoppt = true; try { e.source.stop(); } catch { /* egal */ } }
-  _spontan.clear();
-  // Einspiel-Overlays sofort ausblenden und stoppen.
-  for (const e of _eingespielt) {
-    e.gestoppt = true;
-    try { rampe(e.gain.gain, 0, 0.12); e.source.stop(ctx().currentTime + 0.15); } catch { /* egal */ }
-    try { if (e.zurueck) e.zurueck(); } catch { /* egal */ } // gedueckte Schleifen wieder hoch (falls noch aktiv)
-  }
-  _eingespielt.clear();
-  // Ein laufendes Vorhoeren beenden und den Live-Mix wieder einblenden.
+  for (const k of KANAELE) stoppeKanal(k);
   beendeVorhoeren();
 }
 
-/** Was laeuft gerade in einem Schleifen-Kanal? (Name oder null) */
+/** Was laeuft gerade in einem Kanal? (Name oder null) */
 export function laeuftName(kanal) {
-  return _laeuft[kanal] ? _laeuft[kanal].name : null;
+  return _kanaele[kanal] ? _kanaele[kanal].name : null;
 }
 
-/** Pfad des laufenden Klangs eines Schleifen-Kanals (oder null). */
+/** Pfad des laufenden Klangs eines Kanals (oder null). */
 export function laeuftPfad(kanal) {
-  return _laeuft[kanal] ? _laeuft[kanal].pfad : null;
+  return _kanaele[kanal] ? _kanaele[kanal].pfad : null;
 }
 
-/** Spielt gerade ein Spontansound mit diesem Pfad? */
-export function spontanAktiv(pfad) {
-  for (const e of _spontan) if (e.pfad === pfad) return true;
-  return false;
+/** Laeuft dieser Pfad gerade auf IRGENDEINEM Kanal? (Name des Kanals oder null) */
+export function laeuftKanalFuer(pfad) {
+  for (const k of KANAELE) if (_kanaele[k] && _kanaele[k].pfad === pfad) return k;
+  return null;
 }
 
-/** Alle Spontansounds mit diesem Pfad ausblenden und stoppen. */
-export function stoppeSpontan(pfad) {
-  for (const e of _spontan) if (e.pfad === pfad) { e.gestoppt = true; blendeAus(e, FADE_SPONTAN + 0.15); }
+/** Alle Kanaele, auf denen dieser Pfad laeuft, stoppen. Gibt true, wenn etwas lief. */
+export function stoppePfad(pfad) {
+  let gestoppt = false;
+  for (const k of KANAELE) {
+    if (_kanaele[k] && _kanaele[k].pfad === pfad) { stoppeKanal(k); gestoppt = true; }
+  }
+  return gestoppt;
 }
+
+/**
+ * Sende-Lautstaerke des Hintergrund-Kanals (0 bis 100). Regelt, wie laut der
+ * Hintergrund in den Mix und damit in den Radio-Stream geht — so kann der Meister
+ * den Hintergrund leiser stellen, wenn die Spieler ihn zu laut finden. Wirkt
+ * sofort auf einen laufenden Hintergrund-Klang.
+ */
+export function setHintergrundLautstaerke(prozent) {
+  _hintergrundVol = Math.max(0, Math.min(1, prozent / 100));
+  const e = _kanaele.hintergrund;
+  if (e && !e.gestoppt) { e.pegel = _hintergrundVol; try { rampe(e.gain.gain, Math.max(0.0001, _hintergrundVol), 0.3); } catch { /* egal */ } }
+}
+export function getHintergrundLautstaerke() { return Math.round(_hintergrundVol * 100); }
+/** Aktueller Ziel-Pegel (0..1) fuer neu gestartete Hintergrund-Klaenge. */
+export function getHintergrundPegel() { return _hintergrundVol; }
 
 /** Eigene Abhoer-Lautstaerke (0 bis 100) — beeinflusst NICHT die Hoerer. */
 export function setMonitorLautstaerke(prozent) {
@@ -287,5 +314,5 @@ export function getSendeStrom() {
 
 /** Laeuft gerade irgendetwas? */
 export function istAktiv() {
-  return Boolean(_laeuft.musik || _laeuft.stimmung || _spontan.size);
+  return Boolean(_kanaele.abspielen || _kanaele.hintergrund || _kanaele.einspielen);
 }

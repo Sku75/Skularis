@@ -34,6 +34,7 @@ async function ladeGrunddaten() {
   if (!_config) {
     try { const r = await ipc.configLesen(); _config = (r && r.config) || {}; } catch { _config = {}; }
     if (_config.audio_monitor_vol != null) player.setMonitorLautstaerke(_config.audio_monitor_vol);
+    if (_config.audio_hintergrund_vol != null) player.setHintergrundLautstaerke(_config.audio_hintergrund_vol);
     if (_config.radio_hoerer_vol != null) radio.setHoererLautstaerke(_config.radio_hoerer_vol);
     if (_config.radio_letzter_schluessel) _schluessel = _config.radio_letzter_schluessel;
   }
@@ -73,30 +74,27 @@ function schluesselDetail(key) {
 // in den Mix und damit in den Stream, ohne dass der Lautstaerke-Regler wandert).
 const HINTERGRUND_PEGEL = 0.25;
 
-async function tuEinmal(d, pegel = 1) {
-  const hg = pegel < 1;
+// Abspielen-Kanal (normale Lautstaerke). Neues blendet das Alte dieses Kanals ueber.
+async function tuAbspielen(d, loop = false) {
   try {
-    await player.spieleEinmal(d, undefined, pegel);
-    sprache.sage(hg ? `${d.name} als Hintergrund, leise.` : `${d.name} abgespielt.`);
+    await player.spieleKanal('abspielen', d, { loop });
+    sprache.sage(loop ? `${d.name} laeuft in Schleife.` : `${d.name} abgespielt.`);
   } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
 }
 
-async function tuSchleife(d, kanal, pegel = 1) {
-  const loopKanal = kanal === 'stimmung' ? 'stimmung' : 'musik';
-  const hg = pegel < 1;
+// Hintergrund-Kanal (leiser). Eigener Kanal, ueberblendet ebenfalls sein Vorheriges.
+async function tuHintergrund(d, loop = false) {
   try {
-    await player.spieleSchleife(loopKanal, d, pegel);
-    sprache.sage(hg ? `${d.name} laeuft leise als Hintergrund in Schleife.` : `${d.name} laeuft in Schleife.`);
-  } catch (e) { console.error('Audio Schleife:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
+    await player.spieleKanal('hintergrund', d, { loop, pegel: player.getHintergrundPegel() });
+    sprache.sage(loop ? `${d.name} laeuft leise als Hintergrund in Schleife.` : `${d.name} als Hintergrund, leise.`);
+  } catch (e) { console.error('Audio Hintergrund:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
 }
 
-// Diesen Klang anhalten, egal wie er gerade laeuft (Schleife, einmal oder Vorhoeren).
-function tuStop(d, kanal) {
-  const loopKanal = kanal === 'stimmung' ? 'stimmung' : 'musik';
+// Diesen Klang anhalten, egal auf welchem Kanal er laeuft (oder beim Vorhoeren).
+function tuStop(d) {
   let gestoppt = false;
   if (player.vorhoerenPfad() === d.pfad) { player.beendeVorhoeren(); gestoppt = true; }
-  if (player.laeuftPfad(loopKanal) === d.pfad) { player.stoppeKanal(loopKanal); gestoppt = true; }
-  if (player.spontanAktiv(d.pfad)) { player.stoppeSpontan(d.pfad); gestoppt = true; }
+  if (player.stoppePfad(d.pfad)) gestoppt = true;
   sprache.sage(gestoppt ? `${d.name} gestoppt.` : `${d.name} laeuft gerade nicht.`);
 }
 
@@ -129,14 +127,14 @@ async function oeffneAudioDialog(d, kanal) {
     ],
   });
   // Escape schliesst das Fenster (liefert null) — kein Abbrechen-Knopf noetig.
-  if (wahl === 'einmal') tuEinmal(d);
-  else if (wahl === 'schleife') tuSchleife(d, kanal);
-  else if (wahl === 'hg') tuEinmal(d, HINTERGRUND_PEGEL);
-  else if (wahl === 'hgschleife') tuSchleife(d, kanal, HINTERGRUND_PEGEL);
+  if (wahl === 'einmal') tuAbspielen(d, false);
+  else if (wahl === 'schleife') tuAbspielen(d, true);
+  else if (wahl === 'hg') tuHintergrund(d, false);
+  else if (wahl === 'hgschleife') tuHintergrund(d, true);
   else if (wahl === 'ein') tuEinspielen(d);
   else if (wahl === 'vor') tuVorhoeren(d);
   else if (wahl === 'playlist') zuPlaylistHinzufuegen(d);
-  else if (wahl === 'stop') tuStop(d, kanal);
+  else if (wahl === 'stop') tuStop(d);
 }
 
 // Eine Datei-Zeile. Die ganze Zeile ist EIN fokussierbarer Punkt: mit den
@@ -181,12 +179,12 @@ function baueDateiZeile(d, kanal) {
     b.addEventListener('click', (e) => { e.stopPropagation(); sounds.playClick(); aktion(); });
     return b;
   };
-  zeile.appendChild(macheBtn('Abspielen', () => tuEinmal(d)));
-  zeile.appendChild(macheBtn('Schleife', () => tuSchleife(d, kanal)));
-  zeile.appendChild(macheBtn('Hintergrund', () => tuSchleife(d, kanal, HINTERGRUND_PEGEL)));
+  zeile.appendChild(macheBtn('Abspielen', () => tuAbspielen(d, false)));
+  zeile.appendChild(macheBtn('Schleife', () => tuAbspielen(d, true)));
+  zeile.appendChild(macheBtn('Hintergrund', () => tuHintergrund(d, true)));
   zeile.appendChild(macheBtn('Vorhoeren', () => tuVorhoeren(d)));
   zeile.appendChild(macheBtn('Einspielen', () => tuEinspielen(d)));
-  zeile.appendChild(macheBtn('Stop', () => tuStop(d, kanal)));
+  zeile.appendChild(macheBtn('Stop', () => tuStop(d)));
 
   const name = document.createElement('span');
   name.className = 'audio-zeile__name';
@@ -356,7 +354,7 @@ function spielePlaylist(pl, startIndex) {
 
 function playlistTitelAbspielen(pl, sIndex) {
   if (_autoWeiter) spielePlaylist(pl, sIndex);
-  else tuEinmal(pl.sounds[sIndex]);
+  else tuAbspielen(pl.sounds[sIndex], false);
 }
 
 // Kleiner Zurueck-Knopf (nur fuer die Maus; Blinde nutzen Escape).
@@ -460,6 +458,12 @@ function lautstaerkenScreen() {
         set: (v) => { player.setMonitorLautstaerke(v); merke('audio_monitor_vol', v); },
         min: 0, max: 100, ohneTon: true, nurWert: true,
         detail: 'Wie laut du die Klaenge selbst hoerst. Aendert nicht, wie laut die Spieler hoeren. Am Ziffernblock regeln Plus und Minus das ueberall.',
+      }));
+      wrap.appendChild(wertZeile({
+        label: 'Hintergrund-Lautstaerke (wie gesendet)', get: () => player.getHintergrundLautstaerke(),
+        set: (v) => { player.setHintergrundLautstaerke(v); merke('audio_hintergrund_vol', v); },
+        min: 0, max: 100, ohneTon: true, nurWert: true,
+        detail: 'Wie laut der Hintergrund-Kanal in den Radio-Stream geht. Stell ihn leiser, wenn die Spieler den Hintergrund zu laut finden. Wirkt sofort auf einen laufenden Hintergrund und auf alles Neue.',
       }));
       verbindeDetail(wrap);
       rueckKnopf(wrap);
@@ -608,10 +612,10 @@ function bauePlaylistZeile(pl, plIndex, sIndex) {
     return b;
   };
   zeile.appendChild(mk('Abspielen', () => playlistTitelAbspielen(pl, sIndex)));
-  zeile.appendChild(mk('Schleife', () => tuSchleife(s, 'musik')));
+  zeile.appendChild(mk('Schleife', () => tuAbspielen(s, true)));
   zeile.appendChild(mk('Vorhoeren', () => tuVorhoeren(s)));
   zeile.appendChild(mk('Einspielen', () => tuEinspielen(s)));
-  zeile.appendChild(mk('Stop', () => { _plToken += 1; tuStop(s, 'musik'); }));
+  zeile.appendChild(mk('Stop', () => { _plToken += 1; tuStop(s); }));
   const name = document.createElement('span');
   name.setAttribute('aria-hidden', 'true'); name.style.flex = '1 1 auto'; name.textContent = s.name;
   zeile.appendChild(name);
@@ -632,10 +636,10 @@ async function oeffnePlaylistDialog(pl, plIndex, sIndex) {
     ],
   });
   if (wahl === 'ab') playlistTitelAbspielen(pl, sIndex);
-  else if (wahl === 'schleife') tuSchleife(s, 'musik');
+  else if (wahl === 'schleife') tuAbspielen(s, true);
   else if (wahl === 'vor') tuVorhoeren(s);
   else if (wahl === 'ein') tuEinspielen(s);
-  else if (wahl === 'stop') { _plToken += 1; tuStop(s, 'musik'); }
+  else if (wahl === 'stop') { _plToken += 1; tuStop(s); }
   else if (wahl === 'weg') { pl.sounds.splice(sIndex, 1); speicherePlaylists(); screen.refresh(); sprache.sage(`${s.name} aus der Playlist entfernt.`); }
 }
 

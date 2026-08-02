@@ -23,6 +23,7 @@ import { createCharakter, neuberechne, verfuegbareEP } from '../core/character.j
 import { zeigeEP, aktualisiereEP } from '../ui/ep-anzeige.js';
 import { serialisiere } from '../core/sephrasto-xml.js';
 import { zahlDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
+import { wuerfleName, SPEZIES, KULTUREN } from '../daten/namen-daten.js';
 import { beschreibungScreen } from './beschreibung.js';
 import { aussehenScreen } from './aussehen.js';
 import { hintergrundScreen } from './hintergrund.js';
@@ -169,6 +170,18 @@ function neuScreen() {
 }
 
 /**
+ * Einen zufälligen aventurischen Namen erwürfeln. Ohne Auswahlfenster: Spezies,
+ * Kultur und Geschlecht werden zufällig gezogen (getrennt vom Meister-Generator,
+ * der eigene Fenster hat). Jeder Aufruf liefert einen neuen Namen.
+ */
+function wuerfelNameZufaellig() {
+  const sp = SPEZIES[Math.floor(Math.random() * SPEZIES.length)];
+  const ku = KULTUREN[Math.floor(Math.random() * KULTUREN.length)];
+  const ge = Math.random() < 0.5 ? 'maennlich' : 'weiblich';
+  return wuerfleName(sp, ku, ge);
+}
+
+/**
  * Stammdaten-Seite für freien Editor und Assistent: Name und Gesamt-EP. Nach dem
  * Bestätigen übernimmt onWeiter (Editor-Hub öffnen oder Assistent starten).
  */
@@ -202,6 +215,25 @@ function stammdatenScreen(titel, onWeiter) {
       };
 
       const nameInput = feld('Name des Charakters', 'ed-name', 'text', char.name || '');
+
+      // Nur in der assistierten Erstellung: ein "Name würfeln"-Knopf direkt unter
+      // dem Namensfeld. Er setzt einen zufälligen aventurischen Namen ins Feld;
+      // erneut drücken bringt den nächsten. Im freien Editor bewusst nicht.
+      if (titel === 'Assistierte Erstellung') {
+        const wuerfelBtn = document.createElement('button');
+        wuerfelBtn.type = 'button';
+        wuerfelBtn.className = 'db-btn ed-aktion';
+        wuerfelBtn.textContent = 'Name würfeln';
+        wuerfelBtn.setAttribute('aria-label', 'Name würfeln. Setzt einen zufälligen Namen ins Namensfeld. Erneut drücken für den nächsten.');
+        wuerfelBtn.addEventListener('click', () => {
+          const name = wuerfelNameZufaellig();
+          nameInput.value = name;
+          sounds.playWuerfel();
+          sprache.sage(name);
+        });
+        wrap.appendChild(wuerfelBtn);
+      }
+
       const epInput = feld('Erfahrungspunkte gesamt', 'ed-gesamt', 'number', String(char.erfahrung.gesamt || 0));
 
       const weiter = () => {
