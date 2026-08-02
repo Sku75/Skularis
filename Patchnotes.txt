@@ -4,6 +4,25 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.55, 2. August 2026
+
+
+Playlist komplett starten, Shift und F-Taste, Menü-Navigation
+
+Playlists: Ganz oben in einer Playlist steht jetzt "Playlist vollständig
+wiedergeben". Dahinter dasselbe Fenster wie bei einem einzelnen Titel -
+Abspielen, Abspielen als Schleife, Hintergrund, Hintergrund als Schleife, Stop -
+nur auf die ganze Playlist bezogen: die Titel laufen der Reihe nach, bei Schleife
+danach wieder von vorn.
+
+Reiter-Hub (Meistertisch und Abenteuertisch): Shift und eine F-Taste springt zum
+jeweiligen Bereich, beginnt dort aber FRISCH am ersten Menüpunkt - die gemerkte
+Stelle wird verworfen. Die F-Taste allein bringt dich wie gewohnt an die zuletzt
+verlassene Stelle zurück.
+
+Pos1 und Ende führen in den Menüs zum ersten und letzten Eintrag.
+
+
 Version 0.54, 2. August 2026
 
 

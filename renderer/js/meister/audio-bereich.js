@@ -357,6 +357,44 @@ function playlistTitelAbspielen(pl, sIndex) {
   else tuAbspielen(pl.sounds[sIndex], false);
 }
 
+// Die GANZE Playlist der Reihe nach auf EINEM Kanal spielen. Jeder Titel läuft
+// ganz durch, dann folgt der nächste (auf demselben Kanal, also blendet sauber
+// über). loop: nach dem letzten Titel wieder von vorn. kanal/pegel wie bei den
+// Einzeltiteln (Abspielen normal, Hintergrund leiser).
+function spielePlaylistGesamt(pl, { kanal = 'abspielen', loop = false, pegel } = {}) {
+  const liste = pl.sounds || [];
+  if (!liste.length) { sprache.sage('Diese Playlist ist leer.'); return; }
+  const token = ++_plToken;
+  const p = pegel != null ? pegel : (kanal === 'hintergrund' ? player.getHintergrundPegel() : 1);
+  const los = (i) => {
+    if (token !== _plToken) return;
+    if (i >= liste.length) { if (loop) i = 0; else return; }
+    player.spieleKanal(kanal, liste[i], { loop: false, pegel: p, onEnde: () => { if (token === _plToken) los(i + 1); } })
+      .catch((e) => { console.error('Playlist gesamt:', e); if (token === _plToken) los(i + 1); });
+  };
+  los(0);
+}
+
+// Untermenü "Playlist vollständig wiedergeben" — dieselben Möglichkeiten wie bei
+// einem einzelnen Titel, nur auf die ganze Playlist bezogen.
+async function oeffnePlaylistGesamtDialog(pl) {
+  const wahl = await knopfDialog({
+    titel: `${pl.name}, vollständig`,
+    knoepfe: [
+      { label: 'Abspielen', wert: 'ab' },
+      { label: 'Abspielen als Schleife', wert: 'abschleife' },
+      { label: 'Hintergrund', wert: 'hg' },
+      { label: 'Hintergrund als Schleife', wert: 'hgschleife' },
+      { label: 'Stop', wert: 'stop' },
+    ],
+  });
+  if (wahl === 'ab') { spielePlaylistGesamt(pl, { kanal: 'abspielen', loop: false }); sprache.sage(`${pl.name} läuft, ${pl.sounds.length} Titel.`); }
+  else if (wahl === 'abschleife') { spielePlaylistGesamt(pl, { kanal: 'abspielen', loop: true }); sprache.sage(`${pl.name} läuft in Schleife.`); }
+  else if (wahl === 'hg') { spielePlaylistGesamt(pl, { kanal: 'hintergrund', loop: false }); sprache.sage(`${pl.name} läuft leise als Hintergrund.`); }
+  else if (wahl === 'hgschleife') { spielePlaylistGesamt(pl, { kanal: 'hintergrund', loop: true }); sprache.sage(`${pl.name} läuft leise als Hintergrund in Schleife.`); }
+  else if (wahl === 'stop') { _plToken += 1; player.stoppeKanal('abspielen'); player.stoppeKanal('hintergrund'); sprache.sage('Playlist gestoppt.'); }
+}
+
 // Kleiner Zurueck-Knopf (nur fuer die Maus; Blinde nutzen Escape).
 function rueckKnopf(wrap) {
   if (screen.tiefe() > 1) {
@@ -551,6 +589,14 @@ function playlistScreen(index) {
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel(pl.name));
       wrap.appendChild(infoZeile(`Auto abspielen: ${_autoWeiter ? 'an' : 'aus'}`, 'Umschalten in der Playlist-Uebersicht. An: der naechste Titel folgt von selbst.'));
+
+      // Ganz oben: die komplette Playlist starten — wie bei einem einzelnen Titel,
+      // nur auf die ganze Liste bezogen (Abspielen, Schleife, Hintergrund, Stop).
+      if ((pl.sounds || []).length > 0) {
+        wrap.appendChild(aktionZeile('Playlist vollständig wiedergeben', () => oeffnePlaylistGesamtDialog(pl),
+          'die ganze Playlist starten',
+          'Öffnet ein Fenster mit Abspielen, Abspielen als Schleife, Hintergrund, Hintergrund als Schleife und Stop — für die komplette Playlist der Reihe nach.'));
+      }
 
       // Filter oben: wie in der Bibliothek, in jedem Pfad mit Titeln.
       const q = (scr.__filter || '').toLowerCase();

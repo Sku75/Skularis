@@ -25,7 +25,10 @@ function installiereListener() {
   _listenerInstalliert = true;
   document.addEventListener('keydown', (e) => {
     if (!_aktiv) return;
-    if (e.ctrlKey || e.altKey || e.shiftKey) return;
+    // Strg/Alt lassen wir dem System. Shift ist erlaubt: Shift+F-Taste springt
+    // zum Reiter, aber FRISCH am ersten Menuepunkt (die gemerkte Stelle wird
+    // verworfen). Ohne Shift kommt man an die zuletzt verlassene Stelle zurueck.
+    if (e.ctrlKey || e.altKey) return;
     const m = /^F(\d{1,2})$/.exec(e.key);
     if (!m) return;
     // Nur solange der Hub wirklich offen ist (Anker liegt im Stapel).
@@ -37,7 +40,7 @@ function installiereListener() {
     if (idx == null || idx < 0 || idx >= _aktiv.punkte.length) return;
     e.preventDefault();
     e.stopPropagation();
-    _aktiv.aktiviere(idx);
+    _aktiv.aktiviere(idx, { frisch: e.shiftKey });
   }, true);
 }
 
