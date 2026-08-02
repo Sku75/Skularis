@@ -69,15 +69,25 @@ function schluesselDetail(key) {
 
 // --- Aktionen je Datei (von Tastatur UND Schaltflaechen genutzt) ---------
 
-async function tuEinmal(d) {
-  try { await player.spieleEinmal(d); sprache.sage(`${d.name} abgespielt.`); }
-  catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
+// Hintergrund-Pegel: 75 Prozent leiser als normal (der Klang kommt schon leise
+// in den Mix und damit in den Stream, ohne dass der Lautstaerke-Regler wandert).
+const HINTERGRUND_PEGEL = 0.25;
+
+async function tuEinmal(d, pegel = 1) {
+  const hg = pegel < 1;
+  try {
+    await player.spieleEinmal(d, undefined, pegel);
+    sprache.sage(hg ? `${d.name} als Hintergrund, leise.` : `${d.name} abgespielt.`);
+  } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
 }
 
-async function tuSchleife(d, kanal) {
+async function tuSchleife(d, kanal, pegel = 1) {
   const loopKanal = kanal === 'stimmung' ? 'stimmung' : 'musik';
-  try { await player.spieleSchleife(loopKanal, d); sprache.sage(`${d.name} laeuft in Schleife.`); }
-  catch (e) { console.error('Audio Schleife:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
+  const hg = pegel < 1;
+  try {
+    await player.spieleSchleife(loopKanal, d, pegel);
+    sprache.sage(hg ? `${d.name} laeuft leise als Hintergrund in Schleife.` : `${d.name} laeuft in Schleife.`);
+  } catch (e) { console.error('Audio Schleife:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
 }
 
 // Diesen Klang anhalten, egal wie er gerade laeuft (Schleife, einmal oder Vorhoeren).
@@ -109,20 +119,24 @@ async function oeffneAudioDialog(d, kanal) {
     titel: d.name,
     knoepfe: [
       { label: 'Abspielen', wert: 'einmal' },
-      { label: 'Abspielen in Schleife', wert: 'schleife' },
-      { label: 'Vorhoeren', wert: 'vor' },
+      { label: 'Abspielen als Schleife', wert: 'schleife' },
+      { label: 'Hintergrund', wert: 'hg' },
+      { label: 'Hintergrund als Schleife', wert: 'hgschleife' },
       { label: 'Einspielen', wert: 'ein' },
-      { label: 'Stop', wert: 'stop' },
+      { label: 'Vorhoeren', wert: 'vor' },
       { label: 'Zu Playlist hinzufuegen', wert: 'playlist' },
+      { label: 'Stop', wert: 'stop' },
     ],
   });
   // Escape schliesst das Fenster (liefert null) — kein Abbrechen-Knopf noetig.
   if (wahl === 'einmal') tuEinmal(d);
   else if (wahl === 'schleife') tuSchleife(d, kanal);
-  else if (wahl === 'vor') tuVorhoeren(d);
+  else if (wahl === 'hg') tuEinmal(d, HINTERGRUND_PEGEL);
+  else if (wahl === 'hgschleife') tuSchleife(d, kanal, HINTERGRUND_PEGEL);
   else if (wahl === 'ein') tuEinspielen(d);
-  else if (wahl === 'stop') tuStop(d, kanal);
+  else if (wahl === 'vor') tuVorhoeren(d);
   else if (wahl === 'playlist') zuPlaylistHinzufuegen(d);
+  else if (wahl === 'stop') tuStop(d, kanal);
 }
 
 // Eine Datei-Zeile. Die ganze Zeile ist EIN fokussierbarer Punkt: mit den
@@ -166,6 +180,7 @@ function baueDateiZeile(d, kanal) {
   };
   zeile.appendChild(macheBtn('Abspielen', () => tuEinmal(d)));
   zeile.appendChild(macheBtn('Schleife', () => tuSchleife(d, kanal)));
+  zeile.appendChild(macheBtn('Hintergrund', () => tuSchleife(d, kanal, HINTERGRUND_PEGEL)));
   zeile.appendChild(macheBtn('Vorhoeren', () => tuVorhoeren(d)));
   zeile.appendChild(macheBtn('Einspielen', () => tuEinspielen(d)));
   zeile.appendChild(macheBtn('Stop', () => tuStop(d, kanal)));

@@ -131,12 +131,14 @@ function registriereAudioTaste() {
 function registriereRadioLautstaerke() {
   document.addEventListener('keydown', (e) => {
     if (e.code !== 'NumpadAdd' && e.code !== 'NumpadSubtract') return;
-    if (e.ctrlKey || e.altKey || e.shiftKey) return;
+    if (e.altKey || e.shiftKey) return;
     if (document.querySelector('dialog[open]')) return;
     if (istTextfeld(e.target)) return;
     if (e.target && e.target.closest && e.target.closest('.ed-zeile')) return; // Wert-Zeile regelt selbst
     e.preventDefault();
-    const delta = e.code === 'NumpadAdd' ? 1 : -1;
+    // Ohne Strg: 1er-Schritte. Mit Strg: 5er-Schritte (schneller lauter/leiser).
+    const schritt = e.ctrlKey ? 5 : 1;
+    const delta = (e.code === 'NumpadAdd' ? 1 : -1) * schritt;
     // Als Hoerer (Spieler) regelt +/- die Radio-Lautstaerke; sonst (Meister, der
     // selbst abspielt) die eigene Audio-Lautstaerke — sonst passiert bei ihm nichts.
     if (radio.rolle() === 'hoerer') {
@@ -248,8 +250,10 @@ function registriereShortcuts() {
     }
   }, 'Sprachausgabe ein/aus');
 
-  shortcuts.registriere('Ctrl++', () => schriftAendern(1), 'Schrift vergrößern');
-  shortcuts.registriere('Ctrl+-', () => schriftAendern(-1), 'Schrift verkleinern');
+  // Schriftgröße auf Strg und Bild-hoch/Bild-runter — damit Strg und Plus/Minus
+  // am Ziffernblock frei sind für die Lautstärke (5er-Schritte).
+  shortcuts.registriere('Ctrl+PageUp', () => schriftAendern(1), 'Schrift vergrößern');
+  shortcuts.registriere('Ctrl+PageDown', () => schriftAendern(-1), 'Schrift verkleinern');
   shortcuts.registriere('Ctrl+0', () => schriftReset(), 'Schrift zurücksetzen');
 
   // Strg und Q: Skularis beenden. Ist ein Charakter oder ein Abenteuer offen,

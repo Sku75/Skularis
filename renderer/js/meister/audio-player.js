@@ -33,6 +33,7 @@ let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeiche
 // Laufende Klaenge je Kanal. musik/stimmung: genau einer; spontan: mehrere.
 const _laeuft = { musik: null, stimmung: null };
 const _spontan = new Set();
+const _eingespielt = new Set(); // laufende Einspiel-Overlays (Ducking), stoppbar
 const _decodeCache = new Map(); // pfad -> AudioBuffer
 
 function ctx() {
@@ -82,8 +83,11 @@ function blendeAus(eintrag, dauer = FADE_AUS) {
  * Musik oder Hintergrundstimmung abspielen (Schleife, mit Ueberblenden).
  * @param {'musik'|'stimmung'} kanal
  * @param {{pfad:string, name:string}} datei
+ * @param {number} [pegel=1] Ziel-Lautstaerke 0..1. Fuer den "Hintergrund"-Modus
+ *   wird 0.25 uebergeben (75 Prozent leiser), ohne den Regler zu verstellen —
+ *   der Klang kommt einfach schon leise in den Mix und damit in den Stream.
  */
-export async function spieleSchleife(kanal, datei) {
+export async function spieleSchleife(kanal, datei, pegel = 1) {
   const puffer = await ladePuffer(datei.pfad);
   const c = ctx();
   const source = c.createBufferSource();
@@ -96,8 +100,8 @@ export async function spieleSchleife(kanal, datei) {
   // Den bisherigen Klang dieses Kanals ausblenden, den neuen einblenden.
   blendeAus(_laeuft[kanal]);
   source.start();
-  rampe(gain.gain, 1, FADE_EIN);
-  _laeuft[kanal] = { source, gain, name: datei.name, pfad: datei.pfad };
+  rampe(gain.gain, pegel, FADE_EIN);
+  _laeuft[kanal] = { source, gain, name: datei.name, pfad: datei.pfad, pegel };
 }
 
 /**
@@ -106,7 +110,7 @@ export async function spieleSchleife(kanal, datei) {
  * @param {Function} [onEnde] wird gerufen, wenn der Klang NATUERLICH zu Ende ist
  *   (nicht beim manuellen Stoppen) — fuer automatisches Weiterspielen in Playlists.
  */
-export async function spieleEinmal(datei, onEnde) {
+export async function spieleEinmal(datei, onEnde, pegel = 1) {
   const puffer = await ladePuffer(datei.pfad);
   const c = ctx();
   const source = c.createBufferSource();
@@ -123,7 +127,7 @@ export async function spieleEinmal(datei, onEnde) {
     if (!eintrag.gestoppt && typeof onEnde === 'function') { try { onEnde(); } catch { /* egal */ } }
   };
   source.start();
-  rampe(gain.gain, 1, FADE_SPONTAN);
+  rampe(gain.gain, pegel, FADE_SPONTAN);
 }
 
 /**
@@ -154,6 +158,10 @@ export async function spieleEin(datei) {
 
   const zurueck = () => { for (const l of loops) rampe(l.gain.gain, 1, aus); };
 
+  // Overlay erfassen, damit "Alles stoppen" (Strg+F12) es auch beendet.
+  const eintrag = { source, gain, loops, zurueck, gestoppt: false };
+  _eingespielt.add(eintrag);
+
   if (dur > ein + aus) {
     // Gegen Ende ausblenden und die Schleifen gleichzeitig wieder hochziehen
     // (echte Ueberblende).
@@ -161,10 +169,10 @@ export async function spieleEin(datei) {
     gain.gain.setValueAtTime(1, tAus);
     gain.gain.linearRampToValueAtTime(0.0001, tAus + aus);
     for (const l of loops) { l.gain.gain.setValueAtTime(0.5, tAus); l.gain.gain.linearRampToValueAtTime(1, tAus + aus); }
-    source.onended = () => { try { gain.disconnect(); } catch { /* egal */ } };
+    source.onended = () => { _eingespielt.delete(eintrag); try { gain.disconnect(); } catch { /* egal */ } };
   } else {
     // Sehr kurzer Klang: erst am Ende die Schleifen wieder hochblenden.
-    source.onended = () => { zurueck(); try { gain.disconnect(); } catch { /* egal */ } };
+    source.onended = () => { _eingespielt.delete(eintrag); zurueck(); try { gain.disconnect(); } catch { /* egal */ } };
   }
 }
 
@@ -173,12 +181,26 @@ export function stoppeKanal(kanal) {
   if (_laeuft[kanal]) { blendeAus(_laeuft[kanal]); _laeuft[kanal] = null; }
 }
 
-/** Alles stoppen: beide Schleifen und alle Spontansounds. */
+/**
+ * Alles stoppen: beide Schleifen, alle Spontansounds, alle Einspiel-Overlays
+ * und ein laufendes Vorhoeren. Fuer Strg+F12 "Alles stoppen" — es darf nichts
+ * uebrig bleiben, egal ob Musik, Hintergrund, Spontan, Eingespieltes oder
+ * Vorhoeren.
+ */
 export function stoppeAlles() {
   stoppeKanal('musik');
   stoppeKanal('stimmung');
   for (const e of _spontan) { e.gestoppt = true; try { e.source.stop(); } catch { /* egal */ } }
   _spontan.clear();
+  // Einspiel-Overlays sofort ausblenden und stoppen.
+  for (const e of _eingespielt) {
+    e.gestoppt = true;
+    try { rampe(e.gain.gain, 0, 0.12); e.source.stop(ctx().currentTime + 0.15); } catch { /* egal */ }
+    try { if (e.zurueck) e.zurueck(); } catch { /* egal */ } // gedueckte Schleifen wieder hoch (falls noch aktiv)
+  }
+  _eingespielt.clear();
+  // Ein laufendes Vorhoeren beenden und den Live-Mix wieder einblenden.
+  beendeVorhoeren();
 }
 
 /** Was laeuft gerade in einem Schleifen-Kanal? (Name oder null) */

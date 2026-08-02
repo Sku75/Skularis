@@ -4,6 +4,25 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.51, 1. August 2026
+
+
+Audio: alles stoppen, Hintergrund-Modus, neue Tastenbelegung
+
+Strg und F12 beendet jetzt wirklich ALLES: Musik, Hintergrund, Spontanklaenge,
+Eingespieltes UND ein laufendes Vorhoeren. Vorher blieb ein eingespielter Klang
+oder das Vorhoeren manchmal weiter laufen.
+
+Das Klang-Menue ist jetzt vollstaendig: Abspielen, Abspielen als Schleife,
+Hintergrund, Hintergrund als Schleife, Einspielen, Vorhoeren, Zu Playlist
+hinzufuegen, Stop. "Hintergrund" spielt den Klang gleich 75 Prozent leiser in den
+Stream - ohne den Lautstaerke-Regler zu verstellen.
+
+Tastenbelegung: Die Schriftgroesse liegt jetzt auf Strg und Bild-hoch bzw.
+Bild-runter. Dadurch sind Strg und Plus/Minus am Ziffernblock frei fuer die
+Lautstaerke in 5er-Schritten (ohne Strg weiterhin 1er-Schritte).
+
+
 Version 0.50, 1. August 2026
 
 
