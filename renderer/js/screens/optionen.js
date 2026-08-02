@@ -9,7 +9,9 @@ import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import * as screen from '../ui/screen.js';
 import * as einstellungen from './../daten/einstellungen.js';
+import * as shortcuts from '../shortcuts.js';
 import { menuScreen } from '../ui/menu-screen.js';
+import { knopfDialog } from '../ui/dialog.js';
 
 // "Über Skularis" — jede Zeile ist mit Pfeiltasten einzeln lesbar. Die
 // Versionszeile kommt aus der App (VERSION), der Rest steht hier.
@@ -84,6 +86,77 @@ function setVolume(prozent) {
   sprache.sage(`Lautstärke ${prozent} Prozent.`);
 }
 
+/** Modal: den naechsten Tastendruck als Kombination erfassen (Escape bricht ab). */
+function erfasseKombination() {
+  return new Promise((resolve) => {
+    const dlg = document.createElement('dialog');
+    dlg.className = 'db-dialog';
+    dlg.setAttribute('role', 'dialog');
+    dlg.setAttribute('aria-modal', 'true');
+    dlg.setAttribute('aria-label', 'Neue Tastenkombination');
+    dlg.insertAdjacentHTML('beforeend',
+      '<div class="db-dialog__header"><span class="db-dialog__title">Neue Tastenkombination</span></div>'
+      + '<div class="db-dialog__body"><p class="db-dialog__label">Druecke jetzt die gewuenschte Tastenkombination. Escape bricht ab.</p></div>');
+    const live = document.createElement('div');
+    live.className = 'sr-only'; live.setAttribute('aria-live', 'assertive');
+    dlg.appendChild(live);
+    document.body.appendChild(dlg);
+    const fertig = (v) => { try { dlg.close(); } catch { /* egal */ } dlg.remove(); resolve(v); };
+    dlg.addEventListener('keydown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === 'Escape') { fertig(null); return; }
+      const combo = shortcuts.comboAusEvent(e);
+      if (!combo) return; // reiner Modifier: weiter warten
+      fertig(combo);
+    }, true);
+    dlg.showModal();
+    requestAnimationFrame(() => { live.textContent = 'Druecke die neue Tastenkombination.'; });
+  });
+}
+
+/** Menue zum freien Umbelegen der globalen Tasten. */
+function tastenScreen() {
+  return {
+    title: '',
+    build() {
+      const liste = shortcuts.belegbareListe();
+      this.title = 'Tasten neu belegen';
+      const items = liste.map(k => ({
+        label: `${k.beschreibung}: ${k.combo}`,
+        hint: 'Enter: neu belegen oder auf Standard zuruecksetzen',
+        onSelect: async () => {
+          const w = await knopfDialog({
+            titel: k.beschreibung,
+            frage: `Aktuell ${k.combo}. Standard ${k.standard}.`,
+            knoepfe: [
+              { label: 'Neu belegen', wert: 'neu' },
+              { label: 'Auf Standard zuruecksetzen', wert: 'std' },
+              { label: 'Abbrechen', wert: 'ab' },
+            ],
+          });
+          if (w === 'neu') {
+            const c = await erfasseKombination();
+            if (!c) return;
+            shortcuts.neuBelegen(k.id, c);
+            screen.refresh();
+            sprache.sage(`${k.beschreibung} liegt jetzt auf ${c}.`);
+          } else if (w === 'std') {
+            shortcuts.zuruecksetzen(k.id);
+            screen.refresh();
+            sprache.sage(`${k.beschreibung} auf Standard zurueckgesetzt.`);
+          }
+        },
+      }));
+      return menuScreen({
+        title: this.title,
+        subtitle: 'Enter belegt eine Taste neu oder setzt sie zurueck. Escape zurueck.',
+        items,
+        leer: 'Keine umbelegbaren Tasten.',
+      }).build();
+    },
+  };
+}
+
 export function build() {
   return menuScreen({
     title: 'Optionen',
@@ -126,6 +199,11 @@ export function build() {
       {
         label: 'Schrift auf Normalgröße',
         onSelect: () => setFont(0),
+      },
+      {
+        label: 'Tasten neu belegen',
+        hint: 'Globale Tastenkombinationen frei umbelegen (Sprachausgabe, Schrift, Beenden, Info-Fenster)',
+        onSelect: () => screen.push(tastenScreen()),
       },
       {
         label: 'Neuerungen',

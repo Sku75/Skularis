@@ -21,7 +21,8 @@ import * as reiterHub from '../ui/reiter-hub.js';
 import { ladeDb, getDb } from '../core/db-laden.js';
 import { createMeisterAbenteuer, parseMeisterAbenteuer, protokolliere } from '../core/meister-abenteuer.js';
 import { getMeister, setMeister, speichere } from '../meister/state.js';
-import { gruppenzusammenstellungScreen, gruppenboegenScreen } from '../meister/gruppe.js';
+import { gruppenzusammenstellungScreen } from '../meister/gruppe.js';
+import { spielerinfosScreen } from '../meister/spielerinfos.js';
 import { gruppenrechercheScreen, gruppenprobeScreen } from '../meister/gruppenrecherche.js';
 import { gegnerkarteiScreen } from '../meister/gegnerkartei.js';
 import { gegnerBibliothekScreen } from '../meister/gegner-bibliothek.js';
@@ -53,7 +54,7 @@ function einstiegScreen() {
     items: [
       { label: 'Meisterabenteuer erstellen', hint: 'Name eingeben, dann Helden hinzufuegen', onSelect: erstellen },
       { label: 'Meisterabenteuer oeffnen und bearbeiten', hint: 'Vorbereiten, ohne zu spielen', onSelect: () => oeffnen('bearbeiten') },
-      { label: 'Meisterabenteuer spielen, Spielabend oeffnen', hint: 'In den Spielabend', onSelect: () => oeffnen('spielen') },
+      { label: 'Spiel-Runde starten', hint: 'Eine Spiel-Runde aus einem vorbereiteten Meisterabenteuer', onSelect: () => oeffnen('spielen') },
     ],
   });
 }
@@ -155,11 +156,13 @@ function oeffneHub(modus) {
     { label: 'Gruppenrecherche', hint: 'Werte der Gruppe abfragen und verdeckt wuerfeln', factory: () => gruppenrechercheScreen() },
     { label: 'Gruppenprobe', hint: 'die ganze Gruppe gegen eine Schwierigkeit', factory: () => gruppenprobeScreen() },
     { label: 'Kampfszene und Spieltisch', hint: 'Kampfszenenpacks vorbereiten, Kampfszenen spielen, freier Tisch', factory: () => szenenBereichScreen() },
+    { label: 'Charakterboegen und Notizen', hint: 'Boegen der Gruppe, Vitalitaet und je Charakter Notizen', factory: () => spielerinfosScreen() },
     { label: 'Gegner-Bibliothek', hint: 'Gesamtliste und Kategorien, Gegner in die Auswahl uebernehmen', factory: () => gegnerBibliothekScreen() },
     { label: 'Freundliche NPC', hint: 'Meister-NPC verwalten', factory: () => gegnerkarteiScreen('freund') },
-    { label: 'Charakterboegen der Gruppe', hint: 'Boegen ansehen', factory: () => gruppenboegenScreen() },
-    { label: 'Abenteuertexte', hint: 'txt-Dokumente lesen, mit Lesezeichen', factory: () => texteScreen() },
-    { label: 'Meister-Notizen und Werkzeuge', hint: 'geheime Notizen, Vorlesetexte, Zufallstabellen', factory: () => meisterNotizenScreen() },
+    // F7 und F8: zweimal dasselbe Modul (Meister-Notizen und Werkzeuge), damit
+    // zwei Dokumente gleichzeitig offen sind und man mit F7/F8 dazwischen wechselt.
+    { label: 'Meistertexte 1', hint: 'Abenteuertexte, geheime Notizen, Vorlesetexte, Zufallstabellen, Namen (erste Arbeitsflaeche)', factory: () => meisterNotizenScreen(1) },
+    { label: 'Meistertexte 2', hint: 'dasselbe unabhaengig, mit eigenem Text-Ordner (zweite Arbeitsflaeche)', factory: () => meisterNotizenScreen(2) },
     { label: 'Regeln', hint: 'Kurzregelfilter und das ganze Ilaris-Regelwerk', factory: () => regelnMenuScreen({ db: getDb(), helden: regelHelden() }) },
     { label: 'Protokoll', hint: 'was im Abenteuer passiert ist', factory: () => protokollScreen() },
     { label: 'Gruppenzusammenstellung', hint: 'Helden hinzufuegen und entfernen', factory: () => gruppenzusammenstellungScreen() },

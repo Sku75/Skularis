@@ -18,7 +18,7 @@ import { auswahlScreen } from '../ui/auswahl-screen.js';
 import { textDialog, zahlDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
 import { ladeDb, getDb } from '../core/db-laden.js';
 import { parse, serialisiere } from '../core/sephrasto-xml.js';
-import { createAbenteuer, parseAbenteuer, protokolliere, uebernehmeAbenteuerdaten } from '../core/abenteuer.js';
+import { createAbenteuer, parseAbenteuer, serialisiereAbenteuer, protokolliere, uebernehmeAbenteuerdaten } from '../core/abenteuer.js';
 import { getAbenteuer, setAbenteuer, speichere } from '../abenteuer/state.js';
 import * as reiterHub from '../ui/reiter-hub.js';
 import { liveSpielScreen, charakterstatusScreen } from '../abenteuer/live-spiel.js';
@@ -48,8 +48,8 @@ function einstiegScreen() {
     subtitle: 'Escape kehrt zum Hauptmenü zurück.',
     items: [
       { label: 'Abenteuer erstellen', hint: 'Name und Charakter wählen', onSelect: erstellen },
-      { label: 'Abenteuer öffnen und bearbeiten', hint: 'Betrachten und pflegen, ohne zu spielen', onSelect: () => oeffnen('bearbeiten') },
-      { label: 'Abenteuer spielen, Spieltag öffnen', hint: 'In den Spieltag-Kreislauf', onSelect: () => oeffnen('spielen') },
+      { label: 'Abenteuer öffnen und bearbeiten', hint: 'Vorbereiten und pflegen, ohne zu spielen', onSelect: () => oeffnen('bearbeiten') },
+      { label: 'Spiel-Runde starten', hint: 'Eine Spiel-Runde aus einem vorbereiteten Abenteuer öffnen', onSelect: () => oeffnen('spielen') },
     ],
   });
 }
@@ -121,8 +121,50 @@ function abenteuerListeScreen(modus, liste) {
   };
 }
 
+/**
+ * Eine Spiel-Runde aus einem vorbereiteten Abenteuer starten. Das vorbereitete
+ * Abenteuer wird als Vorlage markiert und bleibt unveraendert; gespielt und
+ * gespeichert wird ab jetzt eine frische Kopie "«Name» bespielt". Danach die
+ * Schluessel-Abfrage fuer die Audio-Uebertragung, dann ins Menue.
+ */
+async function spielRundeStarten(r, eintrag) {
+  const vorlage = parseAbenteuer(r.inhalt);
+  const istVorbereitet = vorlage.istVorlage !== false; // undefined/true = Vorlage
+  let a;
+  if (istVorbereitet) {
+    vorlage.istVorlage = true;
+    try { await ipc.abenteuerSpeichern({ name: vorlage.name, inhalt: serialisiereAbenteuer(vorlage) }); } catch { /* egal */ }
+    const kopie = parseAbenteuer(r.inhalt);
+    const basis = kopie.name.replace(/\s*bespielt\s*$/i, '').trim();
+    kopie.name = `${basis} bespielt`;
+    kopie.istVorlage = false;
+    delete kopie._pfad;
+    setAbenteuer(kopie);
+    await speichere(); // legt die neue Spielstand-Datei an
+    a = kopie;
+  } else {
+    a = parseAbenteuer(r.inhalt);
+    a._pfad = eintrag.pfad;
+    setAbenteuer(a);
+  }
+  sounds.playOeffnen();
+  const wahl = await knopfDialog({
+    titel: 'Spiel-Runde',
+    frage: 'Mit der Audio-Uebertragung des Meisters verbinden?',
+    knoepfe: [
+      { label: 'Schluessel eingeben und verbinden', wert: 'audio' },
+      { label: 'Weiter zum Abenteuertisch', wert: 'weiter' },
+    ],
+  });
+  oeffneHubSpieler('spielen');
+  if (wahl === 'audio') screen.push(audioBereichScreen('spieler'));
+  sprache.sage(istVorbereitet
+    ? `Spiel-Runde ${a.name} gestartet. Das vorbereitete Abenteuer bleibt als Vorlage.`
+    : `Spiel-Runde ${a.name} fortgesetzt.`);
+}
+
 function abenteuerEintragScreen(modus, eintrag, liste) {
-  const oeffnenLabel = modus === 'spielen' ? 'Zum Spielen öffnen' : 'Zum Bearbeiten öffnen';
+  const oeffnenLabel = modus === 'spielen' ? 'Spiel-Runde starten' : 'Zum Bearbeiten öffnen';
   return {
     title: eintrag.name,
     build() {
@@ -136,11 +178,15 @@ function abenteuerEintragScreen(modus, eintrag, liste) {
               try {
                 await ladeDb(); // für Basiswerte im Charakterbogen
                 const r = await ipc.abenteuerLaden(eintrag.pfad);
-                const a = parseAbenteuer(r.inhalt);
-                a._pfad = eintrag.pfad;
-                setAbenteuer(a);
-                sounds.playOeffnen();
-                oeffneHubSpieler(modus);
+                if (modus === 'spielen') {
+                  await spielRundeStarten(r, eintrag);
+                } else {
+                  const a = parseAbenteuer(r.inhalt);
+                  a._pfad = eintrag.pfad;
+                  setAbenteuer(a);
+                  sounds.playOeffnen();
+                  oeffneHubSpieler('bearbeiten');
+                }
               } catch (e) {
                 console.error('Abenteuer laden:', e);
                 sprache.sage('Abenteuer konnte nicht geladen werden.');
@@ -204,7 +250,7 @@ function oeffneHubSpieler(modus) {
   ];
 
   if (modus === 'spielen') {
-    punkte.push({ label: 'Abenteuertag abschließen und EP erhalten', hint: 'EP eintragen, an den Charakter gutschreiben, dann Hauptmenü', aktion: () => spieltagAbschliessen() });
+    punkte.push({ label: 'Spiel-Runde abschließen und EP erhalten', hint: 'EP eintragen, an den Charakter gutschreiben, dann Hauptmenü', aktion: () => spieltagAbschliessen() });
   } else {
     punkte.push({ label: 'Abenteuer speichern und zurück', aktion: () => speichernUndZurueck(hub) });
   }
@@ -259,7 +305,7 @@ async function speichernUndZurueck(hub) {
 
 async function spieltagAbschliessen() {
   const a = getAbenteuer();
-  const ap = await zahlDialog({ titel: 'Abenteuertag abschließen', label: 'Erhaltene Erfahrungspunkte (EP)', wert: 0, min: 0, max: 100000 });
+  const ap = await zahlDialog({ titel: 'Spiel-Runde abschließen', label: 'Erhaltene Erfahrungspunkte (EP)', wert: 0, min: 0, max: 100000 });
   if (ap === null) return;
 
   // Beim Abschluss den Charakterbogen aktualisieren: Erfahrungspunkte,

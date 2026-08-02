@@ -12,15 +12,23 @@ import { textDialog, jaNeinDialog } from '../ui/dialog.js';
 import { getMeister, speichere } from './state.js';
 import { zufallstabellenScreen } from './zufallstabellen.js';
 import { namensgeneratorScreen } from './namensgenerator.js';
+import { texteScreen } from './texte.js';
 
-export function meisterNotizenScreen() {
+/**
+ * Meister-Notizen und Werkzeuge. Als F7/F8 zweimal im Hub (slot 1 und 2), damit
+ * man zwei unabhaengige Arbeitsflaechen hat. Ganz oben steckt der Abenteuertexte-
+ * Leser drin — mit slot-eigenem Ordner, sodass F7 und F8 verschiedene Ordner
+ * gleichzeitig offen haben koennen. Das spart einen Punkt im Hauptmenue.
+ */
+export function meisterNotizenScreen(slot = 1) {
   return {
-    title: 'Meister-Notizen und Werkzeuge',
+    title: slot === 2 ? 'Meistertexte 2' : 'Meistertexte 1',
     build() {
       return menuScreen({
         title: this.title,
         subtitle: 'Escape zurueck.',
         items: [
+          { label: 'Abenteuertexte', hint: 'txt-Dokumente aus einem Ordner lesen (eigener Ordner je Menue)', onSelect: () => screen.push(texteScreen(slot)) },
           { label: 'Meister-Notizen (geheim)', hint: 'nur fuer dich', onSelect: () => screen.push(listeScreen('meisterNotizen', 'Meister-Notiz', false)) },
           { label: 'Vorlesetexte', hint: 'zum Vorlesen am Tisch', onSelect: () => screen.push(listeScreen('vorlesetexte', 'Vorlesetext', true)) },
           { label: 'Zufallstabellen', hint: 'Namen, Geruechte, Wetter, Beute wuerfeln', onSelect: () => screen.push(zufallstabellenScreen()) },

@@ -29,6 +29,11 @@ export function createMeisterAbenteuer(name) {
     spieltag: 1,
     _nextId: 0,
     charaktere: [],        // { name, pfad, bogen }
+    // Geteilte Vitalitaet je Charakter (Name -> { wunden, erschoepfung }). EINE
+    // Quelle fuer die Spielerinfos-Uebersicht UND den Spieltisch-Kampf: aendert
+    // sich hier etwas, sieht man es dort und umgekehrt.
+    vitalitaet: {},
+    charNotizen: {},       // Name -> freie Notiz zum Charakter
     nsc: [],               // Gegner-Statbloecke
     freundlicheNsc: [],    // freundliche Meister-NPC (gleiche Form)
     tisch: { karten: [] },
@@ -41,6 +46,20 @@ export function createMeisterAbenteuer(name) {
     protokoll: [],
     apProtokoll: [],       // { spieltag, text } — vergebene EP je Abend
   };
+}
+
+/**
+ * Geteilte Vitalitaet eines Charakters (nach Name). Legt den Eintrag bei Bedarf
+ * an. Wunden und Erschoepfung stehen hier EINMAL: die Spielerinfos-Uebersicht und
+ * der Spieltisch-Kampf lesen und schreiben denselben Wert.
+ */
+export function vitalitaet(a, name) {
+  a.vitalitaet = a.vitalitaet || {};
+  if (!a.vitalitaet[name]) a.vitalitaet[name] = { wunden: 0, erschoepfung: 0 };
+  const v = a.vitalitaet[name];
+  if (typeof v.wunden !== 'number') v.wunden = 0;
+  if (typeof v.erschoepfung !== 'number') v.erschoepfung = 0;
+  return v;
 }
 
 /** Leerer schlanker Statblock (Gegner oder freundlicher NPC). */
@@ -93,6 +112,8 @@ export function parseMeisterAbenteuer(text) {
   a.spieltag = a.spieltag || 1;
   a._nextId = a._nextId || 0;
   a.charaktere = Array.isArray(a.charaktere) ? a.charaktere : [];
+  a.vitalitaet = (a.vitalitaet && typeof a.vitalitaet === 'object') ? a.vitalitaet : {};
+  a.charNotizen = (a.charNotizen && typeof a.charNotizen === 'object') ? a.charNotizen : {};
   a.nsc = Array.isArray(a.nsc) ? a.nsc : [];
   a.freundlicheNsc = Array.isArray(a.freundlicheNsc) ? a.freundlicheNsc : [];
   a.tisch = a.tisch && typeof a.tisch === 'object' ? a.tisch : { karten: [] };

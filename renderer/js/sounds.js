@@ -17,22 +17,23 @@ const SOUND_MAP = {
   schliessen:     'ebene-zurueck.wav',
   wuerfel:        'wuerfel.wav',
   // Info-Fenster (Tooltip und Strg und I): Papier blättert auf, Buch schlägt zu.
-  buch_auf:       'buch-auf.wav',
-  buch_zu:        'buch-zu.wav',
+  // Neue, aufeinander abgestimmte Bedientöne (gleiche Lautheit).
+  buch_auf:       'info-auf.wav',
+  buch_zu:        'info-zu.wav',
   // Anschlag am Listenrand: derselbe Klang wie 'error', nur leiser. Danach wird
   // die aktuelle Zeile erneut vorgelesen, damit der Ton die Ansage nicht verdeckt.
   grenze:         'sound 15.wav',
-  oeffnen:        'sound10.wav',
-  speichern:      'sound20.wav',
+  oeffnen:        'oeffnen-neu.wav',
+  speichern:      'close-save.wav',
   loeschen:       'sound 8.wav',
   sonderinhalt:   'sound2.wav',
-  navigation:     'sound3.wav',
-  eingabe_start:  'sound 7.wav',
-  eingabe_ende:   'sound 8.wav',
-  wert_hoch:      'sound 13.wav',
-  wert_runter:    'sound 14.wav',
-  ap_bezahlen:    'sound 16.wav',
-  ap_zurueck:     'sound 17.wav',
+  navigation:     'nav.wav',
+  eingabe_start:  'eingabe-auf.wav',
+  eingabe_ende:   'info-zu.wav',
+  wert_hoch:      'wert-hoch.wav',
+  wert_runter:    'wert-runter.wav',
+  ap_bezahlen:    'ep-minus.wav',
+  ap_zurueck:     'ep-plus.wav',
 };
 
 const FALLBACK_BEEPS = {
@@ -64,18 +65,27 @@ const FALLBACK_BEEPS = {
 // gleiches Steuerungsgefuehl") und dabei unter der Sprachausgabe bleiben. Wir
 // halten deshalb ein enges Band (etwa 0,18 bis 0,55): Bedien-/Navigationstoene
 // dezent, Ereignistoene (Wuerfeln, Speichern, Fehler) einen Hauch praesenter.
+// Die neuen, aufeinander abgestimmten Bedientoene sind schon perzeptiv gleich
+// laut normalisiert (loudnorm). Sie bekommen deshalb EINEN einheitlichen Faktor,
+// damit sich alles gleich laut anfuehlt und zusammenpasst. tab/schliessen/click
+// stammen noch aus dem alten Satz und behalten ihre eigenen Werte.
+const BEDIEN_PEGEL = 0.45;
 const VOLUME_MAP = {
-  navigation: 0.18,   // Pfeil-Navigation zwischen Zeilen (dezent, aber hoerbar)
-  tab:        0.30,   // Bildschirmwechsel vor (Alt-WAV, Ebenen-Ton kommt synthetisch)
-  schliessen: 0.30,   // Bildschirmwechsel zurueck
-  click:      0.30,   // Menuepunkt auswaehlen
+  navigation: BEDIEN_PEGEL,   // Pfeil-Navigation zwischen Zeilen
+  buch_auf:   BEDIEN_PEGEL,   // Info-Fenster oeffnet
+  buch_zu:    BEDIEN_PEGEL,   // Info-Fenster schliesst
+  eingabe_start: BEDIEN_PEGEL,
+  eingabe_ende:  BEDIEN_PEGEL,
+  wert_hoch:  BEDIEN_PEGEL,   // Werteaenderung
+  wert_runter:BEDIEN_PEGEL,
+  oeffnen:    BEDIEN_PEGEL,   // Datei/Menue/Frage oeffnet
+  speichern:  BEDIEN_PEGEL,   // Speichern/Fenster schliesst
+  ap_bezahlen: BEDIEN_PEGEL,  // EP ausgeben
+  ap_zurueck:  BEDIEN_PEGEL,  // EP erstatten
+  tab:        0.30,   // Bildschirmwechsel vor (Alt-Satz)
+  schliessen: 0.30,   // Bildschirmwechsel zurueck (Alt-Satz)
+  click:      0.30,   // Menuepunkt auswaehlen (Alt-Satz)
   grenze:     0.30,   // Anschlag am Listenrand
-  buch_auf:   0.30,   // Info-Fenster oeffnet
-  buch_zu:    0.30,   // Info-Fenster schliesst
-  eingabe_start: 0.30,
-  eingabe_ende:  0.30,
-  wert_hoch:  0.40,   // Werteaenderung
-  wert_runter:0.40,
 };
 const DEFAULT_VOLUME_FACTOR = 0.55;  // Ereignistoene (Wuerfeln, Speichern, Fehler, ...)
 

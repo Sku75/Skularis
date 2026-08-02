@@ -4,6 +4,41 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.52, 2. August 2026
+
+
+Meistertisch neu geordnet, Spiel-Runden, mehr Audio-Komfort, Tasten frei belegbar
+
+Meistertisch, F4 "Charakterbögen und Notizen": die Bögen der Gruppe, ein
+Vitalität-Tracker (Wunden und Erschöpfung je Held, verstellbar) und je Charakter
+ein eigener, tagebuch-artiger Notiz-Bereich. Wichtig: die Wunden und die
+Erschöpfung sind mit dem Spieltisch-Kampf GETEILT - änderst du sie hier, stehen
+sie dort, und umgekehrt. Alles wird mit dem Abenteuer gespeichert.
+
+F7 und F8 sind jetzt "Meistertexte 1" und "Meistertexte 2": zweimal dasselbe
+Werkzeug (Abenteuertexte-Leser, geheime Notizen, Vorlesetexte, Zufallstabellen,
+Namensgenerator) - unabhängig voneinander, jeder mit EIGENEM Text-Ordner. So hast
+du zwei Dokumente gleichzeitig offen und wechselst mit F7/F8. Die Reihenfolge:
+F1 Gruppenrecherche, F2 Gruppenprobe, F3 Kampfszene und Spieltisch, F4
+Charakterbögen und Notizen, F5 Gegner-Bibliothek, F6 Freundliche NPC, F7/F8
+Meistertexte, F9 Regeln, F10 Protokoll, F11 Gruppenzusammenstellung, F12 Audio.
+
+Spiel-Runden: Aus einem vorbereiteten Abenteuer startest du jetzt eine
+"Spiel-Runde". Das Vorbereitete bleibt als Vorlage unverändert; gespielt und
+gespeichert wird eine frische Kopie "Name bespielt". Beim Start kommt zuerst die
+Frage nach dem Schlüssel für die Audio-Übertragung (verbinden oder weiter zum
+Tisch). Überall heißt es jetzt "Spiel-Runde starten" und "Spiel-Runde
+abschließen".
+
+Audio: Die Leertaste auf einem Klang startet und beendet das Vorhören. Die
+Bibliothek zeigt jetzt einfach die Ordner an, die wirklich vorhanden sind - du
+kannst Ordner frei umbenennen oder neue anlegen, sie erscheinen von selbst.
+Neue, aufeinander abgestimmte Bedientöne (alle gleich laut).
+
+Optionen: "Tasten neu belegen" - die globalen Tastenkombinationen (Sprachausgabe,
+Schrift, Beenden, Info-Fenster) lassen sich frei umbelegen und werden gespeichert.
+
+
 Version 0.51, 1. August 2026
 
 

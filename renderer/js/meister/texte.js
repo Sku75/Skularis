@@ -28,24 +28,30 @@ function speichereBald() {
   _saveTimer = setTimeout(() => { _saveTimer = null; speichere(); }, 1500);
 }
 
-export function texteScreen() {
+/**
+ * Abenteuertexte-Leser. `slot` erlaubt zwei UNABHAENGIGE Leser (F7 und F8): jeder
+ * merkt sich seinen EIGENEN Ordner (textOrdner bzw. textOrdner2), sodass man zwei
+ * verschiedene Ordner gleichzeitig offen hat und zwischen ihnen wechselt. Die
+ * Lesezeichen stehen pro Datei-Pfad und kollidieren nicht (verschiedene Ordner).
+ */
+export function texteScreen(slot = 1) {
+  const ordnerKey = slot === 2 ? 'textOrdner2' : 'textOrdner';
   const scr = {
-    title: 'Abenteuertexte',
+    title: slot === 2 ? 'Abenteuertexte (2)' : 'Abenteuertexte',
     _dateien: null,
     async ladeListe() {
       const a = getMeister();
-      if (!a.textOrdner) { scr._dateien = []; return; }
-      try { scr._dateien = await ipc.textDateienListe(a.textOrdner); }
+      if (!a[ordnerKey]) { scr._dateien = []; return; }
+      try { scr._dateien = await ipc.textDateienListe(a[ordnerKey]); }
       catch { scr._dateien = []; }
       screen.refresh();
     },
     build() {
       const a = getMeister();
+      a.textLesezeichen = a.textLesezeichen || {};
       const items = [];
 
-      // Nach dem Waehlen eines Ordners stehen die Dokumente OBEN, die
-      // Ordner-Schaltflaeche reiht sich UNTEN an.
-      if (a.textOrdner && Array.isArray(scr._dateien)) {
+      if (a[ordnerKey] && Array.isArray(scr._dateien)) {
         for (const d of scr._dateien) {
           const m = a.textLesezeichen[d.pfad];
           const marke = m && (m.position || m.lesezeichen != null) ? ' (angefangen)' : '';
@@ -58,24 +64,23 @@ export function texteScreen() {
       }
 
       const ordnerPunkt = {
-        label: a.textOrdner ? `Ordner wechseln, aktuell ${ordnerName(a.textOrdner)}` : 'Ordner waehlen und bestaetigen',
-        hint: 'einen Ordner mit txt-Dokumenten waehlen',
+        label: a[ordnerKey] ? `Ordner wechseln, aktuell ${ordnerName(a[ordnerKey])}` : 'Ordner waehlen und bestaetigen',
+        hint: 'einen Ordner mit txt-Dokumenten waehlen (nur fuer dieses Text-Menue)',
         onSelect: async () => {
           const r = await ipc.ordnerWaehlen('Ordner mit Abenteuertexten waehlen');
           if (!r || !r.pfad) return;
-          a.textOrdner = r.pfad;
+          a[ordnerKey] = r.pfad;
           scr._dateien = null;
           await speichere();
           await scr.ladeListe();
-          sprache.sage(`Ordner ${ordnerName(a.textOrdner)} gewaehlt.`);
+          sprache.sage(`Ordner ${ordnerName(a[ordnerKey])} gewaehlt.`);
         },
       };
-      // Ohne gewaehlten Ordner steht der Punkt oben, sonst unten.
-      if (a.textOrdner) items.push(ordnerPunkt); else items.unshift(ordnerPunkt);
+      if (a[ordnerKey]) items.push(ordnerPunkt); else items.unshift(ordnerPunkt);
 
       return menuScreen({
         title: this.title,
-        subtitle: a.textOrdner ? 'Enter oeffnet ein Dokument. Ordner unten wechseln. Escape zurueck.' : 'Erst einen Ordner waehlen und bestaetigen. Escape zurueck.',
+        subtitle: a[ordnerKey] ? 'Enter oeffnet ein Dokument. Ordner unten wechseln. Escape zurueck.' : 'Erst einen Ordner waehlen und bestaetigen. Escape zurueck.',
         items,
         leer: 'Keine txt-Dokumente in diesem Ordner.',
         filter: (scr._dateien || []).length >= 10,
@@ -83,8 +88,8 @@ export function texteScreen() {
     },
     onShow() {
       const a = getMeister();
-      if (a.textOrdner && scr._dateien === null) scr.ladeListe();
-      else sprache.sage('Abenteuertexte.');
+      if (a[ordnerKey] && scr._dateien === null) scr.ladeListe();
+      else sprache.sage(scr.title + '.');
     },
   };
   return scr;

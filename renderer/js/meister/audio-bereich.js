@@ -158,7 +158,10 @@ function baueDateiZeile(d, kanal) {
 
   const aktiviere = () => oeffneAudioDialog(d, kanal);
   zeile.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); aktiviere(); }
+    // Enter oeffnet das Optionen-Fenster. Leertaste startet/beendet direkt das
+    // Vorhoeren (schnelles Probehoeren ohne Umweg ueber das Menue).
+    if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); aktiviere(); }
+    else if (e.key === ' ') { e.preventDefault(); e.stopPropagation(); tuVorhoeren(d); }
   });
   zeile.addEventListener('click', (e) => {
     // Klick auf eine der drei Schaltflaechen: die macht ihre eigene Aktion.
@@ -386,9 +389,25 @@ function meisterScreen() {
   });
 }
 
+// Aus einem Ordnernamen den passenden Schleifen-Kanal raten. So bleibt die
+// Struktur frei: neue oder umbenannte Ordner funktionieren ohne feste Vorgabe.
+function kanalFuer(name) {
+  const n = String(name || '').toLowerCase();
+  if (/musik/.test(n)) return 'musik';
+  if (/spontan|effekt|foley|interface|jingle|geraeusch/.test(n)) return 'spontan';
+  return 'stimmung'; // Hintergrund/Atmosphaere: Schleifen-Kanal Hintergrundstimmung
+}
+
 function bibliothekScreen() {
   const scr = {
     title: 'Bibliothek',
+    _ordner: null, // tatsaechlich vorhandene Ordner unter Audio-Dateien (flexibel)
+    async ladeOrdner() {
+      if (!_wurzeln || !_wurzeln.audioDaten) return;
+      try { const inhalt = await ipc.audioInhalt(_wurzeln.audioDaten); scr._ordner = inhalt.ordner || []; }
+      catch { scr._ordner = []; }
+      screen.refresh();
+    },
     build() {
       const wrap = document.createElement('div');
       wrap.className = 'db-menu ed-bereich';
@@ -404,7 +423,14 @@ function bibliothekScreen() {
           screen.refresh();
           sprache.sage(`Ordner ${ordnerName(r.pfad)} gewaehlt.`);
         }, meine ? 'deine eigene Sammlung' : 'einen Ordner mit deinen Audios waehlen'));
-      if (_wurzeln) {
+      // Flexibel: alle Ordner anzeigen, die wirklich in Audio-Dateien liegen —
+      // so kann man Ordner frei umbenennen oder neue anlegen, sie erscheinen von
+      // selbst. Solange die Liste noch laedt, die drei Standard-Ordner zeigen.
+      if (scr._ordner && scr._ordner.length) {
+        for (const o of scr._ordner) {
+          wrap.appendChild(aktionZeile(o.name, () => screen.push(ordnerScreen(o.pfad, kanalFuer(o.name), o.name)), 'oeffnen'));
+        }
+      } else if (_wurzeln) {
         wrap.appendChild(aktionZeile('Musik', () => screen.push(ordnerScreen(_wurzeln.musik, 'musik', 'Musik')), 'oeffnen'));
         wrap.appendChild(aktionZeile('Hintergrundstimmung', () => screen.push(ordnerScreen(_wurzeln.stimmung, 'stimmung', 'Hintergrundstimmung')), 'oeffnen'));
         wrap.appendChild(aktionZeile('Spontansounds', () => screen.push(ordnerScreen(_wurzeln.spontan, 'spontan', 'Spontansounds')), 'oeffnen'));
@@ -413,7 +439,11 @@ function bibliothekScreen() {
       rueckKnopf(wrap);
       return wrap;
     },
-    onShow() { if (!_wurzeln) { ladeGrunddaten().then(() => screen.refresh()); } sprache.sage('Bibliothek.'); },
+    onShow() {
+      if (!_wurzeln) { ladeGrunddaten().then(() => scr.ladeOrdner()); }
+      else if (scr._ordner === null) { scr.ladeOrdner(); }
+      sprache.sage('Bibliothek.');
+    },
   };
   return scr;
 }
@@ -565,7 +595,10 @@ function bauePlaylistZeile(pl, plIndex, sIndex) {
   zeile.style.gap = '8px';
   zeile.style.flexWrap = 'wrap';
   const aktiviere = () => oeffnePlaylistDialog(pl, plIndex, sIndex);
-  zeile.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); aktiviere(); } });
+  zeile.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); aktiviere(); }
+    else if (e.key === ' ') { e.preventDefault(); e.stopPropagation(); tuVorhoeren(s); }
+  });
   zeile.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('.audio-zeile__btn')) return; sounds.playClick(); aktiviere(); });
   const mk = (t, fn) => {
     const b = document.createElement('button');

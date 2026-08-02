@@ -16,7 +16,7 @@ import { auswahlScreen } from '../ui/auswahl-screen.js';
 import { knopfDialog, jaNeinDialog } from '../ui/dialog.js';
 import { wertZeile, infoZeile, aktionZeile, abschnittTitel, verbindeDetail } from '../editor/widgets.js';
 import { getDb, ladeDb } from '../core/db-laden.js';
-import { baueSpielerKarte, protokolliere, angriffeText } from '../core/meister-abenteuer.js';
+import { baueSpielerKarte, protokolliere, angriffeText, vitalitaet } from '../core/meister-abenteuer.js';
 import { getMeister, speichere } from './state.js';
 import { verdeckteProbe, verdeckterWurf } from './wuerfel.js';
 
@@ -50,10 +50,14 @@ function zeichneKarte(wrap, a, k, eingerueckt) {
   // 1. Kopf: Name, Art, Kategorie.
   wrap.appendChild(infoZeile(`${p}${k.name}, ${artWort(k)}${k.kategorie ? ', ' + k.kategorie : ''}`, karteDetail(k)));
   // 2. Status: Wunden mit Pfeil links und rechts, Wundschwelle dahinter.
+  // Bei Heldenkarten kommen die Wunden aus der GETEILTEN Vitalitaet (a.vitalitaet)
+  // — dieselbe Quelle wie die Spielerinfos-Uebersicht. So ist der Stand ueberall
+  // gleich und wird mit dem Abenteuer gespeichert.
+  const istHeld = k.art === 'spieler';
   wrap.appendChild(wertZeile({
     label: `${p}${k.name} Wunden`,
-    get: () => k.wunden || 0,
-    set: (v) => { k.wunden = v; },
+    get: () => (istHeld ? vitalitaet(a, k.name).wunden : (k.wunden || 0)),
+    set: (v) => { if (istHeld) { vitalitaet(a, k.name).wunden = v; k.wunden = v; } else { k.wunden = v; } },
     min: 0, max: 99,
     suffix: () => wundStatus(k),
     detail: karteDetail(k),

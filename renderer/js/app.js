@@ -43,6 +43,10 @@ async function init() {
   navigation.init();
   screen.init(document.getElementById('app-content'));
 
+  // Gespeicherte Tasten-Umbelegungen laden und anwenden (vor dem Registrieren).
+  const tastenbelegung = (await einstellungen.get('tastenbelegung')) || {};
+  shortcuts.setOverrides(tastenbelegung, (obj) => einstellungen.setWert('tastenbelegung', obj));
+
   registriereShortcuts();
   initKopfzeile();
   registriereEscape();
@@ -248,17 +252,17 @@ function registriereShortcuts() {
       const el = document.getElementById('sr-live');
       if (el) { el.textContent = ''; requestAnimationFrame(() => { el.textContent = 'Sprachausgabe deaktiviert.'; }); }
     }
-  }, 'Sprachausgabe ein/aus');
+  }, 'Sprachausgabe ein/aus', 'sprache');
 
   // Schriftgröße auf Strg und Bild-hoch/Bild-runter — damit Strg und Plus/Minus
   // am Ziffernblock frei sind für die Lautstärke (5er-Schritte).
-  shortcuts.registriere('Ctrl+PageUp', () => schriftAendern(1), 'Schrift vergrößern');
-  shortcuts.registriere('Ctrl+PageDown', () => schriftAendern(-1), 'Schrift verkleinern');
-  shortcuts.registriere('Ctrl+0', () => schriftReset(), 'Schrift zurücksetzen');
+  shortcuts.registriere('Ctrl+PageUp', () => schriftAendern(1), 'Schrift vergrößern', 'schrift_plus');
+  shortcuts.registriere('Ctrl+PageDown', () => schriftAendern(-1), 'Schrift verkleinern', 'schrift_minus');
+  shortcuts.registriere('Ctrl+0', () => schriftReset(), 'Schrift zurücksetzen', 'schrift_reset');
 
   // Strg und Q: Skularis beenden. Ist ein Charakter oder ein Abenteuer offen,
   // wird vorher gefragt und auf Wunsch gespeichert.
-  shortcuts.registriere('Ctrl+Q', async () => { if (await beendenAblauf()) beenden(); }, 'Skularis beenden');
+  shortcuts.registriere('Ctrl+Q', async () => { if (await beendenAblauf()) beenden(); }, 'Skularis beenden', 'beenden');
 
   // Shift halten und Pfeil: Tooltip. Strg und I oder Doppelklick: Info-Fenster.
   // Beides steuert das Info-Fenster auf der rechten Bildschirmhälfte
@@ -322,7 +326,7 @@ function registriereInfoFenster() {
     const detail = await detailBaustein(el);
     if (!hatInhalt(detail)) { sprache.sage('Keine weiteren Informationen.'); return; }
     infofenster.oeffneInfo(eintragTitel(el), detail);
-  }, 'Info-Fenster öffnen');
+  }, 'Info-Fenster öffnen', 'info');
 
   // Doppelklick auf einen Eintrag öffnet ebenfalls das Info-Fenster.
   document.addEventListener('dblclick', async (e) => {
