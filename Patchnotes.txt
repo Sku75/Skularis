@@ -4,6 +4,42 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.57, 2. August 2026
+
+
+Datenverwaltung neu: der Charakterbogen ist König
+
+Grundlegender Umbau, damit Werte nicht mehr veralten.
+
+Der Charakterbogen (die gespeicherte Charakterdatei) ist ab jetzt die Quelle
+aller Bogen-Daten. Beim ÖFFNEN eines Abenteuers oder Meisterabenteuers werden die
+Werte frisch aus dem Bogen geladen. Steigerst du also einen Charakter im Editor
+(Attribute, neues Waffenset, neuer Gegenstand, höhere Energie), erscheinen die
+neuen Werte sofort, wenn du das Abenteuer öffnest. Vorher wurde beim Erstellen
+eine Kopie eingefroren und nie wieder aktualisiert.
+
+Zähler bleiben am Tisch: Wunden, Erschöpfung und die aktuellen Energie-Punkte
+werden im Abenteuer- bzw. Meister-Datensatz geführt (der Bogen kennt nur die
+Maxima). Beim Öffnen werden die Maxima frisch vom Bogen übernommen und die
+aktuellen Werte behalten.
+
+Inventar und Gold kommen jetzt direkt vom Bogen: die im Editor eingetragenen
+Gegenstände (mit "am Mann" / "Rucksack") und die Münzbörse erscheinen im
+Abenteuer-Inventar. Waffen und Rüstungen werden zur Übersicht angezeigt; getragen
+wird weiter über die Sets. Beim Speichern/Schließen des Abenteuers werden Gold und
+Gegenstände wieder auf den Bogen geschrieben.
+
+Fehlt ein Charakterbogen (verschoben, gelöscht, umbenannt), fragt der Tisch beim
+Öffnen nach: mit gespeichertem Stand weiter oder (am Meistertisch) den Charakter
+entfernen.
+
+Menüs vereinfacht (Abenteuer- und Meistertisch gleich): oben "Erstellen", darunter
+direkt die Liste aller Abenteuer; je Eintrag ein Untermenü mit "Öffnen" und
+"Löschen". Der getrennte "Spiel-Runde starten / Spieltage"-Weg und der
+EP-Abschluss entfallen - Erfahrungspunkte trägst du manuell im Charaktereditor
+ein. Der Meistertisch schreibt weiterhin nie in die Charakterbögen.
+
+
 Version 0.56, 2. August 2026
 
 

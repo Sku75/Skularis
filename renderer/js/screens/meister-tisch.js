@@ -1,37 +1,35 @@
 /**
  * Skularistool — Meister-Tisch (dritter Hauptbereich).
  *
- * Einstieg mit drei Wegen wie am Spielertisch: erstellen, oeffnen und bearbeiten,
- * spielen. Danach ein Reiter-Hub, dessen Punkte je eine F-Taste tragen (F1 bis
- * F12 von oben): so springt man direkt von Menue zu Menue, jedes bleibt an seiner
- * letzten Fokusstelle. Meisterabenteuer liegen im eigenen Ordner Meisterabenteuer.
+ * Aufbau: Der Meister-Datensatz ist König. Beim ÖFFNEN werden die Charakterbögen
+ * der Gruppe frisch von der Platte gelesen und ihre eingebetteten Kopien
+ * aktualisiert (nur Bogen-Werte: Attribute, Talente, Waffen …). Fehlt ein Bogen,
+ * fragt der Tisch: mit altem Datensatz weiter oder Charakter entfernen. Zähler
+ * (Wunden, Erschöpfung) und alle übrigen Informationen bleiben im Meister-
+ * Datensatz; gespeichert wird NUR dieser — nie ein Charakterbogen.
  *
- * Wichtig: der Meistertisch schreibt KEINE Punkte in die Charakterboegen. Beim
- * Abschluss werden die vergebenen Erfahrungspunkte nur ins Protokoll geschrieben;
- * die Spieler tragen sie selbst an ihrem Abenteuertisch ein.
+ * Menü: eine Ebene — oben "Meisterabenteuer erstellen", darunter direkt alle
+ * Meisterabenteuer; je Eintrag ein Untermenü mit "Öffnen" und "Löschen".
  */
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
-import { auswahlScreen } from '../ui/auswahl-screen.js';
-import { textDialog, zahlDialog, knopfDialog, jaNeinDialog, spinnerDialog, erschwernisDialog } from '../ui/dialog.js';
+import { textDialog, knopfDialog, jaNeinDialog, spinnerDialog, erschwernisDialog } from '../ui/dialog.js';
 import { zeigeErgebnis } from '../abenteuer/wuerfel-kern.js';
 import * as reiterHub from '../ui/reiter-hub.js';
 import { ladeDb, getDb } from '../core/db-laden.js';
 import { createMeisterAbenteuer, parseMeisterAbenteuer, protokolliere } from '../core/meister-abenteuer.js';
+import { ladeBogenFrisch } from '../core/bogen-laden.js';
 import { getMeister, setMeister, speichere } from '../meister/state.js';
 import { gruppenzusammenstellungScreen } from '../meister/gruppe.js';
 import { spielerinfosScreen } from '../meister/spielerinfos.js';
 import { gruppenrechercheScreen, gruppenprobeScreen } from '../meister/gruppenrecherche.js';
 import { gegnerkarteiScreen } from '../meister/gegnerkartei.js';
 import { gegnerBibliothekScreen } from '../meister/gegner-bibliothek.js';
-import { spieltischScreen } from '../meister/spieltisch.js';
 import { szenenBereichScreen } from '../meister/szenen-spielen.js';
-import { texteScreen } from '../meister/texte.js';
 import { meisterNotizenScreen } from '../meister/notizen.js';
 import { audioBereichScreen } from '../meister/audio-bereich.js';
-import { verdeckterWurf } from '../meister/wuerfel.js';
 import { regelnMenuScreen } from './regeln-menu.js';
 import { versteckeEP } from '../ui/ep-anzeige.js';
 
@@ -47,16 +45,33 @@ export function oeffne() {
   screen.push(_einstieg);
 }
 
+/** Einstieg: "Meisterabenteuer erstellen" oben, darunter direkt alle Datensätze. */
 function einstiegScreen() {
-  return menuScreen({
+  const scr = {
     title: 'Meister-Tisch',
-    subtitle: 'Escape kehrt zum Hauptmenue zurueck.',
-    items: [
-      { label: 'Meisterabenteuer erstellen', hint: 'Name eingeben, dann Helden hinzufuegen', onSelect: erstellen },
-      { label: 'Meisterabenteuer oeffnen und bearbeiten', hint: 'Vorbereiten, ohne zu spielen', onSelect: () => oeffnen('bearbeiten') },
-      { label: 'Spiel-Runde starten', hint: 'Eine Spiel-Runde aus einem vorbereiteten Meisterabenteuer', onSelect: () => oeffnen('spielen') },
-    ],
-  });
+    _liste: null,
+    async ladeListe() {
+      try { scr._liste = await ipc.meisterListe(); } catch { scr._liste = []; }
+      screen.refresh();
+    },
+    build() {
+      const items = [{ label: 'Meisterabenteuer erstellen', hint: 'Name eingeben, dann Helden hinzufügen', onSelect: erstellen }];
+      for (const a of (scr._liste || [])) {
+        items.push({ label: a.name, hint: 'Öffnen oder löschen', onSelect: () => screen.push(meisterEintragScreen(a)) });
+      }
+      return menuScreen({
+        title: 'Meister-Tisch',
+        subtitle: 'Oben erstellen, darunter deine Meisterabenteuer. Escape kehrt zum Hauptmenü zurück.',
+        items,
+        leer: 'Noch keine Meisterabenteuer. Oben eines erstellen.',
+      }).build();
+    },
+    onShow() {
+      scr.ladeListe();
+      sprache.sage('Meister-Tisch.');
+    },
+  };
+  return scr;
 }
 
 async function erstellen() {
@@ -69,7 +84,7 @@ async function erstellen() {
     setMeister(a);
     await speichere();
     sounds.playOeffnen();
-    oeffneHub('bearbeiten');
+    oeffneHub();
     sprache.sage(`Meisterabenteuer ${a.name} erstellt. Fuege unter Gruppenzusammenstellung deine Helden hinzu.`);
   } catch (e) {
     console.error('Meisterabenteuer erstellen:', e);
@@ -77,64 +92,69 @@ async function erstellen() {
   }
 }
 
-async function oeffnen(modus) {
-  let liste = [];
-  try { liste = await ipc.meisterListe(); } catch { liste = []; }
-  if (!liste.length) { sprache.sage('Noch keine Meisterabenteuer gespeichert.'); return; }
-  screen.push(meisterListeScreen(modus, liste));
+/**
+ * Die Bögen der Gruppe frisch von der Platte lesen und die eingebetteten Kopien
+ * aktualisieren. Fehlende Bögen: pro Charakter nachfragen (alt weiter / entfernen).
+ */
+async function frischeBoegen(a, db) {
+  const behalten = [];
+  for (const c of (a.charaktere || [])) {
+    const res = await ladeBogenFrisch(c.pfad, db);
+    if (res.ok) { c.bogen = res.bogen; behalten.push(c); continue; }
+    const w = await knopfDialog({
+      titel: 'Charakterbogen fehlt',
+      frage: `Der Charakterbogen zu ${c.name} wurde am gespeicherten Ort nicht gefunden.`,
+      knoepfe: [
+        { label: 'Mit altem Datensatz spielen', wert: 'alt' },
+        { label: 'Charakter aus Meistertisch entfernen', wert: 'weg' },
+      ],
+    });
+    if (w === 'weg') {
+      if (a.vitalitaet) delete a.vitalitaet[c.name];
+      if (a.charNotizen) delete a.charNotizen[c.name];
+      protokolliere(a, `${c.name} entfernt (Charakterbogen fehlt).`);
+      continue; // nicht behalten
+    }
+    behalten.push(c); // mit altem, eingebettetem Bogen weiter
+  }
+  a.charaktere = behalten;
 }
 
-/** Liste der Meisterabenteuer; Enter oeffnet ein Untermenue (oeffnen/loeschen). */
-function meisterListeScreen(modus, liste) {
-  return {
-    title: modus === 'spielen' ? 'Meisterabenteuer zum Spielen' : 'Meisterabenteuer zum Bearbeiten',
-    build() {
-      const items = liste.map(a => ({
-        label: a.name,
-        hint: 'Enter: oeffnen oder loeschen',
-        onSelect: () => screen.push(meisterEintragScreen(modus, a, liste)),
-      }));
-      return menuScreen({ title: this.title, subtitle: 'Escape zurueck.', items, leer: 'Noch keine Meisterabenteuer.' }).build();
-    },
-  };
+async function oeffneMeister(eintrag) {
+  try {
+    const db = await ladeDb();
+    const r = await ipc.meisterLaden(eintrag.pfad);
+    const a = parseMeisterAbenteuer(r.inhalt);
+    a._pfad = eintrag.pfad;
+    await frischeBoegen(a, db);      // Bogen-Werte auffrischen, fehlende klären
+    setMeister(a);
+    await speichere();               // aufgefrischten/bereinigten Stand sichern (nur Meister-JSON)
+    sounds.playOeffnen();
+    oeffneHub();
+  } catch (e) {
+    console.error('Meisterabenteuer laden:', e);
+    sprache.sage('Meisterabenteuer konnte nicht geladen werden.');
+  }
 }
 
-function meisterEintragScreen(modus, eintrag, liste) {
-  const oeffnenLabel = modus === 'spielen' ? 'Zum Spielen oeffnen' : 'Zum Bearbeiten oeffnen';
+/** Untermenü eines Meisterabenteuers: Öffnen, Löschen. */
+function meisterEintragScreen(eintrag) {
   return {
     title: eintrag.name,
     build() {
       return menuScreen({
         title: eintrag.name,
-        subtitle: 'Escape zurueck.',
+        subtitle: 'Escape zurück.',
         items: [
+          { label: 'Öffnen', hint: 'Meisterabenteuer öffnen zum Bearbeiten oder Spielen', onSelect: () => oeffneMeister(eintrag) },
           {
-            label: oeffnenLabel,
+            label: 'Löschen',
             onSelect: async () => {
-              try {
-                await ladeDb();
-                const r = await ipc.meisterLaden(eintrag.pfad);
-                const a = parseMeisterAbenteuer(r.inhalt);
-                a._pfad = eintrag.pfad;
-                setMeister(a);
-                sounds.playOeffnen();
-                oeffneHub(modus);
-              } catch (e) {
-                console.error('Meisterabenteuer laden:', e);
-                sprache.sage('Meisterabenteuer konnte nicht geladen werden.');
-              }
-            },
-          },
-          {
-            label: 'Loeschen',
-            onSelect: async () => {
-              if (!await jaNeinDialog({ titel: 'Loeschen', frage: `Meisterabenteuer ${eintrag.name} wirklich loeschen?` })) return;
+              if (!await jaNeinDialog({ titel: 'Löschen', frage: `Meisterabenteuer ${eintrag.name} wirklich löschen?` })) return;
               try { await ipc.meisterLoeschen(eintrag.pfad); } catch (e) { console.error('loeschen:', e); }
-              const i = liste.indexOf(eintrag);
-              if (i >= 0) liste.splice(i, 1);
               screen.pop();
-              screen.refresh();
-              sprache.sage(`${eintrag.name} geloescht.`);
+              if (_einstieg && _einstieg.ladeListe) _einstieg.ladeListe();
+              sprache.sage(`${eintrag.name} gelöscht.`);
             },
           },
         ],
@@ -145,9 +165,9 @@ function meisterEintragScreen(modus, eintrag, liste) {
 
 // --- Hub mit F-Tasten ---
 
-function oeffneHub(modus) {
+function oeffneHub() {
   const a = getMeister();
-  const titel = `${a.name}, Spieltag ${a.spieltag}${modus === 'bearbeiten' ? ', Bearbeiten' : ''}`;
+  const titel = a.name;
 
   let hub;
   const regelHelden = () => (getMeister().charaktere || []).map(c => ({ name: c.name, charakter: c.bogen }));
@@ -159,8 +179,6 @@ function oeffneHub(modus) {
     { label: 'Charakterboegen und Notizen', hint: 'Boegen der Gruppe, Vitalitaet und je Charakter Notizen', factory: () => spielerinfosScreen() },
     { label: 'Gegner-Bibliothek', hint: 'Gesamtliste und Kategorien, Gegner in die Auswahl uebernehmen', factory: () => gegnerBibliothekScreen() },
     { label: 'Freundliche NPC', hint: 'Meister-NPC verwalten', factory: () => gegnerkarteiScreen('freund') },
-    // F7 und F8: zweimal dasselbe Modul (Meister-Notizen und Werkzeuge), damit
-    // zwei Dokumente gleichzeitig offen sind und man mit F7/F8 dazwischen wechselt.
     { label: 'Meistertexte 1', hint: 'Abenteuertexte, geheime Notizen, Vorlesetexte, Zufallstabellen, Namen (erste Arbeitsflaeche)', factory: () => meisterNotizenScreen(1) },
     { label: 'Meistertexte 2', hint: 'dasselbe unabhaengig, mit eigenem Text-Ordner (zweite Arbeitsflaeche)', factory: () => meisterNotizenScreen(2) },
     { label: 'Regeln', hint: 'Kurzregelfilter und das ganze Ilaris-Regelwerk', factory: () => regelnMenuScreen({ db: getDb(), helden: regelHelden() }) },
@@ -169,12 +187,8 @@ function oeffneHub(modus) {
     { label: 'Audio', hint: 'Klaenge abspielen und ans Radio senden', festeTaste: 12, factory: () => audioBereichScreen('meister') },
     { label: 'Verdeckter Meister-Wurf', hint: 'schnell und leise wuerfeln', ergebnisId: 'meisterwurf', aktion: () => verdeckterMeisterWurf() },
     { label: 'Zwischenspeichern', hint: 'Spielstand sichern', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
+    { label: 'Speichern und schliessen', hint: 'sichern und zum Meister-Tisch zurueck', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Gespeichert.'); hub.verlasse(); } },
   ];
-
-  if (modus === 'spielen') {
-    punkte.push({ label: 'Spielabend abschliessen', hint: 'Erfahrungspunkte ins Protokoll, dann schliessen', aktion: () => spielabendAbschliessen(hub) });
-  }
-  punkte.push({ label: 'Speichern und schliessen', hint: 'sichern und zum Meister-Tisch zurueck', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Gespeichert.'); hub.verlasse(); } });
 
   hub = reiterHub.oeffneHub({
     titel, subtitle: 'Mit F1 bis F12 direkt zum Menue. Escape verlaesst den Bereich.', punkte,
@@ -200,17 +214,13 @@ function protokollScreen() {
     build() {
       const a = getMeister();
       const prot = a.protokoll || [];
-      // Laufende Nummer vorne zur Orientierung (neueste oben = höchste Nummer).
-      const items = prot.map((p, i) => ({ label: `${prot.length - i}. Spieltag ${p.spieltag}: ${p.text}`, detail: p.zeit || '', onSelect: () => {} }));
+      const items = prot.map((p, i) => ({ label: `${prot.length - i}. ${p.text}`, detail: p.zeit || '', onSelect: () => {} }));
       return menuScreen({ title: 'Protokoll', subtitle: 'Neueste oben. Escape zurueck.', items, leer: 'Noch keine Eintraege.' }).build();
     },
   };
 }
 
 async function verdeckterMeisterWurf() {
-  // Einheitlicher Spinner-Ablauf wie bei den Spielerproben: erst Anzahl, dann
-  // Wuerfeltyp, dann die Erschwernis. Danach wird verdeckt gewuerfelt und das
-  // Ergebnis hinter den Menuepunkt F12 geschrieben und angesagt.
   const anzahl = await spinnerDialog({ titel: 'Anzahl Wuerfel', optionen: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], index: 0, format: (v) => `${v} Wuerfel` });
   if (anzahl === null) return;
   const seiten = await spinnerDialog({ titel: 'Wuerfeltyp', optionen: [6, 20], index: 1, format: (v) => `W${v}` });
@@ -227,22 +237,6 @@ async function verdeckterMeisterWurf() {
   const ansage = `Verdeckt. Ergebnis ${summe}. ${anzahl} W ${seiten}, ${wuerfe.join(', ')}${erschText}.`;
   protokolliere(a, `Verdeckter Meister-Wurf: ${anzahl} W ${seiten} ${wuerfe.join(', ')}${erschText}, Ergebnis ${summe}.`);
   speichere();
-  // Ergebnis hinter den Menuepunkt F12 schreiben; Fokus liegt nach den Dialogen
-  // schon wieder dort, daher die Ansage zuverlaessig per aria-live.
   zeigeErgebnis('meisterwurf', `Ergebnis ${summe}`, ansage);
   sprache.sage(ansage);
-}
-
-async function spielabendAbschliessen(hub) {
-  const a = getMeister();
-  const ep = await zahlDialog({ titel: 'Spielabend abschliessen', label: 'Vergebene Erfahrungspunkte (nur ins Protokoll)', wert: 0, min: 0, max: 100000 });
-  if (ep === null) return;
-  const text = `Spielabend ${a.spieltag} abgeschlossen. ${ep} Erfahrungspunkte vergeben. Die Spieler tragen sie selbst an ihrem Abenteuertisch ein.`;
-  protokolliere(a, text);
-  a.apProtokoll.unshift({ spieltag: a.spieltag, ep, text });
-  a.spieltag += 1;
-  await speichere();
-  sounds.playSpeichern();
-  hub.verlasse();
-  setTimeout(() => sprache.sage(`${text} Naechster Spieltag ist ${a.spieltag}.`), 150);
 }

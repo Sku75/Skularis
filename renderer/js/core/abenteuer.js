@@ -35,6 +35,35 @@ export function ressourcenAusCharakter(char) {
 }
 
 /**
+ * Ressourcen-Zähler mit dem (frischen) Bogen abgleichen. Wird beim Öffnen eines
+ * Abenteuers genutzt: Der Bogen ist König für die MAXIMA (z. B. neu gesteigerte
+ * Energien), der bisherige Spielstand liefert die AKTUELLEN Werte.
+ *
+ * - Zähler mit Maximum (SchiP, AsP, KaP, GuP, AstralspeicherStab): Maximum neu
+ *   aus dem Bogen, aktuellen Wert aus dem alten Stand behalten und auf das neue
+ *   Maximum begrenzen.
+ * - Zähler ohne Maximum (Wunden, Erschöpfung): aktuellen Wert behalten.
+ * - Neu hinzugekommene Zähler (im Editor erst neu gekauft) bleiben voll.
+ * - Zähler, die es nicht mehr gibt (Energie wieder auf 0), fallen weg.
+ */
+export function mergeRessourcen(altRes, char) {
+  const neu = ressourcenAusCharakter(char); // frische Maxima, aktuell = voll
+  const alt = altRes || {};
+  for (const key of Object.keys(neu)) {
+    const a = alt[key];
+    if (!a) continue; // neuer Zähler: bleibt voll
+    if (neu[key].max != null) {
+      const max = neu[key].max;
+      const aktuell = Math.max(0, Math.min(max, a.aktuell != null ? a.aktuell : max));
+      neu[key] = { aktuell, max };
+    } else {
+      neu[key] = { aktuell: a.aktuell || 0 };
+    }
+  }
+  return neu;
+}
+
+/**
  * Inventar aus dem Charakter übernehmen: die Münzbörse aus char.geldboerse, die
  * Gegenstände aus der ECHTEN Ausrüstungsliste des Charakterbogens
  * (char.ausruestung über leseInventar). "Am Mann" (ORT_MANN) wird zum Gürtel,

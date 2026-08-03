@@ -1,32 +1,34 @@
 /**
  * Skularistool — Abenteuer-Tisch (zweiter Hauptbereich).
  *
- * Einstiegsmenü mit drei Wegen:
- *   1. Abenteuer erstellen (Name + Charakter wählen)
- *   2. Abenteuer öffnen und bearbeiten (offline betrachten/pflegen)
- *   3. Abenteuer spielen, Spieltag öffnen (Spieltag-Kreislauf)
+ * Aufbau: Der Charakterbogen (.xml) ist König. Beim ÖFFNEN eines Abenteuers wird
+ * der Bogen frisch von der Platte geladen und ersetzt die eingebettete Kopie
+ * (gesteigerte Werte, neue Waffensets, neue Gegenstände erscheinen sofort). Die
+ * Session-Daten (Zähler, Tagebuch, Notizen, Mitspieler, Protokoll) kommen aus dem
+ * Abenteuer-Datensatz. Beim SPEICHERN/Schließen werden Gold und Inventar zurück in
+ * den Bogen geschrieben; die Zähler bleiben im Abenteuer.
  *
- * Der Hub kennt zwei Modi: "bearbeiten" (Speichern und zurück) und "spielen"
- * (Spieltag abschließen: Erfahrungspunkte an den Charakter, dann Hauptmenü).
- * Der aktive Spielstand liegt in abenteuer/state.js, gespeichert wird atomar.
+ * Menü: eine Ebene — oben "Abenteuer erstellen", darunter direkt alle Abenteuer;
+ * je Abenteuer ein Untermenü mit "Öffnen" und "Löschen". Erfahrungspunkte trägt
+ * man manuell über den Charaktereditor ein (kein Spieltag-/EP-Abschluss mehr).
  */
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { auswahlScreen } from '../ui/auswahl-screen.js';
-import { textDialog, zahlDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
+import { textDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
 import { ladeDb, getDb } from '../core/db-laden.js';
-import { parse, serialisiere } from '../core/sephrasto-xml.js';
-import { createAbenteuer, parseAbenteuer, serialisiereAbenteuer, protokolliere, uebernehmeAbenteuerdaten } from '../core/abenteuer.js';
-import { getAbenteuer, setAbenteuer, speichere } from '../abenteuer/state.js';
+import { parse } from '../core/sephrasto-xml.js';
+import { createAbenteuer, parseAbenteuer, protokolliere, mergeRessourcen } from '../core/abenteuer.js';
+import { ladeBogenFrisch } from '../core/bogen-laden.js';
+import { getAbenteuer, setAbenteuer, setDb, speichere, speichereMitBogen } from '../abenteuer/state.js';
 import * as reiterHub from '../ui/reiter-hub.js';
 import { liveSpielScreen, charakterstatusScreen } from '../abenteuer/live-spiel.js';
 import { charakterbogenScreen } from '../abenteuer/charakterbogen.js';
 import { inventarScreen } from '../abenteuer/inventar.js';
 import { notizenScreen } from '../abenteuer/notizen.js';
 import { mitspielerScreen } from '../abenteuer/mitspieler.js';
-import { regelnScreen } from './regeln.js';
 import { regelnMenuScreen } from './regeln-menu.js';
 import { neuberechne, verfuegbareEP } from '../core/character.js';
 import { zeigeEP, versteckeEP } from '../ui/ep-anzeige.js';
@@ -42,16 +44,34 @@ export function oeffne() {
   screen.push(_einstieg);
 }
 
+/** Einstieg: "Abenteuer erstellen" oben, darunter direkt alle Abenteuer. */
 function einstiegScreen() {
-  return menuScreen({
+  const scr = {
     title: 'Abenteuer-Tisch',
-    subtitle: 'Escape kehrt zum Hauptmenü zurück.',
-    items: [
-      { label: 'Abenteuer erstellen', hint: 'Name und Charakter wählen', onSelect: erstellen },
-      { label: 'Abenteuer öffnen und bearbeiten', hint: 'Vorbereiten und pflegen, ohne zu spielen', onSelect: () => oeffnen('bearbeiten') },
-      { label: 'Spiel-Runde starten', hint: 'Eine Spiel-Runde aus einem vorbereiteten Abenteuer öffnen', onSelect: () => oeffnen('spielen') },
-    ],
-  });
+    _liste: null,
+    async ladeListe() {
+      try { scr._liste = await ipc.abenteuerListe(); } catch { scr._liste = []; }
+      screen.refresh();
+    },
+    build() {
+      const items = [{ label: 'Abenteuer erstellen', hint: 'Name und Charakter wählen', onSelect: erstellen }];
+      for (const a of (scr._liste || [])) {
+        items.push({ label: a.name, hint: 'Öffnen oder löschen', onSelect: () => screen.push(abenteuerEintragScreen(a)) });
+      }
+      return menuScreen({
+        title: 'Abenteuer-Tisch',
+        subtitle: 'Oben erstellen, darunter deine Abenteuer. Escape kehrt zum Hauptmenü zurück.',
+        items,
+        leer: 'Noch keine Abenteuer. Oben eines erstellen.',
+      }).build();
+    },
+    onShow() {
+      // Liste bei jedem Anzeigen frisch holen (auch nach Rückkehr aus dem Hub).
+      scr.ladeListe();
+      sprache.sage('Abenteuer-Tisch.');
+    },
+  };
+  return scr;
 }
 
 /** Regelnachschlagewerk, mit dem Charakter des offenen Abenteuers als Bezug. */
@@ -81,15 +101,17 @@ async function erstellen() {
     onWahl: async (pfad) => {
       try {
         const db = await ladeDb();
+        setDb(db);
         const res = await ipc.dateiDirektLaden(pfad);
         const char = parse(res.inhalt, db);
+        char.dateiname = pfad;
         const charName = String(pfad).split(/[\\/]/).pop().replace(/\.xml$/i, '');
         const a = createAbenteuer(char, name.trim(), charName, pfad);
         protokolliere(a, `Abenteuer erstellt mit Charakter ${char.name || charName}.`);
         setAbenteuer(a);
         await speichere();
         sounds.playOeffnen();
-        oeffneHubSpieler('bearbeiten');
+        oeffneHub();
         sprache.sage(`Abenteuer ${a.name} erstellt.`);
       } catch (e) {
         console.error('Abenteuer erstellen:', e);
@@ -99,72 +121,45 @@ async function erstellen() {
   });
 }
 
-async function oeffnen(modus) {
-  let liste = [];
-  try { liste = await ipc.abenteuerListe(); } catch { liste = []; }
-  if (!liste.length) { sprache.sage('Noch keine gespeicherten Abenteuer.'); return; }
-  screen.push(abenteuerListeScreen(modus, liste));
-}
-
-/** Liste der Abenteuer; Enter oeffnet ein Untermenue (oeffnen/loeschen). */
-function abenteuerListeScreen(modus, liste) {
-  return {
-    title: modus === 'spielen' ? 'Abenteuer zum Spielen' : 'Abenteuer zum Bearbeiten',
-    build() {
-      const items = liste.map(a => ({
-        label: a.name,
-        hint: 'Enter: oeffnen oder loeschen',
-        onSelect: () => screen.push(abenteuerEintragScreen(modus, a, liste)),
-      }));
-      return menuScreen({ title: this.title, subtitle: 'Escape zurück.', items, leer: 'Noch keine Abenteuer.' }).build();
-    },
-  };
-}
-
-/**
- * Eine Spiel-Runde aus einem vorbereiteten Abenteuer starten. Das vorbereitete
- * Abenteuer wird als Vorlage markiert und bleibt unveraendert; gespielt und
- * gespeichert wird ab jetzt eine frische Kopie "«Name» bespielt". Danach die
- * Schluessel-Abfrage fuer die Audio-Uebertragung, dann ins Menue.
- */
-async function spielRundeStarten(r, eintrag) {
-  const vorlage = parseAbenteuer(r.inhalt);
-  const istVorbereitet = vorlage.istVorlage !== false; // undefined/true = Vorlage
-  let a;
-  if (istVorbereitet) {
-    vorlage.istVorlage = true;
-    try { await ipc.abenteuerSpeichern({ name: vorlage.name, inhalt: serialisiereAbenteuer(vorlage) }); } catch { /* egal */ }
-    const kopie = parseAbenteuer(r.inhalt);
-    const basis = kopie.name.replace(/\s*bespielt\s*$/i, '').trim();
-    kopie.name = `${basis} bespielt`;
-    kopie.istVorlage = false;
-    delete kopie._pfad;
-    setAbenteuer(kopie);
-    await speichere(); // legt die neue Spielstand-Datei an
-    a = kopie;
-  } else {
-    a = parseAbenteuer(r.inhalt);
+/** Ein Abenteuer öffnen: Bogen frisch laden (König), Zähler mischen, Hub öffnen. */
+async function oeffneAbenteuer(eintrag) {
+  try {
+    const db = await ladeDb();
+    setDb(db);
+    const r = await ipc.abenteuerLaden(eintrag.pfad);
+    const a = parseAbenteuer(r.inhalt);
     a._pfad = eintrag.pfad;
+
+    if (a.charakterPfad) {
+      const res = await ladeBogenFrisch(a.charakterPfad, db);
+      if (res.ok) {
+        a.charakter = res.bogen;                          // Bogen ist König
+        a.ressourcen = mergeRessourcen(a.ressourcen, res.bogen); // Maxima neu, aktuell behalten
+      } else {
+        const w = await knopfDialog({
+          titel: 'Charakterbogen fehlt',
+          frage: `Der Charakterbogen zu ${a.charakterName || (a.charakter && a.charakter.name) || 'diesem Abenteuer'} wurde am gespeicherten Ort nicht gefunden.`,
+          knoepfe: [
+            { label: 'Mit gespeichertem Stand öffnen', wert: 'alt' },
+            { label: 'Abbrechen', wert: 'ab' },
+          ],
+        });
+        if (w !== 'alt') return;
+        // Weiter mit dem eingebetteten Snapshot; Zähler unverändert.
+      }
+    }
+
     setAbenteuer(a);
+    sounds.playOeffnen();
+    oeffneHub();
+  } catch (e) {
+    console.error('Abenteuer laden:', e);
+    sprache.sage('Abenteuer konnte nicht geladen werden.');
   }
-  sounds.playOeffnen();
-  const wahl = await knopfDialog({
-    titel: 'Spiel-Runde',
-    frage: 'Mit der Audio-Uebertragung des Meisters verbinden?',
-    knoepfe: [
-      { label: 'Schluessel eingeben und verbinden', wert: 'audio' },
-      { label: 'Weiter zum Abenteuertisch', wert: 'weiter' },
-    ],
-  });
-  oeffneHubSpieler('spielen');
-  if (wahl === 'audio') screen.push(audioBereichScreen('spieler'));
-  sprache.sage(istVorbereitet
-    ? `Spiel-Runde ${a.name} gestartet. Das vorbereitete Abenteuer bleibt als Vorlage.`
-    : `Spiel-Runde ${a.name} fortgesetzt.`);
 }
 
-function abenteuerEintragScreen(modus, eintrag, liste) {
-  const oeffnenLabel = modus === 'spielen' ? 'Spiel-Runde starten' : 'Zum Bearbeiten öffnen';
+/** Untermenü eines Abenteuers: Öffnen, Löschen. */
+function abenteuerEintragScreen(eintrag) {
   return {
     title: eintrag.name,
     build() {
@@ -172,36 +167,14 @@ function abenteuerEintragScreen(modus, eintrag, liste) {
         title: eintrag.name,
         subtitle: 'Escape zurück.',
         items: [
-          {
-            label: oeffnenLabel,
-            onSelect: async () => {
-              try {
-                await ladeDb(); // für Basiswerte im Charakterbogen
-                const r = await ipc.abenteuerLaden(eintrag.pfad);
-                if (modus === 'spielen') {
-                  await spielRundeStarten(r, eintrag);
-                } else {
-                  const a = parseAbenteuer(r.inhalt);
-                  a._pfad = eintrag.pfad;
-                  setAbenteuer(a);
-                  sounds.playOeffnen();
-                  oeffneHubSpieler('bearbeiten');
-                }
-              } catch (e) {
-                console.error('Abenteuer laden:', e);
-                sprache.sage('Abenteuer konnte nicht geladen werden.');
-              }
-            },
-          },
+          { label: 'Öffnen', hint: 'Abenteuer öffnen zum Bearbeiten oder Spielen', onSelect: () => oeffneAbenteuer(eintrag) },
           {
             label: 'Löschen',
             onSelect: async () => {
               if (!await jaNeinDialog({ titel: 'Löschen', frage: `Abenteuer ${eintrag.name} wirklich löschen?` })) return;
               try { await ipc.abenteuerLoeschen(eintrag.pfad); } catch (e) { console.error('löschen:', e); }
-              const i = liste.indexOf(eintrag);
-              if (i >= 0) liste.splice(i, 1);
               screen.pop();
-              screen.refresh();
+              if (_einstieg && _einstieg.ladeListe) _einstieg.ladeListe();
               sprache.sage(`${eintrag.name} gelöscht.`);
             },
           },
@@ -211,11 +184,11 @@ function abenteuerEintragScreen(modus, eintrag, liste) {
   };
 }
 
-// --- Hub (modusabhängig) ---
+// --- Hub ---
 
-function oeffneHubSpieler(modus) {
+function oeffneHub() {
   const a = getAbenteuer();
-  const titel = `${a.name}, Spieltag ${a.spieltag}${modus === 'bearbeiten' ? ', Bearbeiten' : ''}`;
+  const titel = a.name;
 
   // Feste EP-Anzeige unten mittig einblenden (ein Charakter geladen).
   const cha = a.charakter;
@@ -226,15 +199,11 @@ function oeffneHubSpieler(modus) {
   }
 
   let hub;
-  // F-Tasten bekommen NUR die Bildschirm-Punkte (factory). Die Aktionen unten
-  // (Zwischenspeichern, Abenteuertag abschließen) haben KEINE F-Taste — die
-  // F-Tasten dienen nur dem Bildschirmwechsel. "Spielfeld" ist die letzte
-  // F-Bindung, deshalb steht es als letzter Bildschirm-Punkt.
   const punkte = [
     { label: 'Meine Initiative-Phase', hint: 'Würfeln, Aktionen, Kämpfen, Manöver und Zauber', factory: () => liveSpielScreen() },
     { label: 'Charakterstatus', hint: 'Wunden, Energien, Werte zum Lesen', factory: () => charakterstatusScreen() },
     { label: 'Charakterbogen', hint: 'Werte ansehen, Schnellauskunft', factory: () => charakterbogenScreen() },
-    { label: 'Inventar', hint: 'Geldbörse, Rucksack, am Gürtel', factory: () => inventarScreen() },
+    { label: 'Inventar', hint: 'Geldbörse und Gegenstände (am Mann, Rucksack)', factory: () => inventarScreen() },
     { label: 'Notizen und Tagebuch', factory: () => notizenScreen() },
     { label: 'Mitspieler', factory: () => mitspielerScreen() },
     { label: 'Protokoll', hint: 'Was im Abenteuer passiert ist', factory: () => protokollScreenSpieler() },
@@ -246,14 +215,9 @@ function oeffneHubSpieler(modus) {
     { label: 'Spielfeld', hint: 'kommt in einer späteren Version', factory: () => spielfeldScreen() },
     { label: 'Audio', hint: 'Radio-Lautstärke und den Tisch des Meisters anhören', festeTaste: 12, factory: () => audioBereichScreen('spieler') },
     // Aktionen ohne F-Taste (nur per Eingabetaste):
-    { label: 'Zwischenspeichern', hint: 'Spielstand sichern', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
+    { label: 'Zwischenspeichern', hint: 'Spielstand sichern, Gold und Inventar auf den Bogen', aktion: async () => { await speichereMitBogen(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
+    { label: 'Abenteuer speichern und zurück', aktion: () => speichernUndZurueck(hub) },
   ];
-
-  if (modus === 'spielen') {
-    punkte.push({ label: 'Spiel-Runde abschließen und EP erhalten', hint: 'EP eintragen, an den Charakter gutschreiben, dann Hauptmenü', aktion: () => spieltagAbschliessen() });
-  } else {
-    punkte.push({ label: 'Abenteuer speichern und zurück', aktion: () => speichernUndZurueck(hub) });
-  }
 
   hub = reiterHub.oeffneHub({
     titel, subtitle: 'Mit F1 bis F12 direkt zum Menü. Escape verlässt das Abenteuer.', punkte,
@@ -267,8 +231,8 @@ function oeffneHubSpieler(modus) {
           { label: 'Abbrechen', wert: 'abbrechen' },
         ],
       });
-      if (w === 'ja') { await speichere(); sounds.playSpeichern(); }
-      if (w === 'ja' || w === 'nein') { versteckeEP(); setAbenteuer(null); } // Charakter/Abenteuer nicht mehr geladen
+      if (w === 'ja') { await speichereMitBogen(); sounds.playSpeichern(); }
+      if (w === 'ja' || w === 'nein') { versteckeEP(); setAbenteuer(null); }
       return w || 'abbrechen';
     },
   });
@@ -289,59 +253,17 @@ function protokollScreenSpieler() {
     title: 'Protokoll',
     build() {
       const a = getAbenteuer();
-      // Laufende Nummer zur Orientierung: neueste oben trägt die höchste Nummer.
-      const items = a.protokoll.map((p, i) => ({ label: `${a.protokoll.length - i}. Spieltag ${p.spieltag}: ${p.text}`, detail: p.zeit || '', onSelect: () => {} }));
+      const items = a.protokoll.map((p, i) => ({ label: `${a.protokoll.length - i}. ${p.text}`, detail: p.zeit || '', onSelect: () => {} }));
       return menuScreen({ title: 'Protokoll', subtitle: 'Neueste oben. Escape zurück.', items, leer: 'Noch keine Einträge.' }).build();
     },
   };
 }
 
 async function speichernUndZurueck(hub) {
-  await speichere();
+  await speichereMitBogen();
   sounds.playSpeichern();
   sprache.sage('Abenteuer gespeichert.');
+  versteckeEP();
+  setAbenteuer(null);
   if (hub) hub.verlasse(); else screen.pop();
-}
-
-async function spieltagAbschliessen() {
-  const a = getAbenteuer();
-  const ap = await zahlDialog({ titel: 'Spiel-Runde abschließen', label: 'Erhaltene Erfahrungspunkte (EP)', wert: 0, min: 0, max: 100000 });
-  if (ap === null) return;
-
-  // Beim Abschluss den Charakterbogen aktualisieren: Erfahrungspunkte,
-  // Münzbörse und Spielinventar. Der Bogen wird frisch von der Platte geladen,
-  // damit zwischenzeitliche Editor-Änderungen (Steigern) nicht verloren gehen.
-  let charOk = true;
-  if (a.charakterName) {
-    try {
-      const db = await ladeDb();
-      let c;
-      if (a.charakterPfad) {
-        const r = await ipc.dateiDirektLaden(a.charakterPfad);
-        c = parse(r.inhalt, db);
-      } else {
-        c = a.charakter;
-      }
-      if (ap > 0) c.erfahrung.gesamt = (c.erfahrung.gesamt || 0) + ap;
-      uebernehmeAbenteuerdaten(c, a);
-      await ipc.bibliothekSpeichern({ name: a.charakterName, inhalt: serialisiere(c, db) });
-    } catch (e) {
-      console.error('Charakter aktualisieren:', e);
-      charOk = false;
-    }
-  }
-
-  a.apGesamt += ap;
-  protokolliere(a, `Spieltag ${a.spieltag} abgeschlossen. ${ap} Erfahrungspunkte, Finanzen und Inventar an ${a.charakterName} übertragen.`);
-  a.spieltag += 1;
-  await speichere();
-  sounds.playSpeichern();
-
-  // Zurück zum Hauptmenü, dann die Bestätigung ansagen (überschreibt die Menü-Ansage).
-  screen.zuWurzel();
-  const apText = ap > 0 ? `${ap} Erfahrungspunkte, ` : '';
-  const meldung = charOk
-    ? `Charakterbogen aktualisiert: ${apText}Finanzen und Inventar gespeichert. Abenteuer gespeichert, nächster Spieltag ist ${a.spieltag}. Zurück im Hauptmenü.`
-    : `Abenteuer gespeichert. Achtung, der Charakterbogen konnte nicht aktualisiert werden. Zurück im Hauptmenü.`;
-  setTimeout(() => sprache.sage(meldung), 150);
 }
