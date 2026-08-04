@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.58, 2. August 2026
+
+
+Abenteuer- und Meistertisch-Menü repariert
+
+Nach dem Umbau in 0.57 sprang der Fokus beim Öffnen des Abenteuer- oder
+Meistertisches in den Barrierefreiheits-Kasten oben, statt auf den ersten
+Menüpunkt. Ursache war eine Endlosschleife beim Laden der Liste (das Menü lud
+sich unbegrenzt selbst neu). Behoben: die Liste wird jetzt nur einmal geladen und
+nach Änderungen (Erstellen, Löschen, Zurück aus dem Tisch) gezielt aufgefrischt.
+Der Fokus landet wieder auf dem ersten Menüpunkt.
+
+
 Version 0.57, 2. August 2026
 
 

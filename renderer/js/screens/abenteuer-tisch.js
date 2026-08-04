@@ -66,8 +66,12 @@ function einstiegScreen() {
       }).build();
     },
     onShow() {
-      // Liste bei jedem Anzeigen frisch holen (auch nach Rückkehr aus dem Hub).
-      scr.ladeListe();
+      // NUR beim ersten Anzeigen laden. ladeListe() ruft screen.refresh(), was
+      // erneut onShow auslöst — ohne diese Bedingung entstünde eine Endlosschleife
+      // und der Fokus käme nie auf einem Menüpunkt an (er fiele in die
+      // Barrierefreiheits-Box). Nach Änderungen wird _liste extern auf null
+      // gesetzt (erstellen/löschen/Rückkehr aus dem Hub), dann lädt es hier neu.
+      if (scr._liste === null) scr.ladeListe();
       sprache.sage('Abenteuer-Tisch.');
     },
   };
@@ -173,8 +177,8 @@ function abenteuerEintragScreen(eintrag) {
             onSelect: async () => {
               if (!await jaNeinDialog({ titel: 'Löschen', frage: `Abenteuer ${eintrag.name} wirklich löschen?` })) return;
               try { await ipc.abenteuerLoeschen(eintrag.pfad); } catch (e) { console.error('löschen:', e); }
+              if (_einstieg) _einstieg._liste = null; // beim Zurück neu laden
               screen.pop();
-              if (_einstieg && _einstieg.ladeListe) _einstieg.ladeListe();
               sprache.sage(`${eintrag.name} gelöscht.`);
             },
           },
@@ -232,7 +236,7 @@ function oeffneHub() {
         ],
       });
       if (w === 'ja') { await speichereMitBogen(); sounds.playSpeichern(); }
-      if (w === 'ja' || w === 'nein') { versteckeEP(); setAbenteuer(null); }
+      if (w === 'ja' || w === 'nein') { versteckeEP(); setAbenteuer(null); if (_einstieg) _einstieg._liste = null; }
       return w || 'abbrechen';
     },
   });

@@ -67,7 +67,12 @@ function einstiegScreen() {
       }).build();
     },
     onShow() {
-      scr.ladeListe();
+      // NUR beim ersten Anzeigen laden. ladeListe() ruft screen.refresh(), was
+      // erneut onShow auslöst — ohne diese Bedingung entstünde eine Endlosschleife
+      // und der Fokus käme nie auf einem Menüpunkt an (er fiele in die
+      // Barrierefreiheits-Box). Nach Änderungen wird _liste extern auf null
+      // gesetzt (erstellen/löschen/Rückkehr aus dem Hub), dann lädt es hier neu.
+      if (scr._liste === null) scr.ladeListe();
       sprache.sage('Meister-Tisch.');
     },
   };
@@ -152,8 +157,8 @@ function meisterEintragScreen(eintrag) {
             onSelect: async () => {
               if (!await jaNeinDialog({ titel: 'Löschen', frage: `Meisterabenteuer ${eintrag.name} wirklich löschen?` })) return;
               try { await ipc.meisterLoeschen(eintrag.pfad); } catch (e) { console.error('loeschen:', e); }
+              if (_einstieg) _einstieg._liste = null; // beim Zurück neu laden
               screen.pop();
-              if (_einstieg && _einstieg.ladeListe) _einstieg.ladeListe();
               sprache.sage(`${eintrag.name} gelöscht.`);
             },
           },
@@ -187,7 +192,7 @@ function oeffneHub() {
     { label: 'Audio', hint: 'Klaenge abspielen und ans Radio senden', festeTaste: 12, factory: () => audioBereichScreen('meister') },
     { label: 'Verdeckter Meister-Wurf', hint: 'schnell und leise wuerfeln', ergebnisId: 'meisterwurf', aktion: () => verdeckterMeisterWurf() },
     { label: 'Zwischenspeichern', hint: 'Spielstand sichern', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
-    { label: 'Speichern und schliessen', hint: 'sichern und zum Meister-Tisch zurueck', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Gespeichert.'); hub.verlasse(); } },
+    { label: 'Speichern und schliessen', hint: 'sichern und zum Meister-Tisch zurueck', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Gespeichert.'); if (_einstieg) _einstieg._liste = null; hub.verlasse(); } },
   ];
 
   hub = reiterHub.oeffneHub({
@@ -203,6 +208,7 @@ function oeffneHub() {
         ],
       });
       if (w === 'ja') { await speichere(); sounds.playSpeichern(); }
+      if (w === 'ja' || w === 'nein') { if (_einstieg) _einstieg._liste = null; }
       return w || 'abbrechen';
     },
   });
