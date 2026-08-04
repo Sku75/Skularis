@@ -20,7 +20,7 @@ import { zeigeErgebnis } from '../abenteuer/wuerfel-kern.js';
 import * as reiterHub from '../ui/reiter-hub.js';
 import { ladeDb, getDb } from '../core/db-laden.js';
 import { createMeisterAbenteuer, parseMeisterAbenteuer, protokolliere } from '../core/meister-abenteuer.js';
-import { ladeBogenFrisch } from '../core/bogen-laden.js';
+import { ladeBogenFrisch, waehleCharakterBogen } from '../core/bogen-laden.js';
 import { getMeister, setMeister, speichere } from '../meister/state.js';
 import { gruppenzusammenstellungScreen } from '../meister/gruppe.js';
 import { spielerinfosScreen } from '../meister/spielerinfos.js';
@@ -110,19 +110,33 @@ async function frischeBoegen(a, db) {
       titel: 'Charakterbogen fehlt',
       frage: `Der Charakterbogen zu ${c.name} wurde am gespeicherten Ort nicht gefunden.`,
       knoepfe: [
-        { label: 'Mit altem Datensatz spielen', wert: 'alt' },
-        { label: 'Charakter aus Meistertisch entfernen', wert: 'weg' },
+        { label: 'Alten Stand laden', wert: 'alt' },
+        { label: 'Neuen Charakter laden', wert: 'neu' },
+        { label: 'Ohne diesen Charakter', wert: 'ohne' },
+        { label: 'Abbrechen', wert: 'ab' },
       ],
     });
-    if (w === 'weg') {
+    if (w === 'ab') return false; // gesamtes Öffnen abbrechen (a wird verworfen)
+    if (w === 'neu') {
+      const neu = await waehleCharakterBogen(db);
+      if (!neu) { behalten.push(c); continue; } // Auswahl abgebrochen → alten behalten
+      // Zähler/Notizen auf den neuen Namen mitnehmen (Name kann sich ändern).
+      if (a.vitalitaet && a.vitalitaet[c.name] && !a.vitalitaet[neu.name]) { a.vitalitaet[neu.name] = a.vitalitaet[c.name]; delete a.vitalitaet[c.name]; }
+      if (a.charNotizen && a.charNotizen[c.name] && !a.charNotizen[neu.name]) { a.charNotizen[neu.name] = a.charNotizen[c.name]; delete a.charNotizen[c.name]; }
+      c.pfad = neu.pfad; c.name = neu.name; c.bogen = neu.bogen;
+      behalten.push(c);
+      continue;
+    }
+    if (w === 'ohne') {
       if (a.vitalitaet) delete a.vitalitaet[c.name];
       if (a.charNotizen) delete a.charNotizen[c.name];
       protokolliere(a, `${c.name} entfernt (Charakterbogen fehlt).`);
       continue; // nicht behalten
     }
-    behalten.push(c); // mit altem, eingebettetem Bogen weiter
+    behalten.push(c); // 'alt' → mit altem, eingebettetem Bogen weiter
   }
   a.charaktere = behalten;
+  return true;
 }
 
 async function oeffneMeister(eintrag) {
@@ -131,7 +145,8 @@ async function oeffneMeister(eintrag) {
     const r = await ipc.meisterLaden(eintrag.pfad);
     const a = parseMeisterAbenteuer(r.inhalt);
     a._pfad = eintrag.pfad;
-    await frischeBoegen(a, db);      // Bogen-Werte auffrischen, fehlende klären
+    const ok = await frischeBoegen(a, db); // Bogen-Werte auffrischen, fehlende klären
+    if (!ok) { sprache.sage('Öffnen abgebrochen.'); return; } // Abbrechen: nichts laden
     setMeister(a);
     await speichere();               // aufgefrischten/bereinigten Stand sichern (nur Meister-JSON)
     sounds.playOeffnen();

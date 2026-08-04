@@ -21,7 +21,7 @@ import { textDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
 import { ladeDb, getDb } from '../core/db-laden.js';
 import { parse } from '../core/sephrasto-xml.js';
 import { createAbenteuer, parseAbenteuer, protokolliere, mergeRessourcen } from '../core/abenteuer.js';
-import { ladeBogenFrisch } from '../core/bogen-laden.js';
+import { ladeBogenFrisch, waehleCharakterBogen } from '../core/bogen-laden.js';
 import { getAbenteuer, setAbenteuer, setDb, speichere, speichereMitBogen } from '../abenteuer/state.js';
 import * as reiterHub from '../ui/reiter-hub.js';
 import { liveSpielScreen, charakterstatusScreen } from '../abenteuer/live-spiel.js';
@@ -30,7 +30,7 @@ import { inventarScreen } from '../abenteuer/inventar.js';
 import { notizenScreen } from '../abenteuer/notizen.js';
 import { mitspielerScreen } from '../abenteuer/mitspieler.js';
 import { regelnMenuScreen } from './regeln-menu.js';
-import { neuberechne, verfuegbareEP } from '../core/character.js';
+import { neuberechne, verfuegbareEP, createCharakter } from '../core/character.js';
 import { zeigeEP, versteckeEP } from '../ui/ep-anzeige.js';
 import { audioBereichScreen } from '../meister/audio-bereich.js';
 
@@ -144,12 +144,29 @@ async function oeffneAbenteuer(eintrag) {
           titel: 'Charakterbogen fehlt',
           frage: `Der Charakterbogen zu ${a.charakterName || (a.charakter && a.charakter.name) || 'diesem Abenteuer'} wurde am gespeicherten Ort nicht gefunden.`,
           knoepfe: [
-            { label: 'Mit gespeichertem Stand öffnen', wert: 'alt' },
+            { label: 'Alten Stand laden', wert: 'alt' },
+            { label: 'Neuen Charakter laden', wert: 'neu' },
+            { label: 'Ohne Charakter laden', wert: 'ohne' },
             { label: 'Abbrechen', wert: 'ab' },
           ],
         });
-        if (w !== 'alt') return;
-        // Weiter mit dem eingebetteten Snapshot; Zähler unverändert.
+        if (w === 'neu') {
+          const neu = await waehleCharakterBogen(db);
+          if (!neu) return; // Auswahl abgebrochen
+          a.charakterPfad = neu.pfad;
+          a.charakterName = neu.name;
+          a.charakter = neu.bogen;
+          a.ressourcen = mergeRessourcen(a.ressourcen, neu.bogen);
+        } else if (w === 'ohne') {
+          // Ohne Charakter öffnen: leerer Bogen, keine Verknüpfung (kein Rückschreiben).
+          a.charakter = createCharakter(db, { name: 'Ohne Charakter', gesamtEP: 0 });
+          a.charakterPfad = '';
+          a.charakterName = 'Ohne Charakter';
+          a.ressourcen = mergeRessourcen(a.ressourcen, a.charakter);
+        } else if (w !== 'alt') {
+          return; // Abbrechen
+        }
+        // 'alt' → weiter mit dem eingebetteten Snapshot; Zähler unverändert.
       }
     }
 

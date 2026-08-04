@@ -4,6 +4,22 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.59, 2. August 2026
+
+
+Mehr Optionen, wenn ein Charakterbogen fehlt
+
+Wird beim Öffnen eines Abenteuers oder Meisterabenteuers ein Charakterbogen nicht
+gefunden (verschoben, gelöscht, umbenannt), gibt es jetzt vier Wege:
+
+- Alten Stand laden: mit der gespeicherten Kopie weiterspielen.
+- Neuen Charakter laden: einen anderen Charakter aus der Bibliothek auswählen und
+  verknüpfen (am Meistertisch wandern die Zähler und Notizen mit).
+- Ohne Charakter (Abenteuertisch: leerer Charakter ohne Verknüpfung; Meistertisch:
+  diesen Charakter aus dem Meisterabenteuer entfernen).
+- Abbrechen: nicht öffnen.
+
+
 Version 0.58, 2. August 2026
 
 
