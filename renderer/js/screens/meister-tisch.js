@@ -212,6 +212,7 @@ function oeffneHub() {
 
   hub = reiterHub.oeffneHub({
     titel, subtitle: 'Mit F1 bis F12 direkt zum Menue. Escape verlaesst den Bereich.', punkte,
+    bereich: 'meister',
     zurueckAuf: _einstieg,
     beimVerlassen: async () => {
       const w = await knopfDialog({

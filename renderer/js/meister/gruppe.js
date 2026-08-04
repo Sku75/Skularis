@@ -46,7 +46,7 @@ export async function charakterHinzufuegen() {
         a.charaktere.push({ name, pfad, bogen });
         protokolliere(a, `Held ${name} zur Gruppe hinzugefuegt.`);
         await speichere();
-        sounds.playOeffnen();
+        sounds.playSpeichern(); // wie beim Charakter-Speichern, nicht der schrille Öffnen-Ton
         sprache.sage(`${name} ist jetzt in der Gruppe. ${a.charaktere.length} Helden.`);
       } catch (e) {
         console.error('Charakter laden:', e);

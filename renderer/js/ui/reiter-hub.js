@@ -16,6 +16,8 @@
 import * as screen from './screen.js';
 import * as sprache from '../sprache.js';
 import { menuScreen } from './menu-screen.js';
+import * as reiterTasten from './reiter-tasten.js';
+import { comboAusEvent } from '../shortcuts.js';
 
 let _aktiv = null;
 let _listenerInstalliert = false;
@@ -29,18 +31,28 @@ function installiereListener() {
     // zum Reiter, aber FRISCH am ersten Menuepunkt (die gemerkte Stelle wird
     // verworfen). Ohne Shift kommt man an die zuletzt verlassene Stelle zurueck.
     if (e.ctrlKey || e.altKey) return;
-    const m = /^F(\d{1,2})$/.exec(e.key);
-    if (!m) return;
+    // Reiter-Nummer + „frisch" (oben) bestimmen. Fuer Abenteuer-/Meistertisch aus
+    // der umbelegbaren Konfiguration (reiter-tasten.js), sonst (z. B. Editor-Hub)
+    // das feste Schema F<n> bzw. Shift+F<n>.
+    let ziel = null;
+    if (_aktiv.bereich && reiterTasten.istBereich(_aktiv.bereich)) {
+      const combo = comboAusEvent(e);
+      if (combo) ziel = reiterTasten.lookup(_aktiv.bereich, combo);
+    } else {
+      const m = /^F(\d{1,2})$/.exec(e.key);
+      if (m) ziel = { nr: parseInt(m[1], 10), frisch: e.shiftKey };
+    }
+    if (!ziel) return;
     // Nur solange der Hub wirklich offen ist (Anker liegt im Stapel).
     if (!screen.imStack(_aktiv.anker)) { _aktiv = null; return; }
     // Bei offenem Dialog nichts abfangen.
     if (document.querySelector('dialog[open]')) return;
-    // F-Nummer ueber die Zuordnung in den Array-Index (Aktionen sind uebersprungen).
-    const idx = _aktiv.fTaste ? _aktiv.fTaste[parseInt(m[1], 10)] : (parseInt(m[1], 10) - 1);
+    // Reiter-Nummer ueber die Zuordnung in den Array-Index (Aktionen uebersprungen).
+    const idx = _aktiv.fTaste ? _aktiv.fTaste[ziel.nr] : (ziel.nr - 1);
     if (idx == null || idx < 0 || idx >= _aktiv.punkte.length) return;
     e.preventDefault();
     e.stopPropagation();
-    _aktiv.aktiviere(idx, { frisch: e.shiftKey });
+    _aktiv.aktiviere(idx, { frisch: ziel.frisch });
   }, true);
 }
 
@@ -183,7 +195,7 @@ export function oeffneHub(o) {
     else screen.entferneAb(anker);
   }
 
-  _aktiv = { anker, punkte, aktiviere, fTaste };
+  _aktiv = { anker, punkte, aktiviere, fTaste, bereich: o.bereich };
   installiereListener();
   if (o.ersetzen) screen.replace(anker); else screen.push(anker);
   return {

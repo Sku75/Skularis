@@ -7,6 +7,7 @@ import { on, emit } from './state.js';
 import * as sounds from './sounds.js';
 import * as sprache from './sprache.js';
 import * as shortcuts from './shortcuts.js';
+import * as reiterTasten from './ui/reiter-tasten.js';
 import * as navigation from './navigation.js';
 import * as einstellungen from './daten/einstellungen.js';
 import * as screen from './ui/screen.js';
@@ -46,6 +47,9 @@ async function init() {
   // Gespeicherte Tasten-Umbelegungen laden und anwenden (vor dem Registrieren).
   const tastenbelegung = (await einstellungen.get('tastenbelegung')) || {};
   shortcuts.setOverrides(tastenbelegung, (obj) => einstellungen.setWert('tastenbelegung', obj));
+  // Reiter-Tasten der Tische (pro Tisch, mit Menünamen) — umbelegbar in den Optionen.
+  const reiterBelegung = (await einstellungen.get('reiter_tasten')) || {};
+  reiterTasten.setOverrides(reiterBelegung, (obj) => einstellungen.setWert('reiter_tasten', obj));
 
   registriereShortcuts();
   initKopfzeile();

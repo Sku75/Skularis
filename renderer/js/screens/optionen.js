@@ -10,6 +10,7 @@ import * as sounds from '../sounds.js';
 import * as screen from '../ui/screen.js';
 import * as einstellungen from './../daten/einstellungen.js';
 import * as shortcuts from '../shortcuts.js';
+import * as reiterTasten from '../ui/reiter-tasten.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { knopfDialog } from '../ui/dialog.js';
 
@@ -147,11 +148,87 @@ function tastenScreen() {
           }
         },
       }));
+      // Reiter-Tasten der Tische (F1-F12 und Shift+F1-F12), pro Tisch mit Namen.
+      for (const b of reiterTasten.BEREICHE) {
+        items.push({
+          label: `Reiter-Tasten ${reiterTasten.bereichName(b)}`,
+          hint: 'F-Tasten der Reiter dieses Tisches umbelegen (auch die Shift-Variante)',
+          onSelect: () => screen.push(reiterBereichScreen(b)),
+        });
+      }
       return menuScreen({
         title: this.title,
         subtitle: 'Enter belegt eine Taste neu oder setzt sie zurueck. Escape zurueck.',
         items,
         leer: 'Keine umbelegbaren Tasten.',
+      }).build();
+    },
+  };
+}
+
+/** Reiter-Tasten eines Tisches: je Reiter mit Menüname. */
+function reiterBereichScreen(bereich) {
+  return {
+    title: '',
+    build() {
+      this.title = `Reiter-Tasten ${reiterTasten.bereichName(bereich)}`;
+      const items = reiterTasten.liste(bereich).map(r => ({
+        label: `${r.name}: ${r.normal}, oben ${r.oben}`,
+        hint: 'Enter: Taste neu belegen oder auf Standard zuruecksetzen',
+        onSelect: () => screen.push(reiterTabScreen(bereich, r.nr, r.name)),
+      }));
+      return menuScreen({
+        title: this.title,
+        subtitle: 'Enter oeffnet einen Reiter. "oben" ist die Shift-Variante (Fokus oben im Menü). Escape zurueck.',
+        items, filter: false,
+      }).build();
+    },
+  };
+}
+
+/** Einen Reiter umbelegen: Normaltaste, Oben-Taste (mit Shift), Standard. */
+function reiterTabScreen(bereich, nr, name) {
+  return {
+    title: name,
+    build() {
+      const normal = reiterTasten.comboFuer(bereich, nr, false);
+      const oben = reiterTasten.comboFuer(bereich, nr, true);
+      return menuScreen({
+        title: name,
+        subtitle: `Aktuell: ${normal}, oben ${oben}. Escape zurueck.`,
+        filter: false,
+        items: [
+          {
+            label: `Taste neu belegen, aktuell ${normal}`,
+            onSelect: async () => {
+              const c = await erfasseKombination();
+              if (!c) return;
+              reiterTasten.setCombo(bereich, nr, false, c);
+              screen.refresh();
+              sprache.sage(`${name} liegt jetzt auf ${c}.`);
+            },
+          },
+          {
+            label: `Oben-Taste mit Shift neu belegen, aktuell ${oben}`,
+            hint: 'springt in den Reiter und stellt den Fokus oben auf den ersten Punkt',
+            onSelect: async () => {
+              const c = await erfasseKombination();
+              if (!c) return;
+              reiterTasten.setCombo(bereich, nr, true, c);
+              screen.refresh();
+              sprache.sage(`${name} oben liegt jetzt auf ${c}.`);
+            },
+          },
+          {
+            label: 'Beide auf Standard zuruecksetzen',
+            onSelect: () => {
+              reiterTasten.reset(bereich, nr, false);
+              reiterTasten.reset(bereich, nr, true);
+              screen.refresh();
+              sprache.sage(`${name} auf Standard zurueckgesetzt.`);
+            },
+          },
+        ],
       }).build();
     },
   };
@@ -202,7 +279,7 @@ export function build() {
       },
       {
         label: 'Tasten neu belegen',
-        hint: 'Globale Tastenkombinationen frei umbelegen (Sprachausgabe, Schrift, Beenden, Info-Fenster)',
+        hint: 'Globale Kombinationen und die Reiter-Tasten der Tische (F1-F12, Shift+F1-F12) frei umbelegen',
         onSelect: () => screen.push(tastenScreen()),
       },
       {

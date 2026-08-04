@@ -114,7 +114,7 @@ async function erstellen() {
         protokolliere(a, `Abenteuer erstellt mit Charakter ${char.name || charName}.`);
         setAbenteuer(a);
         await speichere();
-        sounds.playOeffnen();
+        sounds.playSpeichern(); // wie beim Charakter-Speichern, nicht der schrille Öffnen-Ton
         oeffneHub();
         sprache.sage(`Abenteuer ${a.name} erstellt.`);
       } catch (e) {
@@ -242,6 +242,7 @@ function oeffneHub() {
 
   hub = reiterHub.oeffneHub({
     titel, subtitle: 'Mit F1 bis F12 direkt zum Menü. Escape verlässt das Abenteuer.', punkte,
+    bereich: 'abenteuer',
     zurueckAuf: _einstieg,
     beimVerlassen: async () => {
       const w = await knopfDialog({

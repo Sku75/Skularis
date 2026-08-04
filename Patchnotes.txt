@@ -4,6 +4,23 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.61, 2. August 2026
+
+
+Reiter-Tasten frei belegbar, Charakter-Ton beim Hinzufügen
+
+Charakter hinzufügen: Wenn du beim Erstellen eines Abenteuers einen Charakter
+wählst oder am Meistertisch einen Helden zur Gruppe hinzufügst, klingt es jetzt
+wie beim Speichern eines Charakters (statt des früheren, schrillen Tons).
+
+Tasten neu belegen (Optionen): Zusätzlich zu den globalen Kombinationen kannst du
+jetzt die Reiter-Tasten der Tische umbelegen - pro Tisch getrennt und mit den
+echten Menünamen. Für jeden Reiter gibt es zwei Tasten: die normale (Standard
+F1-F12, springt an die zuletzt verlassene Stelle) und die "oben"-Taste (Standard
+Shift+F1-F12, springt in den Reiter und stellt den Fokus oben auf den ersten
+Punkt). Alles wird gespeichert und beim Start wieder angewendet.
+
+
 Version 0.60, 2. August 2026
 
 
