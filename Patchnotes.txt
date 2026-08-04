@@ -4,6 +4,23 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.60, 2. August 2026
+
+
+Textfeld-Beispiele nach dem Feld, leisere Bedientöne, Gegenstand-Fokus
+
+Textfelder mit Beispiel: Der Feldname wird zuerst gesprochen, der Hilfstext/das
+Beispiel erst danach ("Geburtsdatum … zum Beispiel 27 Jahre"). Das Feld bleibt
+leer. Gilt für alle Textfelder mit Beispiel.
+
+Leisere Bedientöne: Pfeil hoch/runter (Navigation), der Ton beim Wechsel eine
+Ebene tiefer/zurück und die Textfeld-Töne sind jetzt rund 45 Prozent leiser und
+damit dezenter.
+
+Gegenstände im Editor: Nach "Verschieben in den Rucksack / an den Mann" springt
+der Fokus wieder auf den Gegenstand in der Liste, statt im Untermenü zu bleiben.
+
+
 Version 0.59, 2. August 2026
 
 

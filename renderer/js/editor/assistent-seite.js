@@ -204,16 +204,18 @@ export function textFeld({ label, id, wert = '', mehrzeilig = false, hint, beisp
   if (min !== undefined) input.min = String(min);
   if (mehrzeilig) input.rows = 2;
   input.value = wert;
-  input.setAttribute('aria-label', hint ? `${label}, ${hint}` : label);
+  // Der Feldname wird zuerst gesprochen (aria-label = nur das Label). Ein
+  // Hilfstext/Beispiel kommt IMMER danach über aria-describedby — so hört man
+  // erst "Geburtsdatum", dann "zum Beispiel 27 Jahre", und das Feld bleibt leer.
+  input.setAttribute('aria-label', label);
   box.appendChild(input);
 
-  // Beispiel steht HINTER dem Eingabefeld: sichtbar für Sehende und über
-  // aria-describedby erst NACH dem eingetragenen Wert vorgelesen.
-  if (beispiel) {
+  const nachtext = beispiel ? `Zum Beispiel: ${beispiel}` : (hint || '');
+  if (nachtext) {
     const bsp = document.createElement('span');
     bsp.className = 'ed-feld__beispiel';
     bsp.id = `${id}-bsp`;
-    bsp.textContent = `Zum Beispiel: ${beispiel}`;
+    bsp.textContent = nachtext;
     box.appendChild(bsp);
     input.setAttribute('aria-describedby', `${id}-bsp`);
   }

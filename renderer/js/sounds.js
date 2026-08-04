@@ -70,12 +70,15 @@ const FALLBACK_BEEPS = {
 // damit sich alles gleich laut anfuehlt und zusammenpasst. tab/schliessen/click
 // stammen noch aus dem alten Satz und behalten ihre eigenen Werte.
 const BEDIEN_PEGEL = 0.45;
+// Bewusst leiser (etwa 45 Prozent) als die uebrigen Bedientoene: das staendige
+// Pfeil-hoch-runter und die Textfeld-Toene sollen dezent im Hintergrund bleiben.
+const BEDIEN_LEISE = 0.24;
 const VOLUME_MAP = {
-  navigation: BEDIEN_PEGEL,   // Pfeil-Navigation zwischen Zeilen
+  navigation: BEDIEN_LEISE,   // Pfeil-Navigation zwischen Zeilen (leiser)
   buch_auf:   BEDIEN_PEGEL,   // Info-Fenster oeffnet
   buch_zu:    BEDIEN_PEGEL,   // Info-Fenster schliesst
-  eingabe_start: BEDIEN_PEGEL,
-  eingabe_ende:  BEDIEN_PEGEL,
+  eingabe_start: BEDIEN_LEISE, // Textfeld betreten (leiser)
+  eingabe_ende:  BEDIEN_LEISE, // Textfeld verlassen (leiser)
   wert_hoch:  BEDIEN_PEGEL,   // Werteaenderung
   wert_runter:BEDIEN_PEGEL,
   oeffnen:    BEDIEN_PEGEL,   // Datei/Menue/Frage oeffnet
@@ -91,7 +94,7 @@ const DEFAULT_VOLUME_FACTOR = 0.55;  // Ereignistoene (Wuerfeln, Speichern, Fehl
 
 // Ebenen-Toene (synthetisch): einheitlicher Grundpegel, an die Gesamtlautstaerke
 // gekoppelt. Bewusst im selben Band wie die uebrigen Bedientoene.
-const EBENE_VOLUME = 0.30;
+const EBENE_VOLUME = 0.16;
 
 let _soundAn = true;
 let _globalVolume = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)

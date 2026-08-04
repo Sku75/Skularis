@@ -757,7 +757,9 @@ function gegenstandScreen(index) {
               aendereInventar(char, (m) => {
                 m.gegenstaende[index].ort = amMann ? ORT_RUCKSACK : ORT_MANN;
               });
-              screen.refresh();
+              // Zurück zur Liste, Fokus landet wieder auf dem Gegenstand (statt im
+              // Untermenü zu bleiben).
+              screen.pop();
               sprache.sage(`${g.text} liegt jetzt ${amMann ? 'im Rucksack' : 'am Mann'}.`);
             },
           },
