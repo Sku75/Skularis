@@ -4,6 +4,18 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.67, 5. August 2026
+
+
+Strg und F12 stoppt nur die Klänge, nicht das Radio
+
+Strg und F12 hält jetzt nur die laufenden Klänge an (Kanäle, Playlist,
+Vorhören). Deine Radio-Übertragung läuft dabei weiter, die Verbindung bleibt
+bestehen. So kannst du mitten im Spiel schnell alle Sounds stoppen, ohne dass die
+Spieler aus dem Radio fliegen. Willst du auch das Senden beenden, nutze im
+Audio-Menü den Punkt "Alles stoppen".
+
+
 Version 0.66, 5. August 2026
 
 

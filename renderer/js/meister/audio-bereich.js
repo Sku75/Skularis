@@ -318,6 +318,17 @@ export function alleStoppen() {
   _verbunden = false;
 }
 
+/**
+ * NUR die Klaenge stoppen: laufende Kanaele, Vorhoeren und Playlist. Das Radio
+ * (Senden bzw. Zuhoeren) laeuft weiter. Fuer Strg und F12: schneller Panik-Stopp
+ * der Sounds, OHNE die Uebertragung zu beenden.
+ */
+export function klaengeStoppen() {
+  _plToken += 1;
+  try { player.stoppeAlles(); } catch { /* egal */ }
+  try { if (player.istVorhoeren()) player.beendeVorhoeren(); } catch { /* egal */ }
+}
+
 // Einen Sound zu einer Playlist hinzufuegen (nur ein Verweis auf die Datei).
 async function zuPlaylistHinzufuegen(d) {
   await ladePlaylists();
