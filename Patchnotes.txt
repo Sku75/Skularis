@@ -4,6 +4,17 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.65, 5. August 2026
+
+
+Audio-Schnelltasten ohne Sprachausgabe
+
+Beim Auslösen und Stoppen einer Audio-Schnelltaste wird jetzt nichts mehr
+vorgelesen. Es ist nur der Klang selbst zu hören, keine Ansage von Dateiname,
+"eingespielt", "abgespielt" oder "gestoppt". Nur wenn eine Datei nicht gelesen
+werden kann, bleibt ein kurzer Hinweis hörbar.
+
+
 Version 0.64, 5. August 2026
 
 

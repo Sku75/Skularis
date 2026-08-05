@@ -115,9 +115,10 @@ export async function spiele(index) {
   // Umschalten: laeuft der Klang dieser Taste schon (egal auf welchem Kanal),
   // blendet ein zweiter Druck ihn weich aus und stoppt ihn (Ausblendzeit rund
   // 1,2 Sekunden wie im Player). Kein neues Starten.
+  // Bewusst OHNE Sprachausgabe: beim Ausloesen (und Stoppen) einer Schnelltaste
+  // wird nicht vorgelesen, was passiert — nur der Klang selbst ist zu hoeren.
   if (player.laeuftKanalFuer(d.pfad)) {
     player.stoppePfad(d.pfad);
-    sprache.sage(`${d.name}, gestoppt.`);
     return true;
   }
   const datei = { name: d.name, pfad: d.pfad };
@@ -125,17 +126,14 @@ export async function spiele(index) {
   try {
     if (d.modus === 'abspielen') {
       await player.spieleKanal('abspielen', datei, { loop: !!d.loop, pegel: pegel != null ? pegel : 1 });
-      sprache.sage(d.loop ? `${d.name}, Schleife.` : `${d.name}.`);
     } else if (d.modus === 'hintergrund') {
       await player.spieleKanal('hintergrund', datei, { loop: !!d.loop, pegel: pegel != null ? pegel : player.getHintergrundPegel() });
-      sprache.sage(d.loop ? `${d.name}, Hintergrund in Schleife.` : `${d.name}, Hintergrund.`);
     } else {
       await player.spieleEin(datei, pegel != null ? { pegel } : {});
-      sprache.sage(`${d.name}, eingespielt.`);
     }
   } catch (err) {
     console.error('Kurztaste abspielen:', err);
-    sprache.sage('Konnte nicht abgespielt werden.');
+    sprache.sage('Konnte nicht abgespielt werden.'); // nur der Fehlerfall bleibt hoerbar
   }
   return true;
 }
