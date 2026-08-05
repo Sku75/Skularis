@@ -18,6 +18,7 @@ import { knopfDialog } from './ui/dialog.js';
 import { audioBereichScreen, alleStoppen as audioAlleStoppen } from './meister/audio-bereich.js';
 import * as radio from './net/radio.js';
 import * as audioPlayer from './meister/audio-player.js';
+import * as kurztasten from './meister/kurztasten.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -39,7 +40,10 @@ async function init() {
   const fontOffset = (await einstellungen.get('schrift_offset')) || 0;
   document.documentElement.style.setProperty('--db-font-offset', `${fontOffset}px`);
 
-  // Bedienschicht
+  // Bedienschicht. Der Kurztasten-Handler wird VOR dem Shortcut-Manager
+  // registriert, damit eine belegte Audio-Schnelltaste am Meistertisch Vorrang
+  // vor einer globalen Standardbelegung hat (z. B. Strg+0).
+  kurztasten.initHandler();
   shortcuts.init();
   navigation.init();
   screen.init(document.getElementById('app-content'));
@@ -50,6 +54,9 @@ async function init() {
   // Reiter-Tasten der Tische (pro Tisch, mit Menünamen) — umbelegbar in den Optionen.
   const reiterBelegung = (await einstellungen.get('reiter_tasten')) || {};
   reiterTasten.setOverrides(reiterBelegung, (obj) => einstellungen.setWert('reiter_tasten', obj));
+  // Audio-Schnelltasten (Strg+1 bis Strg+´) — Belegung global, in den Optionen umbelegbar.
+  const kurzBelegung = (await einstellungen.get('kurztasten_belegung')) || {};
+  kurztasten.setOverrides(kurzBelegung, (obj) => einstellungen.setWert('kurztasten_belegung', obj));
 
   registriereShortcuts();
   initKopfzeile();

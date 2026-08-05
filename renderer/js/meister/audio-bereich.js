@@ -18,6 +18,8 @@ import { textDialog, knopfDialog, jaNeinDialog } from '../ui/dialog.js';
 import { abschnittTitel, aktionZeile, infoZeile, wertZeile, verbindeDetail } from '../editor/widgets.js';
 import * as player from './audio-player.js';
 import * as radio from '../net/radio.js';
+import * as kurztasten from './kurztasten.js';
+import { getMeister, speichere as speichereMeister } from './state.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -434,6 +436,196 @@ function kanalFuer(name) {
   return 'stimmung'; // Hintergrund/Atmosphaere: Schleifen-Kanal Hintergrundstimmung
 }
 
+// --- Kurztasten (Audio-Schnelltasten Strg+1 bis Strg+´) -----------------
+//
+// Belegung je EINZELNEM Meisterabenteuer (getMeister().kurztasten). Die Tasten
+// selbst sind global und in den Optionen umbelegbar (kurztasten.js).
+
+function kurzSpeichern() { try { speichereMeister(); } catch { /* egal */ } }
+
+function kurzSlotLabel(a, i) {
+  const d = a.kurztasten && a.kurztasten[i];
+  const combo = kurztasten.comboFuer(i + 1);
+  if (!d || !d.pfad) return { label: `Schnelltaste ${i + 1}, ${combo}: frei`, detail: 'Enter: eine Audiodatei auf diese Taste legen.' };
+  const lv = (typeof d.lautstaerke === 'number') ? `${d.lautstaerke} Prozent` : 'Standard';
+  return {
+    label: `Schnelltaste ${i + 1}, ${combo}: ${d.name}`,
+    detail: `Modus ${kurztasten.modusName(d.modus)}${d.loop ? ', Schleife' : ''}. Lautstaerke ${lv}. Enter: aendern.`,
+  };
+}
+
+function kurztastenScreen() {
+  const scr = {
+    title: 'Kurztasten',
+    build() {
+      const a = getMeister();
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel('Kurztasten'));
+      if (!a) { wrap.appendChild(infoZeile('Kein Meisterabenteuer geladen.', 'Oeffne zuerst ein Meisterabenteuer.')); rueckKnopf(wrap); return wrap; }
+      wrap.appendChild(infoZeile('Belege Strg+1 bis Strg+´ mit Klaengen dieses Abenteuers.',
+        'Im Spiel spielt ein Druck auf die Taste den Klang sofort, ohne Menue. Die Belegung gilt nur fuer dieses Meisterabenteuer; ein neues Abenteuer startet leer. Welche Taste welchen Platz ausloest, aenderst du in den Optionen unter "Tasten neu belegen".'));
+      for (let i = 0; i < 12; i++) {
+        const b = kurzSlotLabel(a, i);
+        wrap.appendChild(aktionZeile(b.label, () => screen.push(kurztastenSlotScreen(i)), 'aendern', b.detail));
+      }
+      verbindeDetail(wrap);
+      rueckKnopf(wrap);
+      return wrap;
+    },
+    onShow() { sprache.sage('Kurztasten.'); },
+  };
+  return scr;
+}
+
+function kurztastenSlotScreen(i) {
+  const scr = {
+    title: `Schnelltaste ${i + 1}`,
+    build() {
+      const a = getMeister();
+      const d = a && a.kurztasten ? a.kurztasten[i] : null;
+      const combo = kurztasten.comboFuer(i + 1);
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel(`Schnelltaste ${i + 1}, ${combo}`));
+      if (!a) { wrap.appendChild(infoZeile('Kein Meisterabenteuer geladen.', '')); rueckKnopf(wrap); return wrap; }
+      if (!d || !d.pfad) {
+        wrap.appendChild(infoZeile('Diese Taste ist frei.', 'Waehle eine Audiodatei aus der Bibliothek.'));
+        wrap.appendChild(aktionZeile('Datei waehlen', () => kurztastenDateiWaehlen(i), 'eine Audiodatei auf diese Taste legen'));
+        verbindeDetail(wrap); rueckKnopf(wrap); return wrap;
+      }
+      const lv = (typeof d.lautstaerke === 'number') ? `${d.lautstaerke} Prozent` : 'Standard (Kanal)';
+      wrap.appendChild(infoZeile(`Belegt mit ${d.name}.`, `Modus ${kurztasten.modusName(d.modus)}${d.loop ? ', Schleife' : ''}. Lautstaerke ${lv}.`));
+      wrap.appendChild(aktionZeile('Testen', () => kurztasten.spiele(i), 'den Klang wie mit der Taste abspielen'));
+      wrap.appendChild(aktionZeile('Modus waehlen', () => kurzModusWaehlen(i), `Einspielen, Abspielen oder Hintergrund. Aktuell ${kurztasten.modusName(d.modus)}.`));
+      wrap.appendChild(aktionZeile(`Schleife: ${d.loop ? 'an' : 'aus'}`, () => kurzSchleifeUmschalten(i), 'wiederholt den Klang (bei Abspielen und Hintergrund)'));
+      wrap.appendChild(aktionZeile('Individuelle Lautstaerke festlegen', () => kurzLautstaerke(i), `eigene Lautstaerke fuer diese Taste. Aktuell ${lv}.`));
+      wrap.appendChild(aktionZeile('Neu belegen', () => kurztastenDateiWaehlen(i), 'eine andere Audiodatei auf diese Taste legen'));
+      wrap.appendChild(aktionZeile('Loeschen', () => kurzLoeschen(i), 'die Taste wieder frei machen'));
+      verbindeDetail(wrap); rueckKnopf(wrap); return wrap;
+    },
+    onShow() { sprache.sage(`Schnelltaste ${i + 1}.`); },
+  };
+  return scr;
+}
+
+async function kurzModusWaehlen(i) {
+  const a = getMeister(); const d = a && a.kurztasten[i]; if (!d) return;
+  const wahl = await knopfDialog({
+    titel: 'Modus', knoepfe: [
+      { label: 'Einspielen', wert: 'einspielen' },
+      { label: 'Abspielen', wert: 'abspielen' },
+      { label: 'Hintergrund', wert: 'hintergrund' },
+    ],
+  });
+  if (!wahl) return;
+  d.modus = wahl; kurzSpeichern(); screen.refresh(); sprache.sage(`Modus ${kurztasten.modusName(wahl)}.`);
+}
+
+function kurzSchleifeUmschalten(i) {
+  const a = getMeister(); const d = a && a.kurztasten[i]; if (!d) return;
+  d.loop = !d.loop; kurzSpeichern(); screen.refresh();
+  sprache.sage(d.loop ? 'Schleife an.' : 'Schleife aus.');
+}
+
+async function kurzLautstaerke(i) {
+  const a = getMeister(); const d = a && a.kurztasten[i]; if (!d) return;
+  const wahl = await knopfDialog({
+    titel: 'Lautstaerke', frage: 'Eigene Lautstaerke fuer diese Taste?', knoepfe: [
+      { label: 'Wert eingeben', wert: 'wert' },
+      { label: 'Auf Standard (Kanal)', wert: 'std' },
+    ],
+  });
+  if (wahl === 'std') { d.lautstaerke = null; kurzSpeichern(); screen.refresh(); sprache.sage('Lautstaerke auf Standard.'); return; }
+  if (wahl !== 'wert') return;
+  const e = await textDialog({ titel: 'Lautstaerke', label: 'Zahl von 0 bis 100', wert: (typeof d.lautstaerke === 'number' ? String(d.lautstaerke) : '') });
+  if (e === null) return;
+  const n = parseInt(String(e).replace(/[^0-9]/g, ''), 10);
+  if (isNaN(n)) { sprache.sage('Keine gueltige Zahl.'); return; }
+  d.lautstaerke = Math.max(0, Math.min(100, n)); kurzSpeichern(); screen.refresh();
+  sprache.sage(`Lautstaerke ${d.lautstaerke} Prozent.`);
+}
+
+async function kurzLoeschen(i) {
+  const a = getMeister(); if (!a || !a.kurztasten[i]) return;
+  if (!await jaNeinDialog({ titel: 'Loeschen', frage: `Schnelltaste ${i + 1} wieder frei machen?` })) return;
+  a.kurztasten[i] = null; kurzSpeichern(); screen.pop(); sprache.sage(`Schnelltaste ${i + 1} geloescht.`);
+}
+
+// Datei fuer eine Schnelltaste waehlen: durch den Audio-Baum blaettern und eine
+// Datei antippen. Danach zurueck zum Schnelltasten-Untermenue (das sich neu baut).
+function kurztastenDateiWaehlen(i) {
+  const start = (_wurzeln && _wurzeln.audioDaten) ? _wurzeln.audioDaten : null;
+  if (!start) { sprache.sage('Die Audio-Bibliothek ist noch nicht geladen.'); return; }
+  const ziel = screen.current(); // das Schnelltasten-Untermenue
+  screen.push(kurztastenOrdnerScreen(start, 'Datei waehlen', i, ziel));
+}
+
+function kurzDateiZuweisen(i, d) {
+  const a = getMeister(); if (!a) return;
+  const alt = a.kurztasten[i];
+  a.kurztasten[i] = {
+    name: d.name, pfad: d.pfad,
+    modus: (alt && alt.modus) || 'einspielen',
+    loop: alt ? !!alt.loop : false,
+    lautstaerke: (alt && typeof alt.lautstaerke === 'number') ? alt.lautstaerke : null,
+  };
+  kurzSpeichern();
+}
+
+function kurztastenOrdnerScreen(pfad, titel, slotIndex, ziel) {
+  const scr = {
+    title: titel,
+    _inhalt: null,
+    __filter: '',
+    async lade() {
+      try { scr._inhalt = await ipc.audioInhalt(pfad); }
+      catch { scr._inhalt = { ordner: [], dateien: [] }; }
+      screen.refresh();
+    },
+    build() {
+      const inhalt = scr._inhalt || { ordner: [], dateien: [] };
+      const q = (scr.__filter || '').toLowerCase();
+      const dateien = q ? inhalt.dateien.filter(d => d.name.toLowerCase().includes(q)) : inhalt.dateien;
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel(scr.__filter ? `${titel}, Filter ${scr.__filter}, ${dateien.length} Treffer` : titel));
+      wrap.appendChild(infoZeile('Waehle eine Datei fuer die Schnelltaste.',
+        'Ordner oeffnen ihre Unterordner. Enter auf einer Datei legt sie auf die Taste. Escape zurueck.'));
+      if (inhalt.dateien.length > 0) {
+        if (!scr.__filter) {
+          wrap.appendChild(aktionZeile('Filtern', async () => {
+            const e = await textDialog({ titel: 'Filtern', label: 'Suchbegriff eingeben, dann Eingabetaste' });
+            if (e === null) return; scr.__filter = e.trim(); screen.refresh();
+          }, 'die Liste durchsuchen'));
+        } else {
+          wrap.appendChild(aktionZeile('Filter aufheben', () => { scr.__filter = ''; screen.refresh(); }, `zeigt wieder alle ${inhalt.dateien.length}`));
+        }
+      }
+      for (const o of inhalt.ordner) {
+        wrap.appendChild(aktionZeile(`${o.name} (Ordner)`, () => screen.push(kurztastenOrdnerScreen(o.pfad, o.name, slotIndex, ziel)), 'Ordner oeffnen'));
+      }
+      for (const d of dateien) {
+        wrap.appendChild(aktionZeile(d.name, () => {
+          kurzDateiZuweisen(slotIndex, d);
+          sprache.sage(`${d.name} auf Schnelltaste ${slotIndex + 1} gelegt.`);
+          if (ziel && screen.imStack(ziel)) screen.zurueckBis(ziel); else screen.pop();
+        }, 'auf die Schnelltaste legen'));
+      }
+      if (!inhalt.ordner.length && !inhalt.dateien.length) {
+        wrap.appendChild(infoZeile('Dieser Ordner ist leer.', 'Lege Audio-Dateien hinein oder waehle einen anderen Ordner.'));
+      } else if (scr.__filter && !dateien.length) {
+        wrap.appendChild(infoZeile('Keine Treffer.', 'Filter mit "Filter aufheben" zuruecksetzen.'));
+      }
+      verbindeDetail(wrap);
+      rueckKnopf(wrap);
+      return wrap;
+    },
+    onShow() { if (scr._inhalt === null) scr.lade(); },
+  };
+  return scr;
+}
+
 function bibliothekScreen() {
   const scr = {
     title: 'Bibliothek',
@@ -448,6 +640,10 @@ function bibliothekScreen() {
       const wrap = document.createElement('div');
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel('Bibliothek'));
+      // Audio-Schnelltasten dieses Meisterabenteuers (Strg+1 bis Strg+´).
+      wrap.appendChild(aktionZeile('Kurztasten', () => screen.push(kurztastenScreen()),
+        'Strg-Tasten mit Klaengen belegen',
+        'Belege Strg+1 bis Strg+´ mit Klaengen dieses Abenteuers. Im Spiel spielt ein Tastendruck den Klang sofort, ohne Menue.'));
       const meine = _wurzeln && _wurzeln.meineAudios;
       wrap.appendChild(aktionZeile(
         meine ? `Meine Audios, ${ordnerName(meine)}` : 'Meine Audios, Ordner waehlen',

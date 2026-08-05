@@ -144,7 +144,8 @@ export async function spieleEinmal(datei, onEnde, pegel = 1) {
  * Der Einspiel-Kanal ist ebenfalls monophon: ein neues Einspielen blendet das alte
  * ueber. Wird ueber den mixBus gespielt, also hoeren es auch die Spieler im Radio.
  */
-export async function spieleEin(datei) {
+export async function spieleEin(datei, opts = {}) {
+  const { pegel = 1 } = opts; // Ziel-Lautstaerke 0..1 (fuer Kurztasten mit eigener Lautstaerke)
   const puffer = await ladePuffer(datei.pfad);
   const c = ctx();
   const dur = puffer.duration || 0;
@@ -166,7 +167,7 @@ export async function spieleEin(datei) {
   source.connect(gain);
   gain.connect(_mixBus);
   gain.gain.setValueAtTime(0.0001, t0);
-  gain.gain.linearRampToValueAtTime(1, t0 + ein); // einblenden
+  gain.gain.linearRampToValueAtTime(Math.max(0.0001, pegel), t0 + ein); // einblenden
   source.start();
 
   // Die geduckten Kanaele wieder auf ihren jeweiligen Pegel hochziehen.
@@ -178,7 +179,7 @@ export async function spieleEin(datei) {
   if (dur > ein + aus) {
     // Gegen Ende ausblenden und die Kanaele gleichzeitig wieder hoch (echte Ueberblende).
     const tAus = t0 + dur - aus;
-    gain.gain.setValueAtTime(1, tAus);
+    gain.gain.setValueAtTime(Math.max(0.0001, pegel), tAus);
     gain.gain.linearRampToValueAtTime(0.0001, tAus + aus);
     for (const l of loops) {
       const ziel = Math.max(0.0001, l.pegel || 1);

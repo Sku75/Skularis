@@ -211,6 +211,11 @@ export function hubAktiv() {
   return Boolean(_aktiv && screen.imStack(_aktiv.anker));
 }
 
+/** Bereich des gerade offenen Hubs ('abenteuer' | 'meister') oder null. */
+export function aktiverBereich() {
+  return (_aktiv && screen.imStack(_aktiv.anker)) ? (_aktiv.bereich || null) : null;
+}
+
 /** Den gerade offenen Hub verlassen (falls einer offen ist). */
 export function verlasseAktiven() {
   if (_aktiv) { const a = _aktiv.anker; _aktiv = null; screen.entferneAb(a); }

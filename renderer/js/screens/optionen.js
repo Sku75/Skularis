@@ -11,6 +11,7 @@ import * as screen from '../ui/screen.js';
 import * as einstellungen from './../daten/einstellungen.js';
 import * as shortcuts from '../shortcuts.js';
 import * as reiterTasten from '../ui/reiter-tasten.js';
+import * as kurztasten from '../meister/kurztasten.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { knopfDialog } from '../ui/dialog.js';
 
@@ -148,14 +149,21 @@ function tastenScreen() {
           }
         },
       }));
-      // Reiter-Tasten der Tische (F1-F12 und Shift+F1-F12), pro Tisch mit Namen.
+      // Reiter-Tasten der Tische: je Reiter ZWEI eigene Eintraege (an Merkposition
+      // und Menue oben), jeder frei auf eine beliebige Taste legbar. Pro Tisch.
       for (const b of reiterTasten.BEREICHE) {
         items.push({
           label: `Reiter-Tasten ${reiterTasten.bereichName(b)}`,
-          hint: 'F-Tasten der Reiter dieses Tisches umbelegen (auch die Shift-Variante)',
+          hint: 'jede Reiter-Funktion einzeln umbelegen (an Merkposition und Menue oben getrennt)',
           onSelect: () => screen.push(reiterBereichScreen(b)),
         });
       }
+      // Audio-Schnelltasten des Meistertisches (Strg+1 bis Strg+´).
+      items.push({
+        label: 'Audio-Schnelltasten (Meistertisch)',
+        hint: 'die zwoelf Tasten Strg+1 bis Strg+´ frei umbelegen',
+        onSelect: () => screen.push(kurztastenBelegungScreen()),
+      });
       return menuScreen({
         title: this.title,
         subtitle: 'Enter belegt eine Taste neu oder setzt sie zurueck. Escape zurueck.',
@@ -166,69 +174,105 @@ function tastenScreen() {
   };
 }
 
-/** Reiter-Tasten eines Tisches: je Reiter mit Menüname. */
+/**
+ * Reiter-Tasten eines Tisches als FLACHE Liste: jede Reiter-Funktion ist ein
+ * eigener Eintrag. Je Reiter zwei Zeilen — "an Merkposition" (kommt an die
+ * zuletzt verlassene Stelle) und "Menü oben" (Fokus oben auf dem ersten Punkt).
+ * Jeder Eintrag ist frei auf EINE beliebige Taste legbar (Standard F-Taste bzw.
+ * Shift+F-Taste, aber es geht auch etwas ganz anderes wie Strg+J oder m).
+ */
 function reiterBereichScreen(bereich) {
   return {
     title: '',
     build() {
       this.title = `Reiter-Tasten ${reiterTasten.bereichName(bereich)}`;
-      const items = reiterTasten.liste(bereich).map(r => ({
-        label: `${r.name}: ${r.normal}, oben ${r.oben}`,
-        hint: 'Enter: Taste neu belegen oder auf Standard zuruecksetzen',
-        onSelect: () => screen.push(reiterTabScreen(bereich, r.nr, r.name)),
-      }));
+      const items = [];
+      for (const r of reiterTasten.liste(bereich)) {
+        items.push(reiterEintrag(bereich, r.nr, r.name, false));
+        items.push(reiterEintrag(bereich, r.nr, r.name, true));
+      }
       return menuScreen({
         title: this.title,
-        subtitle: 'Enter oeffnet einen Reiter. "oben" ist die Shift-Variante (Fokus oben im Menü). Escape zurueck.',
+        subtitle: 'Jede Funktion hat eine eigene Taste. Enter belegt neu oder setzt auf Standard zurueck. Escape zurueck.',
         items, filter: false,
       }).build();
     },
   };
 }
 
-/** Einen Reiter umbelegen: Normaltaste, Oben-Taste (mit Shift), Standard. */
-function reiterTabScreen(bereich, nr, name) {
+/** Ein einzelner Reiter-Eintrag (normal = an Merkposition, frisch = Menü oben). */
+function reiterEintrag(bereich, nr, name, frisch) {
+  const combo = reiterTasten.comboFuer(bereich, nr, frisch);
+  const bez = frisch ? `${name} Menü oben` : `${name} an Merkposition`;
+  const std = frisch ? `Shift+F${nr}` : `F${nr}`;
   return {
-    title: name,
-    build() {
-      const normal = reiterTasten.comboFuer(bereich, nr, false);
-      const oben = reiterTasten.comboFuer(bereich, nr, true);
-      return menuScreen({
-        title: name,
-        subtitle: `Aktuell: ${normal}, oben ${oben}. Escape zurueck.`,
-        filter: false,
-        items: [
-          {
-            label: `Taste neu belegen, aktuell ${normal}`,
-            onSelect: async () => {
-              const c = await erfasseKombination();
-              if (!c) return;
-              reiterTasten.setCombo(bereich, nr, false, c);
-              screen.refresh();
-              sprache.sage(`${name} liegt jetzt auf ${c}.`);
-            },
-          },
-          {
-            label: `Oben-Taste mit Shift neu belegen, aktuell ${oben}`,
-            hint: 'springt in den Reiter und stellt den Fokus oben auf den ersten Punkt',
-            onSelect: async () => {
-              const c = await erfasseKombination();
-              if (!c) return;
-              reiterTasten.setCombo(bereich, nr, true, c);
-              screen.refresh();
-              sprache.sage(`${name} oben liegt jetzt auf ${c}.`);
-            },
-          },
-          {
-            label: 'Beide auf Standard zuruecksetzen',
-            onSelect: () => {
-              reiterTasten.reset(bereich, nr, false);
-              reiterTasten.reset(bereich, nr, true);
-              screen.refresh();
-              sprache.sage(`${name} auf Standard zurueckgesetzt.`);
-            },
-          },
+    label: `${bez}: ${combo}`,
+    hint: frisch
+      ? 'springt in den Reiter und stellt den Fokus oben auf den ersten Punkt'
+      : 'springt in den Reiter an die zuletzt verlassene Stelle',
+    onSelect: async () => {
+      const w = await knopfDialog({
+        titel: bez,
+        frage: `Aktuell ${combo}. Standard ${std}.`,
+        knoepfe: [
+          { label: 'Neu belegen', wert: 'neu' },
+          { label: 'Auf Standard zuruecksetzen', wert: 'std' },
+          { label: 'Abbrechen', wert: 'ab' },
         ],
+      });
+      if (w === 'neu') {
+        const c = await erfasseKombination();
+        if (!c) return;
+        reiterTasten.setCombo(bereich, nr, frisch, c);
+        screen.refresh();
+        sprache.sage(`${bez} liegt jetzt auf ${c}.`);
+      } else if (w === 'std') {
+        reiterTasten.reset(bereich, nr, frisch);
+        screen.refresh();
+        sprache.sage(`${bez} auf Standard zurueckgesetzt.`);
+      }
+    },
+  };
+}
+
+/**
+ * Audio-Schnelltasten des Meistertisches (Strg+1 bis Strg+´). Global umbelegbar;
+ * jede Taste ein eigener Eintrag, frei auf eine beliebige Kombination legbar.
+ */
+function kurztastenBelegungScreen() {
+  return {
+    title: 'Audio-Schnelltasten',
+    build() {
+      const items = kurztasten.liste().map(k => ({
+        label: `Schnelltaste ${k.nr}: ${k.combo}`,
+        hint: 'Enter: neu belegen oder auf Standard zuruecksetzen',
+        onSelect: async () => {
+          const w = await knopfDialog({
+            titel: `Schnelltaste ${k.nr}`,
+            frage: `Aktuell ${k.combo}. Standard ${k.std}.`,
+            knoepfe: [
+              { label: 'Neu belegen', wert: 'neu' },
+              { label: 'Auf Standard zuruecksetzen', wert: 'std' },
+              { label: 'Abbrechen', wert: 'ab' },
+            ],
+          });
+          if (w === 'neu') {
+            const c = await erfasseKombination();
+            if (!c) return;
+            kurztasten.setCombo(k.nr, c);
+            screen.refresh();
+            sprache.sage(`Schnelltaste ${k.nr} liegt jetzt auf ${c}.`);
+          } else if (w === 'std') {
+            kurztasten.reset(k.nr);
+            screen.refresh();
+            sprache.sage(`Schnelltaste ${k.nr} auf Standard zurueckgesetzt.`);
+          }
+        },
+      }));
+      return menuScreen({
+        title: 'Audio-Schnelltasten (Meistertisch)',
+        subtitle: 'Die zwoelf Tasten fuer die Audio-Schnelltasten. Was jede Taste abspielt, legst du im Meistertisch unter F12, Bibliothek, Kurztasten fest. Escape zurueck.',
+        items, filter: false,
       }).build();
     },
   };

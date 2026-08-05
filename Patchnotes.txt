@@ -4,6 +4,36 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.62, 5. August 2026
+
+
+Audio-Schnelltasten am Meistertisch (Strg+1 bis Strg+´)
+
+Neu im Meistertisch unter F12, Bibliothek, der Menüpunkt Kurztasten. Dort belegst
+du die zwölf Tasten Strg+1 bis Strg+0, Strg+ß und Strg+´ mit je einem Klang aus
+der Bibliothek. Im Spiel spielt ein einziger Tastendruck den Klang sofort ab,
+ohne dass du ins Menü wechseln musst. So kannst du dir im Abenteuerdokument
+notieren, welche Taste welchen Sound hat, und ihn im richtigen Moment auslösen.
+
+Pro Schnelltaste wählst du die Datei, den Modus (Einspielen ist voreingestellt,
+alternativ Abspielen oder Hintergrund), ob sie in Schleife läuft, und eine eigene
+Lautstärke. Du kannst eine Taste jederzeit neu belegen oder wieder frei machen und
+sie über Testen probehören. Die Belegung gehört zum einzelnen Meisterabenteuer:
+ein neues Abenteuer startet mit leeren Schnelltasten.
+
+Welche Taste welchen Platz auslöst, änderst du in den Optionen unter Tasten neu
+belegen, im Punkt Audio-Schnelltasten (Meistertisch).
+
+
+Tastenbelegung übersichtlicher
+
+Unter Optionen, Tasten neu belegen, sind die Reiter-Tasten der Tische jetzt einzeln
+aufgeführt: jede Reiter-Funktion hat einen eigenen Eintrag. Je Reiter zwei Zeilen,
+zum Beispiel "Meine Initiative-Phase an Merkposition" (Standard F1) und "Meine
+Initiative-Phase Menü oben" (Standard Shift und F1). Jede Zeile lässt sich frei auf
+eine beliebige Taste legen; es muss nicht die Shift-Umschalttaste sein.
+
+
 Version 0.61, 2. August 2026
 
 
