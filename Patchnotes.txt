@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.66, 5. August 2026
+
+
+Zwölf weitere Audio-Schnelltasten
+
+Es gibt jetzt einen zweiten Block Audio-Schnelltasten: Strg und Shift und 1 bis
+Strg und Shift und ´. Zusammen mit dem ersten Block (Strg und 1 bis Strg und ´)
+sind es 24 Plätze. Du belegst sie wie bisher im Meistertisch unter F12,
+Bibliothek, Kurztasten; auch die neuen Tasten sind in den Optionen unter Tasten
+neu belegen frei umlegbar. Ältere Meisterabenteuer bekommen die zwölf neuen,
+leeren Plätze automatisch dazu.
+
+
 Version 0.65, 5. August 2026
 
 

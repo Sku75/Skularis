@@ -463,9 +463,9 @@ function kurztastenScreen() {
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel('Kurztasten'));
       if (!a) { wrap.appendChild(infoZeile('Kein Meisterabenteuer geladen.', 'Oeffne zuerst ein Meisterabenteuer.')); rueckKnopf(wrap); return wrap; }
-      wrap.appendChild(infoZeile('Belege Strg+1 bis Strg+´ mit Klaengen dieses Abenteuers.',
-        'Im Spiel spielt ein Druck auf die Taste den Klang sofort, ohne Menue. Die Belegung gilt nur fuer dieses Meisterabenteuer; ein neues Abenteuer startet leer. Welche Taste welchen Platz ausloest, aenderst du in den Optionen unter "Tasten neu belegen".'));
-      for (let i = 0; i < 12; i++) {
+      wrap.appendChild(infoZeile('Belege die Schnelltasten mit Klaengen dieses Abenteuers.',
+        'Block 1: Strg+1 bis Strg+´. Block 2: Strg+Shift+1 bis Strg+Shift+´. Im Spiel spielt ein Druck auf die Taste den Klang sofort, ohne Menue. Die Belegung gilt nur fuer dieses Meisterabenteuer; ein neues Abenteuer startet leer. Welche Taste welchen Platz ausloest, aenderst du in den Optionen unter "Tasten neu belegen".'));
+      for (let i = 0; i < 24; i++) {
         const b = kurzSlotLabel(a, i);
         wrap.appendChild(aktionZeile(b.label, () => screen.push(kurztastenSlotScreen(i)), 'aendern', b.detail));
       }

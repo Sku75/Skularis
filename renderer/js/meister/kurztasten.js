@@ -19,20 +19,21 @@ import { getMeister } from './state.js';
 import * as player from './audio-player.js';
 import * as sprache from '../sprache.js';
 
-// Feste Reihenfolge der zwoelf Plaetze (Nummer 1..12) mit Standard-Kombination
-// und Anzeigename. Die Nummer bleibt stabil, auch wenn die Taste umbelegt wird.
-const SLOTS = [
-  { nr: 1, std: 'Strg+1' }, { nr: 2, std: 'Strg+2' }, { nr: 3, std: 'Strg+3' },
-  { nr: 4, std: 'Strg+4' }, { nr: 5, std: 'Strg+5' }, { nr: 6, std: 'Strg+6' },
-  { nr: 7, std: 'Strg+7' }, { nr: 8, std: 'Strg+8' }, { nr: 9, std: 'Strg+9' },
-  { nr: 10, std: 'Strg+0' }, { nr: 11, std: 'Strg+ß' }, { nr: 12, std: 'Strg+´' },
-];
+// Feste Reihenfolge der Plaetze mit Standard-Kombination. Die Nummer bleibt
+// stabil, auch wenn die Taste umbelegt wird. Zwei Bloecke der oberen Zahlenreihe
+// (Zeichen 1..0, ß, ´): Block 1 mit Strg (Plaetze 1..12), Block 2 mit Strg+Shift
+// (Plaetze 13..24).
+const ZEICHEN = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'ß', '´'];
+const SLOTS = [];
+for (let i = 0; i < ZEICHEN.length; i++) SLOTS.push({ nr: i + 1, std: `Strg+${ZEICHEN[i]}` });
+for (let i = 0; i < ZEICHEN.length; i++) SLOTS.push({ nr: i + 13, std: `Strg+Shift+${ZEICHEN[i]}` });
 
-// Physische Tastencodes der oberen Zahlenreihe -> Platz-Nummer. Robust auch fuer
+// Physische Tastencodes der oberen Zahlenreihe -> Position 1..12. Robust auch fuer
 // die ß- und ´-Taste (´ ist auf deutscher Tastatur eine Tot-Taste, deren e.key
 // nicht verlaesslich ist) — deshalb erkennen wir die Standardbelegung ueber den
-// layout-unabhaengigen e.code.
-const CODE_ZU_NR = {
+// layout-unabhaengigen e.code. Mit Shift verschiebt sich die Position in den
+// zweiten Block (Position + 12).
+const CODE_ZU_POS = {
   Digit1: 1, Digit2: 2, Digit3: 3, Digit4: 4, Digit5: 5, Digit6: 6,
   Digit7: 7, Digit8: 8, Digit9: 9, Digit0: 10, Minus: 11, Equal: 12,
 };
@@ -92,10 +93,14 @@ function trefferNr(e) {
     const c = norm(combo);
     for (const s of SLOTS) if (norm(comboFuer(s.nr)) === c) return s.nr;
   }
-  // 2) Standard der Zahlenreihe ueber den physischen Code (deckt ß und ´ sicher ab).
-  if (e.ctrlKey && !e.altKey && !e.shiftKey) {
-    const nr = CODE_ZU_NR[e.code];
-    if (nr && istStandard(nr)) return nr;
+  // 2) Standard der Zahlenreihe ueber den physischen Code (deckt ß und ´ sicher
+  //    ab). Ohne Shift Block 1 (Position), mit Shift Block 2 (Position + 12).
+  if (e.ctrlKey && !e.altKey) {
+    const pos = CODE_ZU_POS[e.code];
+    if (pos) {
+      const nr = e.shiftKey ? pos + 12 : pos;
+      if (istStandard(nr)) return nr;
+    }
   }
   return null;
 }

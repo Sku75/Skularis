@@ -161,7 +161,7 @@ function tastenScreen() {
       // Audio-Schnelltasten des Meistertisches (Strg+1 bis Strg+´).
       items.push({
         label: 'Audio-Schnelltasten (Meistertisch)',
-        hint: 'die zwoelf Tasten Strg+1 bis Strg+´ frei umbelegen',
+        hint: 'die Tasten Strg+1 bis Strg+´ und Strg+Shift+1 bis Strg+Shift+´ frei umbelegen',
         onSelect: () => screen.push(kurztastenBelegungScreen()),
       });
       return menuScreen({
@@ -271,7 +271,7 @@ function kurztastenBelegungScreen() {
       }));
       return menuScreen({
         title: 'Audio-Schnelltasten (Meistertisch)',
-        subtitle: 'Die zwoelf Tasten fuer die Audio-Schnelltasten. Was jede Taste abspielt, legst du im Meistertisch unter F12, Bibliothek, Kurztasten fest. Escape zurueck.',
+        subtitle: 'Die 24 Tasten fuer die Audio-Schnelltasten (Block 1 mit Strg, Block 2 mit Strg und Shift). Was jede Taste abspielt, legst du im Meistertisch unter F12, Bibliothek, Kurztasten fest. Escape zurueck.',
         items, filter: false,
       }).build();
     },
