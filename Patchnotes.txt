@@ -4,6 +4,18 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.63, 5. August 2026
+
+
+Meistertexte: Ordner neu wählen und aktualisieren
+
+In den Meistertexten (F7 und F8), im Bereich Abenteuertexte, steht bei einem
+gewählten Ordner jetzt ganz oben die Schaltfläche "Neuen Ordner wählen oder
+aktualisieren". Du kannst denselben Ordner erneut oder einen anderen wählen; nach
+dem Bestätigen werden alle Texte frisch von der Platte gelesen. So übernimmt die
+Liste außen geänderte Dateien und neu hinzugekommene oder entfernte Dokumente.
+
+
 Version 0.62, 5. August 2026
 
 

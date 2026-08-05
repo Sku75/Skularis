@@ -63,9 +63,15 @@ export function texteScreen(slot = 1) {
         }
       }
 
+      // Ordner-Schaltflaeche IMMER ganz oben. Bei gewaehltem Ordner heisst sie
+      // "Neuen Ordner waehlen oder aktualisieren": man kann denselben Ordner
+      // erneut oder einen anderen waehlen; danach werden alle Texte neu von der
+      // Platte gelesen (uebernimmt aussen geaenderte Dateien und neue/entfernte).
       const ordnerPunkt = {
-        label: a[ordnerKey] ? `Ordner wechseln, aktuell ${ordnerName(a[ordnerKey])}` : 'Ordner waehlen und bestaetigen',
-        hint: 'einen Ordner mit txt-Dokumenten waehlen (nur fuer dieses Text-Menue)',
+        label: a[ordnerKey] ? `Neuen Ordner waehlen oder aktualisieren, aktuell ${ordnerName(a[ordnerKey])}` : 'Ordner waehlen und bestaetigen',
+        hint: a[ordnerKey]
+          ? 'denselben oder einen anderen Ordner waehlen; danach werden alle Texte neu geladen'
+          : 'einen Ordner mit txt-Dokumenten waehlen (nur fuer dieses Text-Menue)',
         onSelect: async () => {
           const r = await ipc.ordnerWaehlen('Ordner mit Abenteuertexten waehlen');
           if (!r || !r.pfad) return;
@@ -73,14 +79,15 @@ export function texteScreen(slot = 1) {
           scr._dateien = null;
           await speichere();
           await scr.ladeListe();
-          sprache.sage(`Ordner ${ordnerName(a[ordnerKey])} gewaehlt.`);
+          const n = (scr._dateien || []).length;
+          sprache.sage(`Ordner ${ordnerName(a[ordnerKey])}, ${n} ${n === 1 ? 'Text' : 'Texte'} neu geladen.`);
         },
       };
-      if (a[ordnerKey]) items.push(ordnerPunkt); else items.unshift(ordnerPunkt);
+      items.unshift(ordnerPunkt);
 
       return menuScreen({
         title: this.title,
-        subtitle: a[ordnerKey] ? 'Enter oeffnet ein Dokument. Ordner unten wechseln. Escape zurueck.' : 'Erst einen Ordner waehlen und bestaetigen. Escape zurueck.',
+        subtitle: a[ordnerKey] ? 'Oben den Ordner neu waehlen oder aktualisieren. Enter oeffnet ein Dokument. Escape zurueck.' : 'Erst einen Ordner waehlen und bestaetigen. Escape zurueck.',
         items,
         leer: 'Keine txt-Dokumente in diesem Ordner.',
         filter: (scr._dateien || []).length >= 10,
