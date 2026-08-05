@@ -112,6 +112,14 @@ function slotDaten(index) {
 export async function spiele(index) {
   const d = slotDaten(index);
   if (!d || !d.pfad) return false;
+  // Umschalten: laeuft der Klang dieser Taste schon (egal auf welchem Kanal),
+  // blendet ein zweiter Druck ihn weich aus und stoppt ihn (Ausblendzeit rund
+  // 1,2 Sekunden wie im Player). Kein neues Starten.
+  if (player.laeuftKanalFuer(d.pfad)) {
+    player.stoppePfad(d.pfad);
+    sprache.sage(`${d.name}, gestoppt.`);
+    return true;
+  }
   const datei = { name: d.name, pfad: d.pfad };
   const pegel = (typeof d.lautstaerke === 'number') ? Math.max(0, Math.min(1, d.lautstaerke / 100)) : null;
   try {
