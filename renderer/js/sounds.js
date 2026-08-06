@@ -16,10 +16,11 @@ const SOUND_MAP = {
   tab:            'ebene-vor.wav',
   schliessen:     'ebene-zurueck.wav',
   wuerfel:        'wuerfel.wav',
-  // Info-Fenster (Tooltip mit Shift und Pfeil-runter, Strg und I): der frühere,
-  // vom Nutzer bevorzugte Ton (Auf = info-auf, Zu = info-zu).
-  buch_auf:       'info-auf.wav',
-  buch_zu:        'info-zu.wav',
+  // Info-Fenster (Tooltip mit Shift und Pfeil-runter, Strg und I): neue Tooltip-Toene.
+  buch_auf:       'tooltip-auf.ogg',
+  buch_zu:        'tooltip-zu.ogg',
+  // ESC-/Verlassen-Menue an beiden Tischen (Abenteuer schliessen).
+  esc_verlassen:  'esc-verlassen.mp3',
   // Anschlag am Listenrand: derselbe Klang wie 'error', nur leiser. Danach wird
   // die aktuelle Zeile erneut vorgelesen, damit der Ton die Ansage nicht verdeckt.
   grenze:         'sound 15.wav',
@@ -34,6 +35,7 @@ const SOUND_MAP = {
   wert_runter:    'wert-runter.wav',
   ap_bezahlen:    'ep-minus.wav',
   ap_zurueck:     'ep-plus.wav',
+  ep_hinzu:       'success2.mp3', // Erfolg: Gesamt-EP hinzugefuegt
 };
 
 const FALLBACK_BEEPS = {
@@ -45,6 +47,7 @@ const FALLBACK_BEEPS = {
   wuerfel:       { freq: 900, ms: 120 },
   buch_auf:      { freq: 660, ms: 160 },
   buch_zu:       { freq: 300, ms: 160 },
+  esc_verlassen: { freq: 400, ms: 220 },
   grenze:        { freq: 220, ms: 400 },
   oeffnen:       { freq: 523, ms: 100 },
   schliessen:    { freq: 494, ms: 220 },
@@ -58,6 +61,7 @@ const FALLBACK_BEEPS = {
   wert_runter:   { freq: 400, ms: 80 },
   ap_bezahlen:   { freq: 750, ms: 150 },
   ap_zurueck:    { freq: 450, ms: 150 },
+  ep_hinzu:      { freq: 880, ms: 180 },
 };
 
 // Pro-Sound Lautstaerke-Faktor (Multiplikator auf _globalVolume).
@@ -75,8 +79,9 @@ const BEDIEN_PEGEL = 0.45;
 const BEDIEN_LEISE = 0.24;
 const VOLUME_MAP = {
   navigation: BEDIEN_LEISE,   // Pfeil-Navigation zwischen Zeilen (leiser)
-  buch_auf:   BEDIEN_PEGEL,   // Info-Fenster oeffnet
-  buch_zu:    BEDIEN_PEGEL,   // Info-Fenster schliesst
+  buch_auf:   BEDIEN_PEGEL,   // Info-Fenster oeffnet (Tooltip)
+  buch_zu:    BEDIEN_PEGEL,   // Info-Fenster schliesst (Tooltip)
+  esc_verlassen: BEDIEN_PEGEL, // ESC-/Verlassen-Menue an beiden Tischen
   eingabe_start: BEDIEN_LEISE, // Textfeld betreten (leiser)
   eingabe_ende:  BEDIEN_LEISE, // Textfeld verlassen (leiser)
   wert_hoch:  BEDIEN_PEGEL,   // Werteaenderung
@@ -85,6 +90,7 @@ const VOLUME_MAP = {
   speichern:  BEDIEN_PEGEL,   // Speichern/Fenster schliesst
   ap_bezahlen: BEDIEN_PEGEL,  // EP ausgeben
   ap_zurueck:  BEDIEN_PEGEL,  // EP erstatten
+  ep_hinzu:    BEDIEN_PEGEL,  // Gesamt-EP hinzugefuegt (Erfolg)
   tab:        0.30,   // Bildschirmwechsel vor (Alt-Satz)
   schliessen: 0.30,   // Bildschirmwechsel zurueck (Alt-Satz)
   click:      0.30,   // Menuepunkt auswaehlen (Alt-Satz)
@@ -126,21 +132,25 @@ export function getVolume() {
   return Math.round(_globalVolume * 100);
 }
 
-export function play(name) {
+/**
+ * Einen Klang abspielen. faktor skaliert diesen EINEN Aufruf zusaetzlich
+ * (1 = normal, 0.7 = 30 Prozent leiser), ohne die Grundlautstaerke zu aendern.
+ */
+export function play(name, faktor = 1) {
   if (!_soundAn) return;
   const file = SOUND_MAP[name];
   if (!file) {
-    _playFallbackBeep(name);
+    _playFallbackBeep(name, faktor);
     return;
   }
   const audio = _getOrCreate(file);
   if (!audio) {
-    _playFallbackBeep(name);
+    _playFallbackBeep(name, faktor);
     return;
   }
-  audio.volume = _globalVolume * (VOLUME_MAP[name] || DEFAULT_VOLUME_FACTOR);
+  audio.volume = Math.max(0, Math.min(1, _globalVolume * (VOLUME_MAP[name] || DEFAULT_VOLUME_FACTOR) * faktor));
   audio.currentTime = 0;
-  audio.play().catch(() => _playFallbackBeep(name));
+  audio.play().catch(() => _playFallbackBeep(name, faktor));
 }
 
 function _preload() {
@@ -161,7 +171,7 @@ function _getOrCreate(file) {
   }
 }
 
-function _playFallbackBeep(name) {
+function _playFallbackBeep(name, faktor = 1) {
   const b = FALLBACK_BEEPS[name];
   if (!b) return;
   try {
@@ -169,7 +179,7 @@ function _playFallbackBeep(name) {
     const osc = _audioCtx.createOscillator();
     const gain = _audioCtx.createGain();
     osc.frequency.value = b.freq;
-    gain.gain.value = _globalVolume * (VOLUME_MAP[name] || DEFAULT_VOLUME_FACTOR) * 0.3;
+    gain.gain.value = _globalVolume * (VOLUME_MAP[name] || DEFAULT_VOLUME_FACTOR) * 0.3 * faktor;
     osc.connect(gain);
     gain.connect(_audioCtx.destination);
     osc.start();

@@ -171,7 +171,7 @@ async function oeffneAbenteuer(eintrag) {
     }
 
     setAbenteuer(a);
-    sounds.playOeffnen();
+    sounds.play('oeffnen', 0.7);     // 30 Prozent leiser beim Oeffnen eines Abenteuers
     oeffneHub();
   } catch (e) {
     console.error('Abenteuer laden:', e);
@@ -189,6 +189,24 @@ function abenteuerEintragScreen(eintrag) {
         subtitle: 'Escape zurück.',
         items: [
           { label: 'Öffnen', hint: 'Abenteuer öffnen zum Bearbeiten oder Spielen', onSelect: () => oeffneAbenteuer(eintrag) },
+          {
+            label: 'Umbenennen',
+            onSelect: async () => {
+              const neu = await textDialog({ titel: 'Umbenennen', label: 'Neuer Name', wert: eintrag.name });
+              if (neu === null || !neu.trim() || neu.trim() === eintrag.name) return;
+              try {
+                const r = await ipc.abenteuerLaden(eintrag.pfad);
+                const a = parseAbenteuer(r.inhalt);
+                a.name = neu.trim();
+                const s = await ipc.abenteuerSpeichern({ name: a.name, inhalt: JSON.stringify(a, null, 2) });
+                if (s && s.pfad && s.pfad !== eintrag.pfad) { try { await ipc.abenteuerLoeschen(eintrag.pfad); } catch { /* egal */ } }
+                if (_einstieg) _einstieg._liste = null;
+                sounds.playSpeichern();
+                screen.pop();
+                sprache.sage(`Umbenannt in ${a.name}.`);
+              } catch (e) { console.error('Abenteuer umbenennen:', e); sprache.sage('Umbenennen fehlgeschlagen.'); }
+            },
+          },
           {
             label: 'Löschen',
             onSelect: async () => {
@@ -245,6 +263,7 @@ function oeffneHub() {
     bereich: 'abenteuer',
     zurueckAuf: _einstieg,
     beimVerlassen: async () => {
+      sounds.play('esc_verlassen'); // ESC-/Verlassen-Menue
       const w = await knopfDialog({
         titel: 'Abenteuer verlassen',
         knoepfe: [

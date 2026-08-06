@@ -15,9 +15,11 @@ import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { textDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
+import { abschnittTitel, aktionZeile, infoZeile, verbindeDetail } from '../editor/widgets.js';
 import { getDb, ladeDb } from '../core/db-laden.js';
 import { getMeister, speichere } from './state.js';
-import { baueSpielerKarte, baueStatblockKarte, angriffeText } from '../core/meister-abenteuer.js';
+import { baueSpielerKarte, baueStatblockKarte, angriffeText, leererStatblock } from '../core/meister-abenteuer.js';
+import { statblockScreen } from './gegnerkartei.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -117,24 +119,63 @@ function kategorienScreen(titel, zielFn, bezeichnung) {
 }
 
 function quelleListeScreen(art, label, zielFn, bezeichnung) {
-  return {
+  const scr = {
     title: label,
+    __filter: '',
     build() {
+      const a = getMeister();
       const liste = quelleFuer(art);
-      const items = liste.map((e, i) => ({
-        label: e.name || '(ohne Name)',
-        detail: detailFuer(art, e),
-        hint: `Enter fuegt ${bezeichnung} hinzu`,
-        onSelect: async () => {
-          const t = await alsTemplate(art, e);
-          zielFn(t, art);
-        },
-      }));
-      const leer = art === 'spieler' ? 'Keine Helden in der Gruppe.'
-        : (art === 'freund' ? 'Keine freundlichen NPC.' : 'Keine Gegner in der Auswahl.');
-      return menuScreen({ title: label, subtitle: `Enter fuegt ${bezeichnung} hinzu. Escape zurueck.`, items, leer, filter: liste.length >= 10 }).build();
+      const q = (scr.__filter || '').toLowerCase();
+      const treffer = q ? liste.filter(e => (e.name || '').toLowerCase().includes(q)) : liste;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel(label));
+
+      // Ganz oben: Statbloecke (freundliche NPC, Gegner) hier direkt erstellen.
+      if (art === 'freund' || art === 'gegner') {
+        const wort = art === 'freund' ? 'freundlichen NPC' : 'Gegner';
+        wrap.appendChild(aktionZeile(`Neuen ${wort} erstellen`, async () => {
+          const nm = await textDialog({ titel: `Neuer ${art === 'freund' ? 'NPC' : 'Gegner'}`, label: 'Name' });
+          if (nm === null || !nm.trim()) return;
+          const sb = leererStatblock(a); sb.name = nm.trim();
+          (art === 'freund' ? a.freundlicheNsc : a.nsc).push(sb);
+          await speichere();
+          screen.push(statblockScreen(art, (art === 'freund' ? a.freundlicheNsc : a.nsc).length - 1));
+        }, 'Name, Werte und Angriffe eintragen'));
+      }
+
+      // Darunter die Filterzeile (nur wenn es Eintraege gibt).
+      if (liste.length) {
+        if (!scr.__filter) {
+          wrap.appendChild(aktionZeile('Filtern', async () => {
+            const e = await textDialog({ titel: 'Filtern', label: 'Suchbegriff eingeben, dann Eingabetaste' });
+            if (e === null) return; scr.__filter = e.trim(); screen.refresh();
+          }, 'die Liste durchsuchen'));
+        } else {
+          wrap.appendChild(aktionZeile('Filter aufheben', () => { scr.__filter = ''; screen.refresh(); }, `zeigt wieder alle ${liste.length}`));
+        }
+      }
+
+      // Darunter die Karten; Enter fuegt hinzu.
+      for (const e of treffer) {
+        wrap.appendChild(aktionZeile(e.name || '(ohne Name)', async () => { const t = await alsTemplate(art, e); zielFn(t, art); }, `Enter fuegt ${bezeichnung} hinzu`, detailFuer(art, e)));
+      }
+
+      if (!liste.length) {
+        wrap.appendChild(infoZeile(
+          art === 'spieler' ? 'Keine Helden in der Gruppe.'
+            : (art === 'freund' ? 'Noch keine freundlichen NPC. Oben einen erstellen.' : 'Keine Gegner in der Auswahl. Oben einen erstellen.'), ''));
+      } else if (scr.__filter && !treffer.length) {
+        wrap.appendChild(infoZeile('Keine Treffer.', 'Filter mit "Filter aufheben" zuruecksetzen.'));
+      }
+
+      verbindeDetail(wrap);
+      return wrap;
     },
+    onShow() { sprache.sage(label + '.'); },
   };
+  return scr;
 }
 
 // --- Spieltisch bestuecken -----------------------------------------------

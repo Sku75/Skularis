@@ -79,7 +79,7 @@ function charakterMenu(c) {
         const { db, parsed } = await ladeChar(c);
         parsed.erfahrung.gesamt = (parsed.erfahrung.gesamt || 0) + menge;
         await ipc.bibliothekSpeichern({ name: c.name, inhalt: serialisiere(parsed, db) });
-        sounds.playSpeichern();
+        sounds.play('ep_hinzu'); // Erfolgs-Ton fuer EP hinzugefuegt (nicht der Speicher-Ton)
         sprache.sage(`${menge} EP hinzugefügt. ${c.name} hat jetzt ${parsed.erfahrung.gesamt} EP gesamt.`);
       } },
       { label: 'Als HTML exportieren', hint: 'Lesbares Charakterblatt in Charakter-Dateien', onSelect: async () => {

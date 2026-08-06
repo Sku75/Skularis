@@ -149,7 +149,7 @@ async function oeffneMeister(eintrag) {
     if (!ok) { sprache.sage('Öffnen abgebrochen.'); return; } // Abbrechen: nichts laden
     setMeister(a);
     await speichere();               // aufgefrischten/bereinigten Stand sichern (nur Meister-JSON)
-    sounds.playOeffnen();
+    sounds.play('oeffnen', 0.7);     // 30 Prozent leiser beim Oeffnen eines Meisterabenteuers
     oeffneHub();
   } catch (e) {
     console.error('Meisterabenteuer laden:', e);
@@ -167,6 +167,24 @@ function meisterEintragScreen(eintrag) {
         subtitle: 'Escape zurück.',
         items: [
           { label: 'Öffnen', hint: 'Meisterabenteuer öffnen zum Bearbeiten oder Spielen', onSelect: () => oeffneMeister(eintrag) },
+          {
+            label: 'Umbenennen',
+            onSelect: async () => {
+              const neu = await textDialog({ titel: 'Umbenennen', label: 'Neuer Name', wert: eintrag.name });
+              if (neu === null || !neu.trim() || neu.trim() === eintrag.name) return;
+              try {
+                const r = await ipc.meisterLaden(eintrag.pfad);
+                const a = parseMeisterAbenteuer(r.inhalt);
+                a.name = neu.trim();
+                const s = await ipc.meisterSpeichern({ name: a.name, inhalt: JSON.stringify(a, null, 2) });
+                if (s && s.pfad && s.pfad !== eintrag.pfad) { try { await ipc.meisterLoeschen(eintrag.pfad); } catch { /* egal */ } }
+                if (_einstieg) _einstieg._liste = null;
+                sounds.playSpeichern();
+                screen.pop();
+                sprache.sage(`Umbenannt in ${a.name}.`);
+              } catch (e) { console.error('Meisterabenteuer umbenennen:', e); sprache.sage('Umbenennen fehlgeschlagen.'); }
+            },
+          },
           {
             label: 'Löschen',
             onSelect: async () => {
@@ -215,6 +233,7 @@ function oeffneHub() {
     bereich: 'meister',
     zurueckAuf: _einstieg,
     beimVerlassen: async () => {
+      sounds.play('esc_verlassen'); // ESC-/Verlassen-Menue
       const w = await knopfDialog({
         titel: 'Meister-Tisch verlassen',
         knoepfe: [

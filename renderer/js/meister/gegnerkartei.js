@@ -73,7 +73,7 @@ function statblockText(sb) {
   return [`${sb.name}. Wundschwelle ${sb.ws}, Ruestung ${sb.rs}, Initiative ${sb.ini}.`, angr || 'Keine Angriffe eingetragen.', sb.notizen ? `Notizen: ${sb.notizen}` : ''].filter(Boolean).join(' ');
 }
 
-function statblockScreen(art, index) {
+export function statblockScreen(art, index) {
   const einzeln = art === 'freund' ? 'NPC' : 'Gegner';
   return {
     title: '',

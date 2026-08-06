@@ -4,6 +4,23 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.69, 6. August 2026
+
+
+Kleinere Verbesserungen und neue Töne
+
+- Beim Öffnen eines Abenteuers (Meister- und Abenteuertisch) ist der Ton jetzt
+  30 Prozent leiser.
+- Neue Töne: Tooltip öffnet und schließt, das ESC-/Verlassen-Menü an beiden
+  Tischen, und ein Erfolgston, wenn du in Meine Charaktere Erfahrungspunkte
+  hinzufügst.
+- Meistertisch, Spieltisch bestücken: unter Freundliche NPC und unter Gegner steht
+  jetzt oben "Erstellen", darunter die Filterzeile, darunter die Karten. So legst du
+  neue NSC oder Gegner direkt an.
+- Abenteuer lassen sich auf beiden Tischen umbenennen: das Untermenü eines
+  Abenteuers hat jetzt Öffnen, Umbenennen und Löschen.
+
+
 Version 0.68, 6. August 2026
 
 
