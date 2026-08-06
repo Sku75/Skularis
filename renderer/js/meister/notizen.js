@@ -29,8 +29,6 @@ export function meisterNotizenScreen(slot = 1) {
         subtitle: 'Escape zurueck.',
         items: [
           { label: 'Abenteuertexte', hint: 'txt-Dokumente aus einem Ordner lesen (eigener Ordner je Menue)', onSelect: () => screen.push(texteScreen(slot)) },
-          { label: 'Meister-Notizen (geheim)', hint: 'nur fuer dich', onSelect: () => screen.push(listeScreen('meisterNotizen', 'Meister-Notiz', false)) },
-          { label: 'Vorlesetexte', hint: 'zum Vorlesen am Tisch', onSelect: () => screen.push(listeScreen('vorlesetexte', 'Vorlesetext', true)) },
           { label: 'Zufallstabellen', hint: 'Namen, Geruechte, Wetter, Beute wuerfeln', onSelect: () => screen.push(zufallstabellenScreen()) },
           { label: 'Name erwuerfeln', hint: 'Vor- und Nachnamen nach Spezies, Kultur, Geschlecht', onSelect: () => screen.push(namensgeneratorScreen()) },
         ],

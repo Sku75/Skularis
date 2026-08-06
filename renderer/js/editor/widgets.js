@@ -71,14 +71,26 @@ export function wertZeile(o) {
   const verstelle = (delta) => {
     const v = o.get();
     const nv = Math.max(o.min, Math.min(o.max, v + delta));
-    if (nv === v) { if (!o.ohneTon) sounds.playError(); return; }
+    if (nv === v) {
+      // Am Anschlag (kann nicht weiter). Stumme Regler (Lautstaerke) geben den
+      // Anschlagklang, sonst der uebliche Fehlerton (ausser o.ohneTon).
+      if (o.stumm) sounds.playGrenze();
+      else if (!o.ohneTon) sounds.playError();
+      return;
+    }
     o.set(nv);
     // o.ohneTon: kein Klick beim Verstellen (z. B. bei Lautstaerke-Reglern).
     if (!o.ohneTon) { if (delta > 0) sounds.playWertHoch(); else sounds.playWertRunter(); }
     render();
     const zusatz = o.onChange ? (o.onChange(nv, delta) || '') : '';
-    // o.nurWert: nur die Zahl ansagen (z. B. Lautstaerke), sonst Label und Wert.
-    sprache.sage(o.nurWert ? `${nv}` : `${o.label} ${nv}${zusatz ? ', ' + zusatz : ''}`);
+    // o.stumm: KEINE Ansage der neuen Position (Lautstaerke); nur am Rand (min/max
+    // = 0/100) ein Anschlagklang. Sonst wie bisher: o.nurWert nur die Zahl,
+    // andernfalls Label und Wert.
+    if (o.stumm) {
+      if (nv === o.min || nv === o.max) sounds.playGrenze();
+    } else {
+      sprache.sage(o.nurWert ? `${nv}` : `${o.label} ${nv}${zusatz ? ', ' + zusatz : ''}`);
+    }
   };
 
   // Maus-Klick auf die Knöpfe: verstellen, ohne der Zeile den Fokus zu stehlen

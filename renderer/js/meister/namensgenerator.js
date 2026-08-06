@@ -120,7 +120,7 @@ function ergebnisMenuScreen(index) {
             label: 'Notiz erstellen',
             hint: 'legt eine Meister-Notiz mit diesem Namen an',
             onSelect: async () => {
-              const text = await textDialog({ titel: 'Notiz', label: `Notiz zu ${r.name}`, wert: r.name });
+              const text = await textDialog({ titel: 'Notiz', label: `Notiz zu ${r.name}`, wert: r.name, mehrzeilig: true });
               if (text === null) return;
               (a.meisterNotizen || (a.meisterNotizen = [])).push({ titel: r.name, inhalt: text.trim(), spieltag: a.spieltag });
               await speichere();

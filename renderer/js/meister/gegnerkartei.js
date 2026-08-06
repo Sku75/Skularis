@@ -14,6 +14,7 @@ import { textDialog, zahlDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.
 import { leererStatblock, baueStatblockKarte, protokolliere, angriffText } from '../core/meister-abenteuer.js';
 import { getMeister, speichere } from './state.js';
 import { verdeckteProbe, verdeckterWurf } from './wuerfel.js';
+import { setAusGegnern } from './sets.js';
 
 /** @param {'gegner'|'freund'} art */
 function liste(a, art) { return art === 'freund' ? a.freundlicheNsc : a.nsc; }
@@ -33,6 +34,14 @@ export function gegnerkarteiScreen(art = 'gegner') {
         detail: statblockText(sb),
         onSelect: () => screen.push(statblockScreen(art, i)),
       }));
+      // Ganz oben (nur Gegner): die aktuelle Auswahl als Set fuer den Spieltisch buendeln.
+      if (art === 'gegner') {
+        items.unshift({
+          label: 'Set erstellen',
+          hint: 'die aktuelle Gegner-Auswahl als Set fuer den Spieltisch buendeln',
+          onSelect: () => setAusGegnern(a.nsc || []),
+        });
+      }
       items.push({
         label: `Neuen ${einzeln} anlegen`,
         hint: 'Name, Werte und Angriffe eintragen',
@@ -72,6 +81,7 @@ function statblockScreen(art, index) {
       const a = getMeister();
       const sb = liste(a, art)[index];
       if (!sb) { screen.pop(); return document.createElement('div'); }
+      if (typeof sb.ausweichen !== 'number') sb.ausweichen = 0;
       this.title = sb.name || einzeln;
 
       const items = [];
@@ -96,6 +106,7 @@ function statblockScreen(art, index) {
       zahlFeld('Wundschwelle', 'ws', 0, 60);
       zahlFeld('Ruestung', 'rs', 0, 20);
       zahlFeld('Initiative', 'ini', -20, 40);
+      zahlFeld('Ausweichen', 'ausweichen', 0, 40);
 
       // Angriffe
       (sb.angriffe || []).forEach((ang, ai) => {
@@ -128,7 +139,7 @@ function statblockScreen(art, index) {
       items.push({
         label: `Notizen${sb.notizen ? ': ' + sb.notizen : ''}`,
         onSelect: async () => {
-          const v = await textDialog({ titel: 'Notizen', label: 'Notizen', wert: sb.notizen });
+          const v = await textDialog({ titel: 'Notizen', label: 'Notizen', wert: sb.notizen, mehrzeilig: true });
           if (v === null) return;
           sb.notizen = v.trim(); await speichere(); screen.refresh(); sprache.sage('Notizen gespeichert.');
         },

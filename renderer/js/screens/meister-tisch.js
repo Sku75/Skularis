@@ -195,7 +195,7 @@ function oeffneHub() {
   const punkte = [
     { label: 'Gruppenrecherche', hint: 'Werte der Gruppe abfragen und verdeckt wuerfeln', factory: () => gruppenrechercheScreen() },
     { label: 'Gruppenprobe', hint: 'die ganze Gruppe gegen eine Schwierigkeit', factory: () => gruppenprobeScreen() },
-    { label: 'Kampfszene und Spieltisch', hint: 'Kampfszenenpacks vorbereiten, Kampfszenen spielen, freier Tisch', factory: () => szenenBereichScreen() },
+    { label: 'Spieltisch', hint: 'aktiver Spieltisch, bestuecken, Sets', factory: () => szenenBereichScreen() },
     { label: 'Charakterboegen und Notizen', hint: 'Boegen der Gruppe, Vitalitaet und je Charakter Notizen', factory: () => spielerinfosScreen() },
     { label: 'Gegner-Bibliothek', hint: 'Gesamtliste und Kategorien, Gegner in die Auswahl uebernehmen', factory: () => gegnerBibliothekScreen() },
     { label: 'Freundliche NPC', hint: 'Meister-NPC verwalten', factory: () => gegnerkarteiScreen('freund') },

@@ -4,6 +4,46 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.68, 6. August 2026
+
+
+Spieltisch neu geordnet, Sets, Würfelebene und mehr
+
+Der Meistertisch-Bereich F3 heißt jetzt Spieltisch und ist aufgeräumt. Statt drei
+überlappender Wege (freier Tisch, Kampfszenen, Packs) gibt es einen klaren Ablauf:
+- Spieltisch: das aufgebaute Brett. Oben die Gegner, in der Mitte die Würfelebene,
+  unten Spieler und freundliche NPC. Pfeil hoch und runter wechselt die Reihe,
+  links und rechts die Karte. Eingabetaste öffnet das Karten-Menü, Leertaste tippt
+  eine Karte an und verbindet, Plus und Minus setzen Wunden, Taste i geht die
+  Initiative durch.
+- Spieltisch bestücken: Karten aus Spieler, freundlichen NPC, Gegnern oder fertigen
+  Sets auf den Tisch holen. Enter fügt hinzu.
+- Sets: vorbereitete Kartenbündel, flach und alphabetisch mit Filter. Oben Neues
+  Set erstellen (Name vergeben, Karten aus den Kategorien hinzufügen, unten Set
+  speichern). Je Set: zum Spieltisch hinzufügen, bearbeiten, löschen. Ein Set kann
+  Karten aller Arten enthalten, also auch die Spielergruppe. Die alten
+  Kampfszenenpacks werden automatisch als Sets übernommen.
+
+Würfelebene: die mittlere Reihe des Spielbretts. Freier Wurf (1W6, 2W6, 1W20, 3W20
+und ein freier Wurf), Monsterwurf (einen Gegner wählen, dann Attacke, Parade,
+Schaden oder Ausweichen) und Spielerwurf (einen Spieler oder freundlichen NPC
+wählen, dann seine Angriffe oder ein freier Wurf).
+
+Gegner-Bibliothek: unter Meine Auswahl ganz oben Set erstellen - die Auswahl als
+Set für den Spieltisch bündeln. Jeder Gegner hat jetzt ein Feld Ausweichen.
+
+Weitere Verbesserungen:
+- Lautstärke-Regler geben keine Ansage der neuen Position mehr; bei 0 und 100 ein
+  Anschlagklang.
+- Hintergrund-Standardlautstärke von 25 auf 15 Prozent (mehr Abstand zu Abspielen).
+- Fließtext-Felder (Tagebuch, Notizen, Spielernotizen, Gegner-Notizen und mehr) sind
+  jetzt mehrzeilige Felder: Eingabetaste speichert, Steuerung und Eingabetaste macht
+  einen Zeilenumbruch.
+- Meistertexte F7 und F8: die Punkte Meister-Notizen und Vorlesetexte entfernt.
+- Abenteuertexte-Leser: leere Zeilen werden still übersprungen, kein Absatz mehr
+  angesagt.
+
+
 Version 0.67, 5. August 2026
 
 

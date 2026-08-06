@@ -150,10 +150,19 @@ function dokumentScreen(d, initialPos) {
           const row = document.createElement('div');
           row.className = 'db-row';
           row.id = `zeile-${i}`;
-          row.tabIndex = 0;
           row.dataset.zeile = String(i);
+          // Leere Zeile: sichtbarer Abstand, aber NICHT fokussierbar und fuer den
+          // Screenreader unsichtbar. So wird beim Durchlesen keine Leerzeile als
+          // "Absatz" angesagt; sie wird still uebersprungen.
+          if (!zeile || !zeile.trim()) {
+            row.tabIndex = -1;
+            row.setAttribute('aria-hidden', 'true');
+            row.innerHTML = '&nbsp;';
+            liste.appendChild(row);
+            return;
+          }
+          row.tabIndex = 0;
           const istMarke = m.lesezeichen === i;
-          // Leere Zeile bleibt leer (kurze Pause), kein Wort "Leerzeile".
           const label = (istMarke ? 'Lesezeichen. ' : '') + zeile;
           row.textContent = (istMarke ? '▶ ' : '') + zeile;
           row.setAttribute('data-sr-label', label);

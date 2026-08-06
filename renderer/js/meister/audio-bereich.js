@@ -701,13 +701,13 @@ function lautstaerkenScreen() {
       wrap.appendChild(wertZeile({
         label: 'Meine Audio-Lautstaerke', get: () => player.getMonitorLautstaerke(),
         set: (v) => { player.setMonitorLautstaerke(v); merke('audio_monitor_vol', v); },
-        min: 0, max: 100, ohneTon: true, nurWert: true,
+        min: 0, max: 100, ohneTon: true, nurWert: true, stumm: true,
         detail: 'Wie laut du die Klaenge selbst hoerst. Aendert nicht, wie laut die Spieler hoeren. Am Ziffernblock regeln Plus und Minus das ueberall.',
       }));
       wrap.appendChild(wertZeile({
         label: 'Hintergrund-Lautstaerke (wie gesendet)', get: () => player.getHintergrundLautstaerke(),
         set: (v) => { player.setHintergrundLautstaerke(v); merke('audio_hintergrund_vol', v); },
-        min: 0, max: 100, ohneTon: true, nurWert: true,
+        min: 0, max: 100, ohneTon: true, nurWert: true, stumm: true,
         detail: 'Wie laut der Hintergrund-Kanal in den Radio-Stream geht. Stell ihn leiser, wenn die Spieler den Hintergrund zu laut finden. Wirkt sofort auf einen laufenden Hintergrund und auf alles Neue.',
       }));
       verbindeDetail(wrap);
@@ -969,7 +969,7 @@ function spielerScreen() {
       wrap.appendChild(wertZeile({
         label: 'Radio-Lautstaerke', get: () => radio.getHoererLautstaerke(),
         set: (v) => { radio.setHoererLautstaerke(v); merke('radio_hoerer_vol', v); },
-        min: 0, max: 100, ohneTon: true, nurWert: true,
+        min: 0, max: 100, ohneTon: true, nurWert: true, stumm: true,
         detail: 'Wie laut du den Ton des Meisters hoerst. Ein eigener Kanal. Am Ziffernblock stellen Plus und Minus die Radio-Lautstaerke ueberall.',
       }));
 

@@ -79,13 +79,16 @@ async function aktuellerFont() {
 }
 
 function setVolume(prozent) {
+  const alt = sounds.getVolume();
   prozent = Math.max(0, Math.min(100, prozent));
   sounds.setVolume(prozent);
   const slider = document.getElementById('volume-slider');
   const anzeige = document.getElementById('volume-display');
   if (slider) slider.value = prozent;
   if (anzeige) anzeige.textContent = String(prozent);
-  sprache.sage(`Lautstärke ${prozent} Prozent.`);
+  // Keine Ansage der neuen Position mehr (Nutzerwunsch). Nur am Rand (0/100 oder
+  // schon am Anschlag) ein Anschlagklang.
+  if (prozent === alt || prozent === 0 || prozent === 100) sounds.playGrenze();
 }
 
 /** Modal: den naechsten Tastendruck als Kombination erfassen (Escape bricht ab). */

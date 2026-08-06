@@ -19,7 +19,7 @@ async function neuerEintrag(typ) {
   const wort = typ === 'tagebuch' ? 'Tagebuch-Eintrag' : 'Notiz';
   const titel = await textDialog({ titel: wort, label: 'Titel' });
   if (titel === null || !titel.trim()) return;
-  const inhalt = await textDialog({ titel: `${wort}: ${titel.trim()}`, label: 'Inhalt' });
+  const inhalt = await textDialog({ titel: `${wort}: ${titel.trim()}`, label: 'Inhalt', mehrzeilig: true });
   if (inhalt === null) return;
   a.journal.push({ typ, titel: titel.trim(), inhalt: inhalt.trim(), spieltag: a.spieltag });
   await speichere();
@@ -57,7 +57,7 @@ function eintragMenuScreen(index) {
           label: 'Bearbeiten', hint: 'Titel und Inhalt ändern',
           onSelect: async () => {
             const t = await textDialog({ titel: wort, label: 'Titel', wert: e.titel }); if (t === null) return;
-            const inh = await textDialog({ titel: wort, label: 'Inhalt', wert: e.inhalt }); if (inh === null) return;
+            const inh = await textDialog({ titel: wort, label: 'Inhalt', wert: e.inhalt, mehrzeilig: true }); if (inh === null) return;
             e.titel = t.trim(); e.inhalt = inh.trim();
             await speichere(); screen.refresh(); sprache.sage('Gespeichert.');
           },

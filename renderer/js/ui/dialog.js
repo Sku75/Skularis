@@ -148,16 +148,24 @@ export function spinnerDialog({ titel, optionen, index = 0, format }) {
   });
 }
 
-/** Text-Eingabe. @returns Promise<string|null> */
-export function textDialog({ titel, label, wert = '' }) {
+/**
+ * Text-Eingabe. @returns Promise<string|null>
+ * @param {boolean} [mehrzeilig]  grosses, dokumentartiges Feld (Textarea). Dann
+ *   speichert die Eingabetaste wie gewohnt, und Steuerung und Eingabetaste macht
+ *   einen Zeilenumbruch. Fuer Fliesstext (Tagebuch, Notizen, Vorlesetexte usw.).
+ */
+export function textDialog({ titel, label, wert = '', mehrzeilig = false }) {
   return new Promise((resolve) => {
     sounds.playClick();
     const dlg = baueDialog(titel);
+    const feld = mehrzeilig
+      ? `<textarea id="dlg-text" class="db-input db-input--mehrzeilig" rows="8" aria-label="${label}"></textarea>`
+      : `<input id="dlg-text" class="db-input" type="text" aria-label="${label}">`;
     dlg.insertAdjacentHTML('beforeend', `
       <div class="db-dialog__header"><span class="db-dialog__title">${titel}</span></div>
       <div class="db-dialog__body">
         <label class="db-dialog__label" for="dlg-text">${label}</label>
-        <input id="dlg-text" class="db-input" type="text" value="${String(wert).replace(/"/g, '&quot;')}" aria-label="${label}">
+        ${feld}
       </div>
       <div class="db-dialog__footer">
         <button class="db-btn db-btn--primary" id="dlg-ok">OK</button>
@@ -165,16 +173,34 @@ export function textDialog({ titel, label, wert = '' }) {
       </div>`);
     document.body.appendChild(dlg);
     const input = dlg.querySelector('#dlg-text');
+    input.value = String(wert); // sicher setzen (kein HTML-Escaping noetig)
     const fertig = (val) => { dlg.close(); dlg.remove(); resolve(val); };
     dlg.querySelector('#dlg-ok').addEventListener('click', () => fertig(input.value));
     dlg.querySelector('#dlg-ab').addEventListener('click', () => fertig(null));
     dlg.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); fertig(input.value); }
-      else if (e.key === 'Escape') { e.preventDefault(); fertig(null); }
+      if (e.key === 'Escape') { e.preventDefault(); fertig(null); return; }
+      if (e.key === 'Enter') {
+        if (mehrzeilig && (e.ctrlKey || e.metaKey)) {
+          // Steuerung und Eingabetaste: Zeilenumbruch an der Cursorstelle einfuegen.
+          e.preventDefault(); e.stopPropagation();
+          const s = input.selectionStart, en = input.selectionEnd;
+          input.value = input.value.slice(0, s) + '\n' + input.value.slice(en);
+          input.selectionStart = input.selectionEnd = s + 1;
+          return;
+        }
+        // Eingabetaste speichert (auch im Mehrzeilenfeld).
+        e.preventDefault(); fertig(input.value);
+      }
     });
     dlg.showModal();
-    input.focus(); input.select();
-    melde(dlg, `${titel}. ${label}.`);
+    input.focus();
+    // Einzeilig: alles markieren (schnelles Ueberschreiben). Mehrzeilig: Cursor
+    // ans Ende, damit man den vorhandenen Text weiterschreiben kann.
+    if (mehrzeilig) { const n = input.value.length; try { input.setSelectionRange(n, n); } catch { /* egal */ } }
+    else input.select();
+    melde(dlg, mehrzeilig
+      ? `${titel}. ${label}. Mehrere Zeilen moeglich. Eingabetaste speichert, Steuerung und Eingabetaste macht einen Zeilenumbruch.`
+      : `${titel}. ${label}.`);
   });
 }
 

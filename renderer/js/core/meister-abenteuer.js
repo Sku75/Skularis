@@ -75,6 +75,7 @@ export function leererStatblock(a) {
     name: '',
     kategorie: '',
     ws: 4, rs: 0, ini: 0,
+    ausweichen: 0,         // passive Verteidigung (Monsterwurf), vom Meister gepflegt
     angriffe: [],          // { name, at, pa, wuerfel, seiten, bonus }
     vorteile: [],          // Faehigkeiten/Vorteile, die der Gegner beherrscht
     manoever: [],          // Manoever, die der Gegner beherrscht
@@ -105,6 +106,7 @@ export function statblockAusVorlage(a, vorlage) {
     name: vorlage.name || 'Gegner',
     kategorie: vorlage.kategorie || '',
     ws: vorlage.ws || 0, rs: vorlage.rs || 0, ini: vorlage.ini || 0,
+    ausweichen: vorlage.ausweichen || 0,
     angriffe: (vorlage.angriffe || []).map(x => ({ ...x })),
     vorteile: Array.isArray(vorlage.vorteile) ? [...vorlage.vorteile] : [],
     manoever: Array.isArray(vorlage.manoever) ? [...vorlage.manoever] : [],
@@ -214,6 +216,7 @@ export function baueStatblockKarte(a, sb, art) {
     name: sb.name || (art === 'freund' ? 'NPC' : 'Gegner'),
     kategorie: sb.kategorie || '',
     ws: sb.ws || 0, rs: sb.rs || 0, ini: sb.ini || 0,
+    ausweichen: sb.ausweichen || 0,
     wunden: 0,
     angriffe: (sb.angriffe || []).map(x => ({ ...x })),
     vorteile: Array.isArray(sb.vorteile) ? [...sb.vorteile] : [],

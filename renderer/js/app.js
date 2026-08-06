@@ -157,16 +157,20 @@ function registriereRadioLautstaerke() {
     const delta = (e.code === 'NumpadAdd' ? 1 : -1) * schritt;
     // Als Hoerer (Spieler) regelt +/- die Radio-Lautstaerke; sonst (Meister, der
     // selbst abspielt) die eigene Audio-Lautstaerke — sonst passiert bei ihm nichts.
+    // Keine Sprachansage der neuen Position mehr (Nutzerwunsch). Nur am Rand
+    // (0 oder 100, oder schon am Anschlag) ein Anschlagklang.
     if (radio.rolle() === 'hoerer') {
-      const v = Math.max(0, Math.min(100, radio.getHoererLautstaerke() + delta));
+      const alt = radio.getHoererLautstaerke();
+      const v = Math.max(0, Math.min(100, alt + delta));
       radio.setHoererLautstaerke(v);
       if (ipc && ipc.configSchreiben) { try { ipc.configSchreiben('radio_hoerer_vol', v); } catch { /* egal */ } }
-      sprache.sage(`${v}`);
+      if (v === alt || v === 0 || v === 100) sounds.playGrenze();
     } else {
-      const v = Math.max(0, Math.min(100, audioPlayer.getMonitorLautstaerke() + delta));
+      const alt = audioPlayer.getMonitorLautstaerke();
+      const v = Math.max(0, Math.min(100, alt + delta));
       audioPlayer.setMonitorLautstaerke(v);
       if (ipc && ipc.configSchreiben) { try { ipc.configSchreiben('audio_monitor_vol', v); } catch { /* egal */ } }
-      sprache.sage(`${v}`);
+      if (v === alt || v === 0 || v === 100) sounds.playGrenze();
     }
   }, true);
 }

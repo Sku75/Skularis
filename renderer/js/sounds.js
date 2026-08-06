@@ -247,6 +247,7 @@ export function playWertHoch()     { play('wert_hoch'); }
 export function playWertRunter()   { play('wert_runter'); }
 export function playApBezahlen()   { play('ap_bezahlen'); }
 export function playApZurueck()    { play('ap_zurueck'); }
+export function playGrenze()       { play('grenze'); } // Anschlag am Rand (0/100, Listenrand)
 
 // Rueckwaertskompatibilitaet
 export function playBestaetigen()  { play('bing'); }

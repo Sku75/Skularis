@@ -33,7 +33,7 @@ let _mixBus = null;
 let _monitor = null;
 let _radioDest = null;
 let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
-let _hintergrundVol = 0.25; // wie laut der Hintergrund-Kanal in den Mix (und damit in den Stream) geht
+let _hintergrundVol = 0.15; // Standard: wie laut der Hintergrund-Kanal in den Mix (und damit in den Stream) geht — bewusst deutlich leiser als Abspielen
 
 // Die drei Kanaele. Je Kanal genau EIN laufender Klang (oder null).
 const _kanaele = { abspielen: null, hintergrund: null, einspielen: null };

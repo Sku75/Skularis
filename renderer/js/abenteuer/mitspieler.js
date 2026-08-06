@@ -18,7 +18,7 @@ async function hinzufuegen() {
   const a = getAbenteuer();
   const name = await textDialog({ titel: 'Mitspieler hinzufügen', label: 'Name der Mitspielerkarte' });
   if (name === null || !name.trim()) return;
-  const zusatz = (await textDialog({ titel: 'Zusatzinformationen', label: 'Zusatzinformationen, freiwillig' })) || '';
+  const zusatz = (await textDialog({ titel: 'Zusatzinformationen', label: 'Zusatzinformationen, freiwillig', mehrzeilig: true })) || '';
   a.mitspieler.push({ name: name.trim(), zusatz: zusatz.trim() });
   await speichere();
   screen.refresh();
@@ -48,7 +48,7 @@ function mitspielerDetail(index) {
           label: 'Bearbeiten', hint: 'Name und Zusatzinformationen ändern',
           onSelect: async () => {
             const name = await textDialog({ titel: 'Mitspieler', label: 'Name', wert: m.name }); if (name === null || !name.trim()) return;
-            const zusatz = await textDialog({ titel: 'Zusatzinformationen', label: 'Zusatzinformationen', wert: m.zusatz || '' }); if (zusatz === null) return;
+            const zusatz = await textDialog({ titel: 'Zusatzinformationen', label: 'Zusatzinformationen', wert: m.zusatz || '', mehrzeilig: true }); if (zusatz === null) return;
             m.name = name.trim(); m.zusatz = zusatz.trim();
             await speichere(); screen.refresh(); sprache.sage('Gespeichert.');
           },

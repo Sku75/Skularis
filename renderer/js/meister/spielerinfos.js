@@ -157,7 +157,7 @@ async function bearbeiteNotiz(a, name, i) {
     ],
   });
   if (w === 'edit') {
-    const t = await textDialog({ titel: 'Notiz bearbeiten', label: 'Notiz', wert: e.text });
+    const t = await textDialog({ titel: 'Notiz bearbeiten', label: 'Notiz', wert: e.text, mehrzeilig: true });
     if (t === null) return;
     e.text = t.trim();
     await speichere(); screen.refresh(); sprache.sage('Notiz geaendert.');
@@ -177,7 +177,7 @@ export function charNotizScreen(name) {
       this.title = `Notizen zu ${name}, ${eintraege.length}`;
       const items = [
         { label: 'Neue Notiz', hint: 'schnell etwas zu diesem Charakter festhalten', onSelect: async () => {
-            const t = await textDialog({ titel: `Notiz zu ${name}`, label: 'Notiz' });
+            const t = await textDialog({ titel: `Notiz zu ${name}`, label: 'Notiz', mehrzeilig: true });
             if (t === null || !t.trim()) return;
             eintraege.unshift({ text: t.trim(), spieltag: a.spieltag || 1 });
             await speichere(); screen.refresh(); sprache.sage('Notiz gespeichert.');
