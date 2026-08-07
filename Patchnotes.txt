@@ -4,6 +4,26 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.72, 7. August 2026
+
+
+Großes Bestiarium mit über 200 Gegnern
+
+- Das mitgelieferte Bestiarium wurde von rund 39 auf über 200 Gegner erweitert,
+  in 18 Kategorien: Wildtiere; Bestien und Monster; Ork, Goblin, Oger und Riesen;
+  Drachen und Echsen; Untote; Dämonisches; Elementare, Geister und Feenwesen;
+  Ungeziefer und Pflanzen; Stadtbewohner; Landbewohner; Adel, Burg und Gefolge;
+  Stadtwache und Soldaten; Räuber, Piraten und Gesindel; Kultisten und Fanatiker;
+  Magiekundige und Geweihte; Reisende und Fahrendes Volk; Seefahrt und Hafen;
+  Sonstiges.
+- Neben den Kampf-Kreaturen gibt es jetzt viele Szenen- und Sozialrollen (Bürger,
+  Handwerker, Bauern, Wachen, Adel, Seeleute), damit du für jede Szene sofort
+  passende NSC hast.
+- Jeder Gegner hat eigene, spielbare Ilaris-Richtwerte samt Ausweichen; je
+  Kategorie nach Gefährlichkeit sortiert. Alle Karten lassen sich im Editor
+  anpassen.
+
+
 Version 0.71, 7. August 2026
 
 
