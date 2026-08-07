@@ -15,6 +15,7 @@ import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
 import { wuerfeln, kampfProbe, schadenWurf, mitLetztemWurf, letztesKurz } from './wuerfel-kern.js';
 import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, GRUNDREGEL_AKTIONEN } from './kampf-menues.js';
+import { zauberspeicherVorhanden, zauberspeicherScreen } from './zauberspeicher.js';
 
 const RES_NAME = {
   Wunden: 'Wunden', Erschoepfung: 'Erschöpfung', SchiP: 'Schicksalspunkte',
@@ -52,6 +53,11 @@ export function liveSpielScreen() {
   ];
   if (zauberVorhanden(char, db)) {
     items.push({ label: zauberKategorieLabel(char, db), hint: 'Deine bekannten Zauber würfeln', onSelect: () => screen.push(zauberScreen()) });
+  }
+  // Zauberspeicher des Magierstabs (Vorteile "Magierstab Zauberspeicher 1/2") —
+  // ganz unten, nach Manöver und Zauber. Zauber laden und spaeter wirken.
+  if (zauberspeicherVorhanden(char)) {
+    items.push({ label: 'Zauberspeicher', hint: 'Zauber in den Magierstab laden und spaeter wirken', onSelect: () => screen.push(zauberspeicherScreen()) });
   }
   return menuScreen({
     title: 'Meine Initiative-Phase',

@@ -77,19 +77,21 @@ export function attributeInhalt(box) {
         },
       }));
 
-      // Direkt unter den Astralpunkten: ein von Hand einstellbarer Schieber fuer
-      // den Astralspeicher eines Zauberstabs (0 bis 50, wie in der Tradition).
-      // Kostet keine EP, wird nur eingestellt.
+      // Direkt unter den Astralpunkten: NUR ANZEIGE des Magierstab-Astralspeichers
+      // und der Zauberspeicher. Beides kommt jetzt ueber Vorteile und ist im Editor
+      // nicht mehr verstellbar (Magierstab Astralspeicher = fest 32 AsP; Magierstab
+      // Zauberspeicher 1/2). Laden und Wirken der Zauber geschieht im Spiel.
       if (ename === 'AsP') {
-        box.appendChild(wertZeile({
-          label: 'Astralspeicher Stab',
-          get: () => char.astralspeicherStab || 0,
-          set: (v) => { char.astralspeicherStab = v; },
-          min: 0,
-          max: 50,
-          suffix: () => 'von 50',
-          detail: 'Zusaetzlicher Astralspeicher in einem Zauberstab, 0 bis 50. Von Hand einstellbar mit Pfeil links und rechts; kostet keine Erfahrungspunkte.',
-        }));
+        const hatV = (n) => (char.vorteile || []).some(x => (typeof x === 'string' ? x : x.name) === n);
+        if (hatV('Magierstab Astralspeicher') || (char.astralspeicherStab || 0) > 0) {
+          box.appendChild(infoZeile(`Astralspeicher Stab: ${char.astralspeicherStab || 0}`,
+            'Astralspeicher im Magierstab, fester Wert ueber den Vorteil "Magierstab Astralspeicher" (32 Astralpunkte). Nicht mehr von Hand einstellbar.'));
+        }
+        const slots = hatV('Magierstab Zauberspeicher 2') ? 2 : (hatV('Magierstab Zauberspeicher 1') ? 1 : 0);
+        if (slots > 0) {
+          box.appendChild(infoZeile(`Zauberspeicher: ${slots} ${slots === 1 ? 'Slot' : 'Slots'}`,
+            'Anzahl der Zauberspeicher im Magierstab (ueber die Vorteile "Magierstab Zauberspeicher 1" und "2"). Zauber laden und wirken geht im Spiel unter Meine Initiative-Phase.'));
+        }
       }
     }
   }

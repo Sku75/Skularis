@@ -4,6 +4,27 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.70, 7. August 2026
+
+
+Magierstab: Zauberspeicher und Astralspeicher
+
+- Drei neue Vorteile im Editor unter Vorteile (kaufbar mit frei wählbaren EP,
+  Vorschlag 20): "Magierstab Zauberspeicher 1", "Magierstab Zauberspeicher 2"
+  (setzt Zauberspeicher 1 voraus) und "Magierstab Astralspeicher" (fester Wert
+  von 32 Astralpunkten). Im Editor werden Astralspeicher und Zauberspeicher jetzt
+  nur noch angezeigt, nicht mehr von Hand verstellt.
+- Beim Spielen zeigt der Charakterstatus (F2) den Astralspeicher des Stabs weiter
+  als eigenen Zähler unter den Astralpunkten.
+- Neu in Meine Initiative-Phase (F1): ganz unten der Menüpunkt Zauberspeicher mit
+  einem oder zwei Slots. Ein leerer Slot lädt per Enter einen deiner Zauber, der
+  sofort gewürfelt und mit seiner Qualität abgelegt wird. Ein belegter Slot fragt
+  bei Enter "Wirken?" und wird nach dem Wirken wieder leer. Astralpunkte werden
+  dabei nicht automatisch abgezogen.
+- In der Zauberliste (Zauber und Rituale) und im Zauberspeicher stehen jetzt die
+  Kosten hinter dem Zaubernamen, zum Beispiel "Flim Flam Flunkel (Kosten 16 AsP)".
+
+
 Version 0.69, 6. August 2026
 
 

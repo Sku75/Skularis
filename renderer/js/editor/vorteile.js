@@ -25,6 +25,15 @@ import { VORTEILE_KURZ, VORTEILE_LANG } from './texte.js';
 
 function name(eintrag) { return typeof eintrag === 'string' ? eintrag : eintrag.name; }
 
+// Diese variablen Vorteile bekommen im EP-Dialog den Vorschlag 20 (statt der
+// DB-Kosten). Nutzerwunsch: schneller runder Standardwert.
+const EP_STANDARD_20 = new Set([
+  'Besonderer Besitz',
+  'Magierstab Zauberspeicher 1',
+  'Magierstab Zauberspeicher 2',
+  'Magierstab Astralspeicher',
+]);
+
 /** Wie oft ein Vorteil im Spiel noch dazugekauft werden kann. */
 const NACHKAUF_TEXT = {
   'häufig': 'Nachkauf im Spiel ist häufig möglich.',
@@ -113,7 +122,8 @@ export function vorteileInhalt(box) {
 
           let neu;
           if (v.variableKosten) {
-            const kosten = await zahlDialog({ titel: `${v.name}: Kosten`, label: 'EP-Kosten', wert: v.kosten, min: -1000, max: 10000 });
+            const vorschlag = EP_STANDARD_20.has(v.name) ? 20 : v.kosten;
+            const kosten = await zahlDialog({ titel: `${v.name}: Kosten`, label: 'EP-Kosten', wert: vorschlag, min: -1000, max: 10000 });
             if (kosten === null) return;
             let kommentar = '';
             if (v.kommentar) kommentar = (await textDialog({ titel: `${v.name}: Kommentar`, label: 'Kommentar, zum Beispiel Umgebung oder Gruppe', wert: '' })) || '';
@@ -122,6 +132,8 @@ export function vorteileInhalt(box) {
             neu = v.name;
           }
           char.vorteile.push(neu);
+          // Magierstab Astralspeicher: fester Wert von 32 Astralpunkten beim Kauf.
+          if (v.name === 'Magierstab Astralspeicher') char.astralspeicherStab = 32;
           const f2 = editor.aktualisiere();
           const hinweis = d.erfuellt ? '' : ' Achtung, Voraussetzung nicht erfüllt.';
           sprache.sage(`Vorteil gekauft. ${v.name}, ${f2} EP frei.${hinweis}`);
@@ -170,6 +182,8 @@ async function entferne(char, db, n) {
   if (!await jaNeinDialog({ titel: 'Entfernen', frage })) return;
 
   char.vorteile = char.vorteile.filter(x => name(x) !== n);
+  // Magierstab Astralspeicher entfernt: Astralspeicher-Wert wieder auf 0.
+  if (n === 'Magierstab Astralspeicher') char.astralspeicherStab = 0;
   const f2 = editor.aktualisiere();
   screen.refresh();
   sprache.sage(`${n} entfernt, ${f2} EP frei.`);

@@ -86,6 +86,28 @@ export function transformDb(raw) {
     db.vorteile.push(o); db.vorteilByName[o.name] = o;
   }
 
+  // Skularis-eigene Magierstab-Vorteile: kaufbar wie eigene Vorteile mit variablen
+  // EP-Kosten (Vorschlag 20). "Zauberspeicher 2" setzt "Zauberspeicher 1" voraus.
+  // "Astralspeicher" hat einen festen Wert (32 AsP), der beim Kauf gesetzt wird
+  // (editor/vorteile.js). Die Spiel-Mechanik liegt im Abenteuertisch.
+  const magierstabVorteile = [
+    { name: 'Magierstab Zauberspeicher 1', voraussetzungen: '',
+      text: 'Ein Zauberspeicher wird dem Magierstab hinzugefuegt. Im Spiel laedst du unter Meine Initiative-Phase einen Zauber und wirkst ihn spaeter.' },
+    { name: 'Magierstab Zauberspeicher 2', voraussetzungen: 'Vorteil Magierstab Zauberspeicher 1',
+      text: 'Dem Magierstab wird ein zweiter Zauberspeicher hinzugefuegt.' },
+    { name: 'Magierstab Astralspeicher', voraussetzungen: '',
+      text: 'Ein Astralspeicher im Magierstab mit 32 Astralpunkten (fester Wert). Er erscheint im Charakterstatus und in Meine Initiative-Phase.' },
+  ];
+  for (const m of magierstabVorteile) {
+    if (db.vorteilByName[m.name]) continue;
+    const o = {
+      name: m.name, kosten: 20, voraussetzungen: m.voraussetzungen, nachkauf: 'üblich',
+      typ: 0, variableKosten: true, kommentar: false, script: '', csBeschreibung: '',
+      linkKategorie: '', linkElement: '', querverweise: '', info: '', text: m.text,
+    };
+    db.vorteile.push(o); db.vorteilByName[o.name] = o;
+  }
+
   // Talente (mit Rückverweis auf ihre Fertigkeiten)
   for (const t of arr(q.Talent)) {
     const kostenRaw = t.kosten;

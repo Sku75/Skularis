@@ -269,7 +269,7 @@ export function zauberScreen() {
     if (schwierNum === null && schwierRaw) zusatz.push(`Vergleichende Probe gegen ${schwierRaw}.`);
     if (felder['Kosten']) zusatz.push(`Kosten ${felder['Kosten']}.`);
     return {
-      label: s.name,
+      label: felder['Kosten'] ? `${s.name} (Kosten ${felder['Kosten']})` : s.name,
       hint: `${s.fertigkeit}, Probenwert ${s.pw}. Enter zum Zaubern`,
       detail: mitLetztemWurf(id, zauberTooltip(def, s.pw, felder, beschreibung)),
       ergebnisId: id,
@@ -284,5 +284,26 @@ export function zauberScreen() {
     title: zauberKategorieLabel(char, db),
     subtitle: 'Filtern, Enter würfelt die Zauberprobe. Shift und Pfeil-runter liest die Werte. Escape zurück.',
     items, filter: true, leer: 'Keine Zauber bekannt.',
+  });
+}
+
+/**
+ * Flache Liste der bekannten Zauber (Name, Probenwert, Fertigkeit, Tooltip,
+ * Kurzwirkung). Fuer den Zauberspeicher: dort waehlt man einen Zauber, er wird
+ * gewuerfelt (3W20, mittlerer plus Probenwert = Qualitaet) und abgelegt.
+ */
+export function zauberListe(char, db) {
+  const proZauber = new Map();
+  for (const g of bekannteZauber(char, db)) {
+    for (const z of g.zauber) {
+      const name = typeof z === 'string' ? z : z.name;
+      const vor = proZauber.get(name);
+      if (!vor || g.pw > vor.pw) proZauber.set(name, { name, pw: g.pw, fertigkeit: g.uname });
+    }
+  }
+  return [...proZauber.values()].sort((x, y) => x.name.localeCompare(y.name, 'de')).map((s) => {
+    const def = db.talentByName[s.name] || { name: s.name };
+    const { beschreibung, felder } = parseZauberText(def.text);
+    return { name: s.name, pw: s.pw, fertigkeit: s.fertigkeit, tooltip: zauberTooltip(def, s.pw, felder, beschreibung), wirkung: beschreibung, kosten: felder['Kosten'] || '' };
   });
 }
