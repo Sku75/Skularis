@@ -20,6 +20,7 @@ import { getDb, ladeDb } from '../core/db-laden.js';
 import { getMeister, speichere } from './state.js';
 import { baueSpielerKarte, baueStatblockKarte, angriffeText, leererStatblock } from '../core/meister-abenteuer.js';
 import { statblockScreen } from './gegnerkartei.js';
+import { gegnerBestueckenScreen } from './gegner-ansicht.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -194,11 +195,13 @@ export function bestueckenScreen() {
       const a = getMeister();
       const zumTisch = (t) => { const k = templateZuTisch(a, t); speichere(); sprache.sage(`${k.name} zum Spieltisch, ${a.tisch.karten.length} Karten.`); };
       const items = [];
-      // Die drei Kategorien flach; Enter in der Liste legt eine Karte auf den Tisch.
-      for (const x of [{ art: 'spieler', label: 'Spieler' }, { art: 'freund', label: 'Freundliche NPC' }, { art: 'gegner', label: 'Gegner' }]) {
+      // Spieler und freundliche NPC flach; Gegner ueber die kategorisierte Ansicht
+      // (Bestiarium + eigene Gegner, Erstellen mit Kategorie, Kategorienuebersicht).
+      for (const x of [{ art: 'spieler', label: 'Spieler' }, { art: 'freund', label: 'Freundliche NPC' }]) {
         const n = quelleFuer(x.art).length;
         items.push({ label: `${x.label}, ${n}`, hint: 'Enter fuegt eine Karte zum Spieltisch hinzu', onSelect: () => screen.push(quelleListeScreen(x.art, x.label, zumTisch, 'zum Spieltisch')) });
       }
+      items.push({ label: 'Gegner', hint: 'Bestiarium und eigene Gegner nach Kategorien, Enter legt auf den Spieltisch', onSelect: () => screen.push(gegnerBestueckenScreen()) });
       items.push({ label: 'Fertige Sets', hint: 'ein ganzes Set auf den Spieltisch legen', onSelect: () => screen.push(setsWaehlenScreen()) });
       return menuScreen({ title: 'Spieltisch bestuecken', subtitle: 'Kategorie waehlen, Enter legt eine Karte auf den Spieltisch. Escape zurueck.', items }).build();
     },

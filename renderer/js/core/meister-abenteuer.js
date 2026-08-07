@@ -35,6 +35,7 @@ export function createMeisterAbenteuer(name) {
     vitalitaet: {},
     charNotizen: {},       // Name -> freie Notiz zum Charakter
     nsc: [],               // Gegner-Statbloecke
+    gegnerKategorien: [],  // eigene Gegner-Kategorien dieses Abenteuers (frei benannt)
     freundlicheNsc: [],    // freundliche Meister-NPC (gleiche Form)
     tisch: { karten: [] },
     szenen: [],            // Szenen dieses Abenteuers (durchnummeriert S-1, S-2 ...): { name?, karten: [] }
@@ -123,6 +124,7 @@ export function parseMeisterAbenteuer(text) {
   a.vitalitaet = (a.vitalitaet && typeof a.vitalitaet === 'object') ? a.vitalitaet : {};
   a.charNotizen = (a.charNotizen && typeof a.charNotizen === 'object') ? a.charNotizen : {};
   a.nsc = Array.isArray(a.nsc) ? a.nsc : [];
+  a.gegnerKategorien = Array.isArray(a.gegnerKategorien) ? a.gegnerKategorien : [];
   a.freundlicheNsc = Array.isArray(a.freundlicheNsc) ? a.freundlicheNsc : [];
   a.tisch = a.tisch && typeof a.tisch === 'object' ? a.tisch : { karten: [] };
   a.tisch.karten = Array.isArray(a.tisch.karten) ? a.tisch.karten : [];

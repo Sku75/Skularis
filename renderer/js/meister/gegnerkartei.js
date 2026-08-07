@@ -103,6 +103,23 @@ export function statblockScreen(art, index) {
           sb.name = v.trim(); await speichere(); screen.refresh(); sprache.sage(`Name ${sb.name}.`);
         },
       });
+      // Kategorie (nur Gegner): frei benennbar, gruppiert die Gegner in der Uebersicht.
+      if (art === 'gegner') {
+        items.push({
+          label: `Kategorie: ${sb.kategorie || 'Sonstige'}`,
+          hint: 'Enter aendert die Kategorie',
+          onSelect: async () => {
+            const v = await textDialog({ titel: 'Kategorie', label: 'Kategorie, leer lassen fuer Sonstige', wert: sb.kategorie || '' });
+            if (v === null) return;
+            sb.kategorie = v.trim();
+            if (sb.kategorie && !(a.gegnerKategorien || []).includes(sb.kategorie)) {
+              a.gegnerKategorien = a.gegnerKategorien || [];
+              a.gegnerKategorien.push(sb.kategorie);
+            }
+            await speichere(); screen.refresh(); sprache.sage(`Kategorie ${sb.kategorie || 'Sonstige'}.`);
+          },
+        });
+      }
       zahlFeld('Wundschwelle', 'ws', 0, 60);
       zahlFeld('Ruestung', 'rs', 0, 20);
       zahlFeld('Initiative', 'ini', -20, 40);

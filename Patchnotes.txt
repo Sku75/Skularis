@@ -4,6 +4,25 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.71, 7. August 2026
+
+
+Gegner nach Kategorien bestücken
+
+- Meistertisch, Spieltisch bestücken, Gegner: Statt nur der eigenen Auswahl
+  stehen hier wieder alle Gegner zur Verfügung, das mitgelieferte Bestiarium und
+  die eigenen Gegner zusammen.
+- Aufbau von oben nach unten: Gegner erstellen, Kategorienübersicht, Filterzeile,
+  darunter alle Gegner. Enter auf einem Gegner legt ihn als Karte auf den
+  Spieltisch.
+- Beim Erstellen wird nach dem Namen die Kategorie gewählt: eine vorhandene, oder
+  "Neue Kategorie anlegen", oder "Sonstige". Der neue Gegner landet in deiner
+  Auswahl.
+- Die Kategorienübersicht zeigt jede Kategorie mit Anzahl, dazu "Sonstige" für
+  Gegner ohne Kategorie und ganz unten "Kategorie erstellen".
+- Der Gegner-Editor hat jetzt ein eigenes Feld Kategorie.
+
+
 Version 0.70, 7. August 2026
 
 
