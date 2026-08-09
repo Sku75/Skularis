@@ -32,6 +32,7 @@ let _ctx = null;
 let _mixBus = null;
 let _monitor = null;
 let _radioDest = null;
+let _sendeMono = false; // Sendestrom einkanalig (spart Daten); Standard Stereo
 let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
 let _hintergrundVol = 0.15; // Standard: wie laut der Hintergrund-Kanal in den Mix (und damit in den Stream) geht — bewusst deutlich leiser als Abspielen
 
@@ -48,6 +49,7 @@ function ctx() {
     _monitor = _ctx.createGain();
     _monitor.gain.value = _monitorVol;
     _radioDest = _ctx.createMediaStreamDestination();
+    anwendeMono(); // Mono/Stereo fuer den Sendestrom nach Einstellung
     _mixBus.connect(_monitor);
     _monitor.connect(_ctx.destination);
     _mixBus.connect(_radioDest);
@@ -305,6 +307,21 @@ export function vorhoerenPfad() { return _preview ? _preview.pfad : null; }
 
 export function getMonitorLautstaerke() {
   return Math.round(_monitorVol * 100);
+}
+
+/** Mono/Stereo am Sende-Ausgang anwenden (channelCount des MediaStreamDestination). */
+function anwendeMono() {
+  if (!_radioDest) return;
+  try {
+    _radioDest.channelCount = _sendeMono ? 1 : 2;
+    _radioDest.channelCountMode = 'explicit';
+  } catch { /* manche Umgebungen erlauben das nicht -> bleibt Stereo */ }
+}
+
+/** Sendestrom auf Mono (true) oder Stereo (false) stellen. Vor dem Senden setzen. */
+export function setSendeMono(mono) {
+  _sendeMono = !!mono;
+  anwendeMono();
 }
 
 /** Der Sendestrom fuers Radio (ein Audio-Track mit dem gesamten Mix). */

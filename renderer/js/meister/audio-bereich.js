@@ -19,6 +19,7 @@ import { abschnittTitel, aktionZeile, infoZeile, wertZeile, verbindeDetail } fro
 import * as player from './audio-player.js';
 import * as radio from '../net/radio.js';
 import * as kurztasten from './kurztasten.js';
+import * as einstellungen from '../daten/einstellungen.js';
 import { getMeister, speichere as speichereMeister } from './state.js';
 
 const ipc = window.skularis?.ipc;
@@ -902,18 +903,28 @@ async function oeffnePlaylistDialog(pl, plIndex, sIndex) {
   else if (wahl === 'weg') { pl.sounds.splice(sIndex, 1); speicherePlaylists(); screen.refresh(); sprache.sage(`${s.name} aus der Playlist entfernt.`); }
 }
 
-function sendenStarten() {
+async function sendenStarten() {
   if (!_schluessel) {
     _schluessel = radio.generiereSchluessel();
     merke('radio_letzter_schluessel', _schluessel);
   }
+  // Uebertragungseinstellungen aus den Optionen: Bitrate-Deckel + Mono/Stereo.
+  let bitrate = 128;
+  let mono = false;
+  try {
+    const b = await einstellungen.get('radio_bitrate');
+    const m = await einstellungen.get('radio_mono');
+    if (typeof b === 'number' && b >= 32 && b <= 128) bitrate = b;
+    mono = m === true;
+  } catch { /* Standard 128/Stereo */ }
+  player.setSendeMono(mono);
   const strom = player.getSendeStrom();
   radio.starteSenden(_schluessel, strom, {
     onBereit: () => { setzeStatus('Sende. 0 Hoerer verbunden.'); sprache.sage(`Radio sendet. Schluessel ${_schluessel.split('').join(' ')}.`); },
     onHoererNeu: (n) => { sounds.playBing(); setzeStatus(`Sende. ${n} Hoerer verbunden.`); sprache.sage(`Ein Hoerer verbunden. Insgesamt ${n}.`); },
     onHoererWeg: (n) => { setzeStatus(`Sende. ${n} Hoerer verbunden.`); sprache.sage(`Ein Hoerer getrennt. Noch ${n}.`); },
     onFehler: (t) => { setzeStatus('Radio-Fehler.'); sprache.sage(t); },
-  });
+  }, { maxBitrate: bitrate });
   screen.refresh();
 }
 
@@ -1004,6 +1015,10 @@ function starteVerbinden(rohKey) {
     onVerbunden: () => { _verbunden = true; screen.refresh(); sprache.sage('Verbunden. Du hoerst jetzt den Tisch.'); },
     onGetrennt: () => { _verbunden = false; screen.refresh(); sprache.sage('Verbindung getrennt.'); },
     onFehler: (t) => { _verbunden = false; screen.refresh(); sprache.sage(t); },
+    // Auto-Reconnect (sparsame Ansagen): einmal beim Verlust, bei Erfolg, bei Aufgabe.
+    onReconnectStart: () => { _verbunden = false; sprache.sage('Verbindung verloren. Ich versuche, wieder zu verbinden.'); },
+    onReconnectErfolg: () => { _verbunden = true; screen.refresh(); sprache.sage('Wieder verbunden.'); },
+    onAufgegeben: () => { _verbunden = false; screen.refresh(); sprache.sage('Wiederverbinden aufgegeben. Bitte bei Bedarf neu verbinden.'); },
   });
 }
 

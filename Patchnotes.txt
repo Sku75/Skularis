@@ -4,6 +4,26 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.77, 9. August 2026
+
+
+Zum-Hauptmenü-Taste, Übertragungseinstellungen, Auto-Reconnect
+
+- Neue Taste Strg und Pos1: springt von überall in einem Tisch-Menü direkt zurück
+  zum Hauptmenü des Tisches, auf den obersten Eintrag. Pos1 allein bleibt "im Menü
+  ganz nach oben". (In den Optionen unter Tasten neu belegen umbelegbar.)
+- Optionen, neuer Punkt Übertragungseinstellungen: die Qualität des Meister-Radios
+  ist jetzt einstellbar (32 bis 128 kbit pro Sekunde, Standard 128) und der Ton
+  lässt sich auf Mono umschalten (Standard Stereo). Niedriger und Mono sparen
+  Datenverbrauch bei langen Sitzungen. Gilt ab dem nächsten Senden.
+- Auto-Reconnect für Spieler: Bricht die Verbindung ab, ohne dass der Spieler selbst
+  getrennt hat, versucht Skularis automatisch wieder zu verbinden (dreimal alle 5
+  Sekunden, danach dreimal alle 10 Sekunden, dann Aufgabe). So übersteht die
+  Verbindung einen kurzen Netz-Aussetzer beim Meister, ohne dass die Spieler von
+  Hand neu verbinden müssen. Gilt für Radio und Meisterpost. Posteingang, Verlauf
+  und der eigene Name bleiben dabei erhalten; es gibt keine Doppeleinträge.
+
+
 Version 0.76, 9. August 2026
 
 

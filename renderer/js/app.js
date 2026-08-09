@@ -282,6 +282,10 @@ function registriereShortcuts() {
   shortcuts.registriere('Ctrl+PageDown', () => schriftAendern(-1), 'Schrift verkleinern', 'schrift_minus');
   shortcuts.registriere('Ctrl+0', () => schriftReset(), 'Schrift zurücksetzen', 'schrift_reset');
 
+  // Strg und Pos1: von ueberall im Tisch-Hub zurueck zum Hauptmenue des Tisches
+  // (oberster Eintrag mit Fokus). Pos1 allein bleibt "im Menue ganz nach oben".
+  shortcuts.registriere('Ctrl+Home', () => { if (reiterHub.hubAktiv()) reiterHub.zumHubTop(); }, 'Zum Hauptmenü des Tisches', 'zum_hauptmenue');
+
   // Strg und Q: Skularis beenden. Ist ein Charakter oder ein Abenteuer offen,
   // wird vorher gefragt und auf Wunsch gespeichert.
   shortcuts.registriere('Ctrl+Q', async () => { if (await beendenAblauf()) beenden(); }, 'Skularis beenden', 'beenden');

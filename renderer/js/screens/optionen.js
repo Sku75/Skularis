@@ -13,7 +13,7 @@ import * as shortcuts from '../shortcuts.js';
 import * as reiterTasten from '../ui/reiter-tasten.js';
 import * as kurztasten from '../meister/kurztasten.js';
 import { menuScreen } from '../ui/menu-screen.js';
-import { knopfDialog } from '../ui/dialog.js';
+import { knopfDialog, zahlDialog } from '../ui/dialog.js';
 
 // "Über Skularis" — jede Zeile ist mit Pfeiltasten einzeln lesbar. Die
 // Versionszeile kommt aus der App (VERSION), der Rest steht hier.
@@ -281,6 +281,57 @@ function kurztastenBelegungScreen() {
   };
 }
 
+/**
+ * Uebertragungseinstellungen fuer das Meister-Radio: Qualitaet (Bitrate) und
+ * Stereo/Mono. Standard 128 kbit/s und Stereo (wie bisher). Gilt beim naechsten
+ * Sende-Start. Niedriger = weniger Datenverbrauch.
+ */
+function uebertragungScreen() {
+  const scr = {
+    title: 'Übertragungseinstellungen',
+    _bitrate: 128,
+    _mono: false,
+    _geladen: false,
+    async lade() {
+      const b = await einstellungen.get('radio_bitrate');
+      const m = await einstellungen.get('radio_mono');
+      scr._bitrate = (typeof b === 'number' && b >= 32 && b <= 128) ? b : 128;
+      scr._mono = m === true;
+      scr._geladen = true;
+      screen.refresh();
+    },
+    build() {
+      const items = [
+        {
+          label: `Übertragungsqualität: ${scr._bitrate} kbit pro Sekunde`,
+          hint: 'niedriger spart Daten, 32 bis 128',
+          onSelect: async () => {
+            const v = await zahlDialog({ titel: 'Übertragungsqualität', label: 'kbit pro Sekunde, 32 bis 128', wert: scr._bitrate, min: 32, max: 128 });
+            if (v === null) return;
+            scr._bitrate = v; einstellungen.setWert('radio_bitrate', v); screen.refresh();
+            sprache.sage(`Übertragungsqualität ${v} kbit pro Sekunde. Gilt beim nächsten Senden.`);
+          },
+        },
+        {
+          label: `Ton: ${scr._mono ? 'Mono' : 'Stereo'}`,
+          hint: 'Mono spart etwa die Hälfte der Daten',
+          onSelect: () => {
+            scr._mono = !scr._mono; einstellungen.setWert('radio_mono', scr._mono); screen.refresh();
+            sprache.sage(scr._mono ? 'Mono. Gilt beim nächsten Senden.' : 'Stereo. Gilt beim nächsten Senden.');
+          },
+        },
+      ];
+      return menuScreen({
+        title: 'Übertragungseinstellungen',
+        subtitle: 'Gilt für das Meister-Radio. Niedriger spart Daten. Wirkt ab dem nächsten Senden. Escape zurück.',
+        items,
+      }).build();
+    },
+    onShow() { if (!scr._geladen) scr.lade(); },
+  };
+  return scr;
+}
+
 export function build() {
   return menuScreen({
     title: 'Optionen',
@@ -323,6 +374,11 @@ export function build() {
       {
         label: 'Schrift auf Normalgröße',
         onSelect: () => setFont(0),
+      },
+      {
+        label: 'Übertragungseinstellungen',
+        hint: 'Qualität und Stereo/Mono für das Meister-Radio (spart Daten)',
+        onSelect: () => screen.push(uebertragungScreen()),
       },
       {
         label: 'Tasten neu belegen',

@@ -33,6 +33,15 @@ const _gesehen = new Set();     // Ids bereits verarbeiteter Nachrichten (Dedup)
 const _status = new Map();      // Meister: name -> { werte, seq, zeit }  (F2-Live)
 let _statusSeq = 0;             // Spieler: laufende Nummer der eigenen Statusmeldung
 
+// Auto-Reconnect (Spieler): greift bei Abbruch, wenn nicht bewusst getrennt.
+// Zeitplan: 3x alle 5 s, dann 3x alle 10 s, dann Aufgabe. Name und Dedup-Ids
+// bleiben erhalten (kein stopp() beim Reconnect), damit nichts verfaellt.
+let _code = null;
+let _manuell = false;
+let _reconnectTimer = null;
+let _reconnectVersuch = 0;
+let _amReconnect = false;
+
 /** Meister: letzter empfangener F2-Stand eines Spielers (oder null). */
 export function getStatus(name) { const s = _status.get(name); return s ? s.werte : null; }
 /** Meister: alle Namen mit einem Live-Status. */
@@ -167,27 +176,60 @@ export function meisterSende(an, text, typ = 'msg') {
  */
 export function verbindeSpielerPost(code, name, cb) {
   stopp();
+  _manuell = false;
   _rolle = 'spieler';
   _cb = cb || {};
   _selbstName = (String(name || '').trim()) || 'Spieler';
+  _code = code;
+  _reconnectVersuch = 0;
+  _amReconnect = false;
+  spielerVerbindeIntern(true);
+}
+
+/** Verbindung als Spieler (neu) aufbauen. erst=true beim allerersten Versuch. */
+function spielerVerbindeIntern(erst) {
+  try { if (_peer) _peer.destroy(); } catch { /* egal */ }
+  _meisterConn = null;
   _peer = new window.Peer({ config: ICE, debug: 1 });
   _peer.on('open', () => {
     let conn;
-    try { conn = _peer.connect(postRaum(code), { metadata: { name: _selbstName }, reliable: true }); }
-    catch { _cb.onFehler && _cb.onFehler('Verbindung nicht möglich.'); return; }
-    if (!conn) { _cb.onFehler && _cb.onFehler('Verbindung nicht möglich.'); return; }
+    try { conn = _peer.connect(postRaum(_code), { metadata: { name: _selbstName }, reliable: true }); }
+    catch { if (erst) _cb.onFehler && _cb.onFehler('Verbindung nicht möglich.'); dropBehandelnPost(); return; }
+    if (!conn) { if (erst) _cb.onFehler && _cb.onFehler('Verbindung nicht möglich.'); dropBehandelnPost(); return; }
     _meisterConn = conn;
-    conn.on('open', () => { try { conn.send({ typ: 'hello', name: _selbstName }); } catch { /* egal */ } _cb.onVerbunden && _cb.onVerbunden(); });
+    conn.on('open', () => {
+      try { conn.send({ typ: 'hello', name: _selbstName }); } catch { /* egal */ }
+      const warReconnect = _amReconnect;
+      _amReconnect = false;
+      _reconnectVersuch = 0;
+      if (warReconnect) _cb.onReconnectErfolg && _cb.onReconnectErfolg();
+      else _cb.onVerbunden && _cb.onVerbunden();
+    });
     conn.on('data', (d) => spielerEmpfang(d));
-    conn.on('close', () => _cb.onGetrennt && _cb.onGetrennt());
-    conn.on('error', () => _cb.onFehler && _cb.onFehler('Verbindung gestört.'));
-    setTimeout(() => { if (_meisterConn && !_meisterConn.open) _cb.onFehler && _cb.onFehler('Kein Meister unter diesem Code. Läuft die Post-Verbindung beim Meister?'); }, 8000);
+    conn.on('close', () => dropBehandelnPost());
+    conn.on('error', () => dropBehandelnPost());
+    setTimeout(() => {
+      if (_manuell || (_meisterConn && _meisterConn.open)) return;
+      if (erst && _reconnectVersuch === 0) _cb.onFehler && _cb.onFehler('Kein Meister unter diesem Code. Läuft die Post-Verbindung beim Meister?');
+      dropBehandelnPost();
+    }, 8000);
   });
   _peer.on('error', (e) => {
     const t = e && e.type ? e.type : '';
-    if (t === 'peer-unavailable') _cb.onFehler && _cb.onFehler('Kein Meister unter diesem Code.');
-    else _cb.onFehler && _cb.onFehler('Post-Fehler: ' + (e && e.message ? e.message : t || 'unbekannt'));
+    if (erst && _reconnectVersuch === 0 && t === 'peer-unavailable') _cb.onFehler && _cb.onFehler('Kein Meister unter diesem Code.');
+    dropBehandelnPost();
   });
+}
+
+/** Abbruch: einmal melden, dann Reconnect-Zeitplan (3x5s, dann 3x10s, dann Aufgabe). */
+function dropBehandelnPost() {
+  if (_manuell) return;
+  if (!_amReconnect) { _amReconnect = true; _cb.onReconnectStart && _cb.onReconnectStart(); }
+  if (_reconnectTimer) return;
+  _reconnectVersuch += 1;
+  if (_reconnectVersuch > 6) { _amReconnect = false; _cb.onAufgegeben && _cb.onAufgegeben(); return; }
+  const delay = _reconnectVersuch <= 3 ? 5000 : 10000;
+  _reconnectTimer = setTimeout(() => { _reconnectTimer = null; if (_manuell) return; spielerVerbindeIntern(false); }, delay);
 }
 
 function spielerEmpfang(d) {
@@ -218,6 +260,10 @@ export function spielerStatus(werte) {
 }
 
 export function stopp() {
+  _manuell = true; // bewusstes Trennen -> kein Reconnect
+  if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
+  _amReconnect = false;
+  _reconnectVersuch = 0;
   try { for (const c of _conns.values()) c.close(); } catch { /* egal */ }
   _conns.clear();
   if (_meisterConn) { try { _meisterConn.close(); } catch { /* egal */ } _meisterConn = null; }

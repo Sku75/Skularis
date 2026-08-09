@@ -31,6 +31,15 @@ const _calls = new Set();  // Sender: verbundene Hoerer
 let _audioEl = null;       // Hoerer: Wiedergabe-Element
 let _hoererVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
 
+// Auto-Reconnect (Hoerer): greift, wenn die Verbindung abbricht und der Spieler
+// NICHT selbst getrennt hat. Zeitplan: 3x alle 5 s, dann 3x alle 10 s, dann Aufgabe.
+let _manuell = false;        // true = bewusst getrennt (kein Reconnect)
+let _hoerKey = null;
+let _hoerCb = {};
+let _reconnectTimer = null;
+let _reconnectVersuch = 0;
+let _amReconnect = false;
+
 /** Einen kurzen Zahlen-Schluessel erzeugen: sechs Ziffern (z. B. "123456"). */
 export function generiereSchluessel() {
   const arr = new Uint32Array(1);
@@ -73,9 +82,11 @@ function verbindungWatch(call, onWeg) {
  * @param {MediaStream} sendeStrom  aus audio-player.getSendeStrom()
  * @param {object} cb  { onBereit(), onHoererNeu(anzahl), onHoererWeg(anzahl), onFehler(text) }
  */
-export function starteSenden(schluessel, sendeStrom, cb) {
+export function starteSenden(schluessel, sendeStrom, cb, opts = {}) {
   stopp();
+  _manuell = false;
   _rolle = 'sender';
+  const maxBitrate = (opts && typeof opts.maxBitrate === 'number') ? opts.maxBitrate : null; // kbit/s
   _peer = new window.Peer(raumId(schluessel), { config: ICE, debug: 1 });
   _peer.on('open', () => cb.onBereit && cb.onBereit());
   _peer.on('error', (e) => {
@@ -86,10 +97,29 @@ export function starteSenden(schluessel, sendeStrom, cb) {
   _peer.on('call', (call) => {
     call.answer(sendeStrom);          // mit dem echten Sendestrom antworten
     _calls.add(call);
+    if (maxBitrate) setzeBitrate(call, maxBitrate);
     cb.onHoererNeu && cb.onHoererNeu(_calls.size);
     call.on('close', () => { if (_calls.has(call)) { _calls.delete(call); cb.onHoererWeg && cb.onHoererWeg(_calls.size); } });
     verbindungWatch(call, (n) => cb.onHoererWeg && cb.onHoererWeg(n));
   });
+}
+
+/** Sende-Bitrate eines Anrufs begrenzen (Opus, ueber RTCRtpSender.setParameters). */
+function setzeBitrate(call, kbps) {
+  const anwenden = () => {
+    try {
+      const pc = call.peerConnection;
+      if (!pc || !pc.getSenders) return;
+      const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+      if (!sender) return;
+      const params = sender.getParameters();
+      if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+      params.encodings[0].maxBitrate = Math.max(6000, Math.round(kbps * 1000));
+      sender.setParameters(params).catch(() => { /* egal, bleibt Standard */ });
+    } catch { /* egal */ }
+  };
+  // Kurz warten, bis der Sender nach dem Answer existiert.
+  setTimeout(anwenden, 600);
 }
 
 /**
@@ -99,30 +129,68 @@ export function starteSenden(schluessel, sendeStrom, cb) {
  */
 export function starteHoeren(schluessel, cb) {
   stopp();
+  _manuell = false;
   _rolle = 'hoerer';
+  _hoerKey = schluessel;
+  _hoerCb = cb || {};
+  _reconnectVersuch = 0;
+  _amReconnect = false;
+  hoereIntern(true);
+}
+
+/** Verbindung als Hoerer (neu) aufbauen. erst=true beim allerersten Versuch. */
+function hoereIntern(erst) {
+  try { if (_peer) _peer.destroy(); } catch { /* egal */ }
   _peer = new window.Peer({ config: ICE, debug: 1 });
   _peer.on('open', () => {
     let call;
-    try { call = _peer.call(raumId(schluessel), stilleSpur()); }
-    catch { cb.onFehler && cb.onFehler('Verbindung nicht moeglich.'); return; }
-    if (!call) { cb.onFehler && cb.onFehler('Verbindung nicht moeglich.'); return; }
+    try { call = _peer.call(raumId(_hoerKey), stilleSpur()); }
+    catch { if (erst) _hoerCb.onFehler && _hoerCb.onFehler('Verbindung nicht moeglich.'); dropBehandeln(); return; }
+    if (!call) { if (erst) _hoerCb.onFehler && _hoerCb.onFehler('Verbindung nicht moeglich.'); dropBehandeln(); return; }
     let hatTon = false;
     call.on('stream', (remote) => {
       hatTon = true;
+      const warReconnect = _amReconnect;
+      _amReconnect = false;
+      _reconnectVersuch = 0;
       spieleEmpfang(remote);
-      cb.onVerbunden && cb.onVerbunden();
+      if (warReconnect) _hoerCb.onReconnectErfolg && _hoerCb.onReconnectErfolg();
+      else _hoerCb.onVerbunden && _hoerCb.onVerbunden();
     });
-    call.on('close', () => cb.onGetrennt && cb.onGetrennt());
-    call.on('error', () => cb.onFehler && cb.onFehler('Verbindung gestoert.'));
-    // Kommt binnen einiger Sekunden kein Ton, ist meist der Schluessel falsch
-    // oder es sendet gerade niemand.
-    setTimeout(() => { if (!hatTon) cb.onFehler && cb.onFehler('Kein Sender gefunden. Stimmt der Schluessel, sendet der Meister?'); }, 8000);
+    call.on('close', () => { dropBehandeln(); });
+    call.on('error', () => { dropBehandeln(); });
+    // Kommt binnen einiger Sekunden kein Ton, ist der Meister (noch) nicht da.
+    setTimeout(() => {
+      if (hatTon || _manuell) return;
+      if (erst && _reconnectVersuch === 0) _hoerCb.onFehler && _hoerCb.onFehler('Kein Sender gefunden. Stimmt der Schluessel, sendet der Meister?');
+      dropBehandeln();
+    }, 8000);
   });
   _peer.on('error', (e) => {
     const typ = e && e.type ? e.type : '';
-    if (typ === 'peer-unavailable') cb.onFehler && cb.onFehler('Kein Sender unter diesem Schluessel. Sendet der Meister schon?');
-    else cb.onFehler && cb.onFehler('Radio-Fehler: ' + (e && e.message ? e.message : typ || 'unbekannt'));
+    if (erst && _reconnectVersuch === 0 && typ === 'peer-unavailable') _hoerCb.onFehler && _hoerCb.onFehler('Kein Sender unter diesem Schluessel. Sendet der Meister schon?');
+    dropBehandeln();
   });
+}
+
+/** Ein Abbruch: einmal melden, dann den Reconnect-Zeitplan starten. */
+function dropBehandeln() {
+  if (_manuell) return;
+  if (!_amReconnect) { _amReconnect = true; _hoerCb.onReconnectStart && _hoerCb.onReconnectStart(); }
+  planeReconnectHoerer();
+}
+
+function planeReconnectHoerer() {
+  if (_manuell) return;
+  if (_reconnectTimer) return; // schon ein Versuch geplant
+  _reconnectVersuch += 1;
+  if (_reconnectVersuch > 6) { _amReconnect = false; _hoerCb.onAufgegeben && _hoerCb.onAufgegeben(); return; }
+  const delay = _reconnectVersuch <= 3 ? 5000 : 10000;
+  _reconnectTimer = setTimeout(() => {
+    _reconnectTimer = null;
+    if (_manuell) return;
+    hoereIntern(false);
+  }, delay);
 }
 
 /** Empfangenen Ton abspielen; Lautstaerke ueber das Wiedergabe-Element. */
@@ -159,8 +227,12 @@ export function rolle() {
   return _rolle;
 }
 
-/** Alles beenden und aufraeumen. */
+/** Alles beenden und aufraeumen. Gilt als BEWUSSTES Trennen -> kein Reconnect. */
 export function stopp() {
+  _manuell = true;
+  if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
+  _amReconnect = false;
+  _reconnectVersuch = 0;
   for (const c of _calls) { try { c.close(); } catch { /* egal */ } }
   _calls.clear();
   if (_audioEl) { try { _audioEl.pause(); _audioEl.srcObject = null; } catch { /* egal */ } _audioEl = null; }

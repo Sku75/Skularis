@@ -61,6 +61,10 @@ async function verbinde() {
     onFehler: (t) => { sprache.sage(t); },
     onSpielerListe: (namen) => { _mitspieler = (namen || []).filter(n => n !== _eigenerName); },
     onNachricht: (m) => empfangePost(m),
+    // Auto-Reconnect (sparsame Ansagen); bei Erfolg den F2-Stand neu senden.
+    onReconnectStart: () => { sprache.sage('Verbindung zum Meister verloren. Ich versuche, wieder zu verbinden.'); },
+    onReconnectErfolg: () => { try { post.spielerStatus(sammleStatus(getAbenteuer())); } catch { /* egal */ } sprache.sage('Wieder mit dem Meister verbunden.'); },
+    onAufgegeben: () => { sprache.sage('Wiederverbinden aufgegeben. Bitte bei Bedarf neu verbinden.'); },
   });
   sprache.sage('Verbinde …');
 }

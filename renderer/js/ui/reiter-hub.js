@@ -211,6 +211,20 @@ export function hubAktiv() {
   return Boolean(_aktiv && screen.imStack(_aktiv.anker));
 }
 
+/**
+ * Zum Hauptmenue des Tisches springen: das offene Reiter-Segment leeren, den
+ * Hub-Anker (das F-Tasten-Menue) mit Fokus auf dem ERSTEN Eintrag zeigen.
+ * Von ueberall im Hub per Strg+Pos1 (siehe app.js). Ohne offenen Hub oder bei
+ * offenem Dialog passiert nichts.
+ */
+export function zumHubTop() {
+  if (!_aktiv || !screen.imStack(_aktiv.anker)) return false;
+  if (document.querySelector('dialog[open]')) return false;
+  _aktiv.anker._focusIndex = null; // erzwingt den Fokus auf den ersten Eintrag
+  screen.reiterSegmentZeigen(_aktiv.anker, []);
+  return true;
+}
+
 /** Bereich des gerade offenen Hubs ('abenteuer' | 'meister') oder null. */
 export function aktiverBereich() {
   return (_aktiv && screen.imStack(_aktiv.anker)) ? (_aktiv.bereich || null) : null;
