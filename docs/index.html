@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skularis</title>
+  <meta name="description" content="Skularis — barrierefreie Rollenspiel-Software fuer Das Schwarze Auge nach dem Ilaris-Regelwerk. Charaktere verwalten, Abenteuer spielen und Abenteuer meistern.">
+  <style>
+    :root {
+      --bg: #12141a;
+      --text: #f2f4f8;
+      --muted: #c3c8d4;
+      --link: #7cc4ff;
+      --btn-bg: #2e7d32;
+      --btn-text: #ffffff;
+      --btn-focus: #ffd54f;
+      --card: #1c1f28;
+      --border: #333949;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #ffffff;
+        --text: #14161b;
+        --muted: #3a3f4a;
+        --link: #0b5cad;
+        --btn-bg: #1b6e20;
+        --btn-text: #ffffff;
+        --btn-focus: #8a5a00;
+        --card: #f4f5f8;
+        --border: #d5d8e0;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, "Segoe UI", Arial, sans-serif;
+      font-size: 1.125rem;
+      line-height: 1.6;
+    }
+    main { max-width: 46rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    h1 { font-size: 2.4rem; line-height: 1.2; margin: 0.5rem 0 0.75rem; }
+    h2 { font-size: 1.6rem; margin: 2.25rem 0 0.5rem; }
+    p { margin: 0.75rem 0; }
+    a { color: var(--link); }
+    a:focus-visible, .btn:focus-visible {
+      outline: 3px solid var(--btn-focus);
+      outline-offset: 2px;
+    }
+    .lead { font-size: 1.25rem; color: var(--text); }
+    .download {
+      display: inline-block;
+      margin: 1rem 0;
+      padding: 0.85rem 1.4rem;
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      font-weight: 700;
+      font-size: 1.15rem;
+      text-decoration: none;
+      border-radius: 0.5rem;
+      border: 2px solid transparent;
+    }
+    .download:hover { text-decoration: underline; }
+    ul { padding-left: 1.3rem; }
+    li { margin: 0.4rem 0; }
+    .hinweise {
+      margin-top: 2.5rem;
+      padding: 1rem 1.25rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+    .anleitung { color: var(--muted); }
+    footer { margin-top: 2.5rem; color: var(--muted); font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Skularis</h1>
+
+    <p class="lead">Barrierefreie Rollenspiel-Software fuer Das Schwarze Auge nach dem Ilaris-Regelwerk. Charaktere verwalten, Abenteuer spielen und Abenteuer meistern, vollstaendig mit einem Screenreader bedienbar.</p>
+
+    <p><a class="download" href="https://github.com/Sku75/Skularis/releases/latest/download/Skularis-Portable.zip">Skularis herunterladen (Windows, Portable-Version als ZIP)</a></p>
+
+    <h2>Was ist Skularis?</h2>
+    <p>Skularis ist ein Programm fuer Pen-and-Paper-Rollenspiel, das von Grund auf fuer blinde und sehbehinderte Menschen gebaut ist. Gleichzeitig bietet es auch allen sehenden Nutzern eine moeglichst komfortable Bedienung. Es setzt das freie Regelwerk Ilaris fuer Das Schwarze Auge um und begleitet dich in allen drei Rollen am Spieltisch: als Heldin oder Held, als Spielleitung und schon bei der Vorbereitung.</p>
+
+    <h2>Was kann Skularis?</h2>
+    <ul>
+      <li>Charaktere erstellen und verwalten, nach den Ilaris-Regeln und kompatibel zu Sephrasto-Charakterdateien.</li>
+      <li>Abenteuertisch zum Spielen: Proben und Kampf wuerfeln, Wunden und Erschoepfung im Blick behalten, Inventar, Notizen und Tagebuch fuehren.</li>
+      <li>Meistertisch zum Leiten: Gruppe verwalten, Gegner und Szenen vorbereiten, verdeckt wuerfeln, Musik und Geraeusche einspielen und ueber die Meisterpost mit den Spielern verbunden sein.</li>
+    </ul>
+
+    <h2>Fuer wen ist Skularis?</h2>
+    <p>Skularis richtet sich an blinde und sehbehinderte Rollenspielerinnen und Rollenspieler, die mit einem Screenreader arbeiten. Die Oberflaeche ist durchgehend im Negativ-Design gehalten, also helle Schrift auf dunklem Grund, und der Schriftgrad der hellen Buchstaben laesst sich frei skalieren. Sehende koennen Skularis genauso komfortabel nutzen.</p>
+
+    <h2>Download</h2>
+    <p><a class="download" href="https://github.com/Sku75/Skularis/releases/latest/download/Skularis-Portable.zip">Skularis herunterladen (Windows, Portable-Version als ZIP)</a></p>
+    <p class="anleitung">So geht es: ZIP entpacken, den Ordner an einen Ort deiner Wahl legen und die Datei &bdquo;Skularis Starten.bat&ldquo; oeffnen. Fuer spaetere Updates genuegt &bdquo;Skularis Updaten.exe&ldquo; im selben Ordner.</p>
+
+    <h2>Quellcode</h2>
+    <p>Skularis ist quelloffen. Den gesamten Code findest du auf <a href="https://github.com/Sku75/Skularis">GitHub</a>.</p>
+
+    <p class="hinweise">Skularis ist eine kostenlose Version und wird laufend weiterentwickelt. Es ist ein freies Fan-Projekt und steht in keiner Verbindung zu Ulisses Spiele. &bdquo;Das Schwarze Auge&ldquo; ist eine Marke von Ulisses Spiele. Ilaris ist ein frei verfuegbares, inoffizielles Regelwerk.</p>
+
+    <footer>
+      <p>Skularis auf GitHub: <a href="https://github.com/Sku75/Skularis">github.com/Sku75/Skularis</a></p>
+    </footer>
+  </main>
+</body>
+</html>

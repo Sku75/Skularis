@@ -10,6 +10,7 @@ files:
   - "!Charakter-Dateien"
   - "!Abenteuer-Daten"
   - "!_test"
+  - "!docs"
   - "!dist"
   - "!*.bat"
   - "!*.md"
