@@ -39,6 +39,7 @@ let _hoerCb = {};
 let _reconnectTimer = null;
 let _reconnectVersuch = 0;
 let _amReconnect = false;
+let _verbundenGewesen = false; // Reconnect erst, wenn die Verbindung einmal STAND
 
 /** Einen kurzen Zahlen-Schluessel erzeugen: sechs Ziffern (z. B. "123456"). */
 export function generiereSchluessel() {
@@ -135,6 +136,7 @@ export function starteHoeren(schluessel, cb) {
   _hoerCb = cb || {};
   _reconnectVersuch = 0;
   _amReconnect = false;
+  _verbundenGewesen = false;
   hoereIntern(true);
 }
 
@@ -153,29 +155,40 @@ function hoereIntern(erst) {
       const warReconnect = _amReconnect;
       _amReconnect = false;
       _reconnectVersuch = 0;
+      _verbundenGewesen = true;
       spieleEmpfang(remote);
       if (warReconnect) _hoerCb.onReconnectErfolg && _hoerCb.onReconnectErfolg();
       else _hoerCb.onVerbunden && _hoerCb.onVerbunden();
     });
-    call.on('close', () => { dropBehandeln(); });
-    call.on('error', () => { dropBehandeln(); });
+    call.on('close', () => { dropBehandeln('Verbindung getrennt.'); });
+    call.on('error', () => { dropBehandeln('Verbindung gestoert.'); });
     // Kommt binnen einiger Sekunden kein Ton, ist der Meister (noch) nicht da.
     setTimeout(() => {
       if (hatTon || _manuell) return;
-      if (erst && _reconnectVersuch === 0) _hoerCb.onFehler && _hoerCb.onFehler('Kein Sender gefunden. Stimmt der Schluessel, sendet der Meister?');
-      dropBehandeln();
+      dropBehandeln('Kein Sender gefunden. Stimmt der Schluessel, sendet der Meister?');
     }, 8000);
   });
   _peer.on('error', (e) => {
     const typ = e && e.type ? e.type : '';
-    if (erst && _reconnectVersuch === 0 && typ === 'peer-unavailable') _hoerCb.onFehler && _hoerCb.onFehler('Kein Sender unter diesem Schluessel. Sendet der Meister schon?');
-    dropBehandeln();
+    const msg = typ === 'peer-unavailable'
+      ? 'Kein Sender unter diesem Schluessel. Sendet der Meister schon?'
+      : 'Radio-Fehler: ' + (e && e.message ? e.message : typ || 'unbekannt');
+    dropBehandeln(msg);
   });
 }
 
-/** Ein Abbruch: einmal melden, dann den Reconnect-Zeitplan starten. */
-function dropBehandeln() {
+/**
+ * Ein Abbruch. War die Verbindung noch NIE aufgebaut (erster Versuch scheitert),
+ * wird nur der Fehler gemeldet - KEIN Reconnect-Kreisel (sonst stoert er den Aufbau).
+ * Erst wenn die Verbindung einmal stand und dann abbricht, greift der Reconnect.
+ */
+function dropBehandeln(fehlerText) {
   if (_manuell) return;
+  if (!_verbundenGewesen) {
+    // Erstverbindung fehlgeschlagen: melden, nicht endlos neu versuchen.
+    if (fehlerText) _hoerCb.onFehler && _hoerCb.onFehler(fehlerText);
+    return;
+  }
   if (!_amReconnect) { _amReconnect = true; _hoerCb.onReconnectStart && _hoerCb.onReconnectStart(); }
   planeReconnectHoerer();
 }
@@ -227,12 +240,26 @@ export function rolle() {
   return _rolle;
 }
 
+/** Laeuft gerade ein automatischer Wiederverbindungs-Versuch (Hoerer)? */
+export function istAmReconnect() { return _amReconnect; }
+
+/** Das automatische Wiederverbinden abbrechen (z. B. per ESC). true, wenn gestoppt. */
+export function reconnectAbbrechen() {
+  if (!_amReconnect && !_reconnectTimer) return false;
+  _manuell = true;
+  if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
+  _amReconnect = false;
+  _reconnectVersuch = 0;
+  return true;
+}
+
 /** Alles beenden und aufraeumen. Gilt als BEWUSSTES Trennen -> kein Reconnect. */
 export function stopp() {
   _manuell = true;
   if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
   _amReconnect = false;
   _reconnectVersuch = 0;
+  _verbundenGewesen = false;
   for (const c of _calls) { try { c.close(); } catch { /* egal */ } }
   _calls.clear();
   if (_audioEl) { try { _audioEl.pause(); _audioEl.srcObject = null; } catch { /* egal */ } _audioEl = null; }

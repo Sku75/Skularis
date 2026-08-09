@@ -41,6 +41,7 @@ let _manuell = false;
 let _reconnectTimer = null;
 let _reconnectVersuch = 0;
 let _amReconnect = false;
+let _verbundenGewesen = false; // Reconnect erst, wenn die Verbindung einmal STAND
 
 /** Meister: letzter empfangener F2-Stand eines Spielers (oder null). */
 export function getStatus(name) { const s = _status.get(name); return s ? s.werte : null; }
@@ -183,6 +184,7 @@ export function verbindeSpielerPost(code, name, cb) {
   _code = code;
   _reconnectVersuch = 0;
   _amReconnect = false;
+  _verbundenGewesen = false;
   spielerVerbindeIntern(true);
 }
 
@@ -202,28 +204,36 @@ function spielerVerbindeIntern(erst) {
       const warReconnect = _amReconnect;
       _amReconnect = false;
       _reconnectVersuch = 0;
+      _verbundenGewesen = true;
       if (warReconnect) _cb.onReconnectErfolg && _cb.onReconnectErfolg();
       else _cb.onVerbunden && _cb.onVerbunden();
     });
     conn.on('data', (d) => spielerEmpfang(d));
-    conn.on('close', () => dropBehandelnPost());
-    conn.on('error', () => dropBehandelnPost());
+    conn.on('close', () => dropBehandelnPost('Verbindung zum Meister getrennt.'));
+    conn.on('error', () => dropBehandelnPost('Verbindung gestört.'));
     setTimeout(() => {
       if (_manuell || (_meisterConn && _meisterConn.open)) return;
-      if (erst && _reconnectVersuch === 0) _cb.onFehler && _cb.onFehler('Kein Meister unter diesem Code. Läuft die Post-Verbindung beim Meister?');
-      dropBehandelnPost();
+      dropBehandelnPost('Kein Meister unter diesem Code. Läuft die Post-Verbindung beim Meister?');
     }, 8000);
   });
   _peer.on('error', (e) => {
     const t = e && e.type ? e.type : '';
-    if (erst && _reconnectVersuch === 0 && t === 'peer-unavailable') _cb.onFehler && _cb.onFehler('Kein Meister unter diesem Code.');
-    dropBehandelnPost();
+    const msg = t === 'peer-unavailable' ? 'Kein Meister unter diesem Code.' : 'Post-Fehler: ' + (e && e.message ? e.message : t || 'unbekannt');
+    dropBehandelnPost(msg);
   });
 }
 
-/** Abbruch: einmal melden, dann Reconnect-Zeitplan (3x5s, dann 3x10s, dann Aufgabe). */
-function dropBehandelnPost() {
+/**
+ * Abbruch. War die Verbindung noch NIE aufgebaut (erster Versuch scheitert), nur
+ * melden - KEIN Reconnect-Kreisel. Erst wenn sie einmal stand und dann abbricht,
+ * greift der Reconnect (3x5s, dann 3x10s, dann Aufgabe).
+ */
+function dropBehandelnPost(fehlerText) {
   if (_manuell) return;
+  if (!_verbundenGewesen) {
+    if (fehlerText) _cb.onFehler && _cb.onFehler(fehlerText);
+    return;
+  }
   if (!_amReconnect) { _amReconnect = true; _cb.onReconnectStart && _cb.onReconnectStart(); }
   if (_reconnectTimer) return;
   _reconnectVersuch += 1;
@@ -259,11 +269,25 @@ export function spielerStatus(werte) {
   catch { return false; }
 }
 
+/** Laeuft gerade ein automatischer Wiederverbindungs-Versuch (Spieler)? */
+export function istAmReconnect() { return _amReconnect; }
+
+/** Das automatische Wiederverbinden abbrechen (z. B. per ESC). true, wenn gestoppt. */
+export function reconnectAbbrechen() {
+  if (!_amReconnect && !_reconnectTimer) return false;
+  _manuell = true;
+  if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
+  _amReconnect = false;
+  _reconnectVersuch = 0;
+  return true;
+}
+
 export function stopp() {
   _manuell = true; // bewusstes Trennen -> kein Reconnect
   if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
   _amReconnect = false;
   _reconnectVersuch = 0;
+  _verbundenGewesen = false;
   try { for (const c of _conns.values()) c.close(); } catch { /* egal */ }
   _conns.clear();
   if (_meisterConn) { try { _meisterConn.close(); } catch { /* egal */ } _meisterConn = null; }

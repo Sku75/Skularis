@@ -12,6 +12,8 @@ import * as navigation from './navigation.js';
 import * as einstellungen from './daten/einstellungen.js';
 import * as screen from './ui/screen.js';
 import * as reiterHub from './ui/reiter-hub.js';
+import * as radio from './net/radio.js';
+import * as post from './net/post.js';
 import * as startScreen from './screens/start.js';
 import { hatInhalt } from './core/infotext.js';
 import { knopfDialog } from './ui/dialog.js';
@@ -101,6 +103,10 @@ function registriereEscape() {
     // Kam das Escape aus einem Dialog (der sich soeben selbst geschlossen hat),
     // NICHT zusätzlich den darunterliegenden Bildschirm verlassen.
     if (e.target && e.target.closest && e.target.closest('dialog')) return;
+    // Laeuft gerade ein automatisches Wiederverbinden? Dann bricht Escape ZUERST
+    // dieses ab (und navigiert NICHT zusaetzlich zurueck).
+    if (radio.istAmReconnect && radio.istAmReconnect()) { e.preventDefault(); radio.reconnectAbbrechen(); sprache.sage('Wiederverbinden abgebrochen.'); return; }
+    if (post.istAmReconnect && post.istAmReconnect()) { e.preventDefault(); post.reconnectAbbrechen(); sprache.sage('Wiederverbinden abgebrochen.'); return; }
     e.preventDefault();
     if (!await screen.zurueck()) {
       if (screen.tiefe() <= 1) sprache.sage('Hauptmenü. Bereits oberste Ebene.');

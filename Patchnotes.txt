@@ -4,6 +4,22 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.78, 9. August 2026
+
+
+Fehlerbehebung Verbinden und Wiederverbinden
+
+- Fehler behoben: Der automatische Reconnect aus 0.77 griff schon beim allerersten
+  Verbindungsversuch und baute die Verbindung dabei im Kreis neu auf. Dadurch kam
+  beim Radio manchmal keine Verbindung zustande ("versuche wieder zu verbinden",
+  kein Ton beim Meister). Jetzt gilt: Der erste Verbindungsversuch läuft wie früher
+  (nur eine Rückmeldung bei Misserfolg). Das automatische Wiederverbinden greift
+  ausschließlich, wenn eine Verbindung vorher STAND und dann abbricht - genau für
+  den Netz-Schluckauf gedacht.
+- Neu: Ein laufendes Wiederverbinden lässt sich jederzeit mit Escape abbrechen
+  (Radio und Meisterpost), mit Ansage "Wiederverbinden abgebrochen".
+
+
 Version 0.77, 9. August 2026
 
 
