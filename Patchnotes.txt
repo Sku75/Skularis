@@ -4,6 +4,30 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.76, 9. August 2026
+
+
+F2-Live-Übertragung und erweitertes Postmenü
+
+- F2-Live-Übertragung: Ist ein Spieler über die Meisterpost verbunden, überträgt er
+  seinen Charakterstatus (F2) an den Meister: Einschränkungen, Wunden, Erschöpfung,
+  Schicksalspunkte, Astral-/Karma-/Gunstpunkte, Astralspeicher und die abgeleiteten
+  Werte. Verstellt der Spieler einen Zähler, hört der Meister einen Ton und eine
+  kurze Meldung der Änderung.
+- Meistertisch, Charakteransicht (F5): Verbundene Helden sind mit "(verbunden)"
+  markiert. Beim Öffnen stehen oben die Live-Werte (nur Anzeige), darunter der
+  Zugang zur Initiative-Phase (verdeckte Würfe). Verbundene Spieler, die noch nicht
+  in der Gruppe sind, erscheinen ebenfalls mit ihren Live-Werten.
+- Postmenü (Spieler und Meister) erweitert: Statt nur "Post versenden" gibt es jetzt
+  "Nachricht senden" und "Pop-up auslösen". In beiden wählst du zuerst "An alle"
+  oder ein Einzelziel, dann schreibst du den Text. Ein Pop-up löst beim Empfänger
+  sofort ein Fenster mit eigenem Ton und Annehmen/Ablehnen aus; beim Annehmen wird
+  der Text vorgelesen.
+- Neuer Menüpunkt "Verlauf": Kopien aller gesendeten und empfangenen Nachrichten
+  dieses Geräts.
+- Neuer Pop-up-Ton.
+
+
 Version 0.75, 9. August 2026
 
 

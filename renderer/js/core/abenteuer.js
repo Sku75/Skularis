@@ -120,7 +120,8 @@ export function createAbenteuer(char, name, charakterName, charakterPfad) {
     journal: [],
     protokoll: [],
     apGesamt: 0,
-    posteingang: [], // Meisterpost: { id, von, text, zeit, gelesen }
+    posteingang: [], // Meisterpost: { id, von, text, zeit, typ, gelesen }
+    postVerlauf: [], // Kopien aller gesendeten und empfangenen Nachrichten: { richtung, wer, text, zeit, typ }
   };
 }
 
@@ -141,6 +142,7 @@ export function parseAbenteuer(text) {
   a.protokoll = a.protokoll || [];
   a.apGesamt = a.apGesamt || 0;
   a.posteingang = Array.isArray(a.posteingang) ? a.posteingang : [];
+  a.postVerlauf = Array.isArray(a.postVerlauf) ? a.postVerlauf : [];
 
   // Nachruesten: hat der Charakter einen Astralspeicher-Stab, aber das Abenteuer
   // kennt die Ressource noch nicht (aelterer Spielstand), dann einmalig voll anlegen.

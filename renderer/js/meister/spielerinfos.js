@@ -13,7 +13,7 @@
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
 import { menuScreen } from '../ui/menu-screen.js';
-import { wertZeile, infoZeile, abschnittTitel, verbindeDetail } from '../editor/widgets.js';
+import { wertZeile, infoZeile, abschnittTitel, aktionZeile, verbindeDetail } from '../editor/widgets.js';
 import { textDialog, knopfDialog } from '../ui/dialog.js';
 import { abgeleiteteWerte, wundabzug } from '../core/regeln.js';
 import { baueCharakterbogen } from '../abenteuer/charakterbogen.js';
@@ -21,6 +21,7 @@ import { liveSpielScreen } from '../abenteuer/live-spiel.js';
 import { setAbenteuer, setDb } from '../abenteuer/state.js';
 import { setVerdeckt } from '../abenteuer/wuerfel-kern.js';
 import { postkastenScreen } from './postkasten.js';
+import * as post from '../net/post.js';
 import { getMeister, speichere } from './state.js';
 import { getDb } from '../core/db-laden.js';
 import { vitalitaet } from '../core/meister-abenteuer.js';
@@ -210,20 +211,82 @@ export function charAnsichtInitiativeScreen() {
     title: '',
     build() {
       const a = getMeister();
-      this.title = `Charakteransicht, ${a.charaktere.length}`;
-      const items = (a.charaktere || []).map(c => ({
-        label: c.name,
-        hint: 'Meine Initiative-Phase dieses Charakters ansehen',
-        onSelect: () => oeffneInitiative(c),
+      const gruppe = a.charaktere || [];
+      const verbunden = new Set(post.statusNamen());
+      const items = gruppe.map(c => ({
+        label: verbunden.has(c.name) ? `${c.name} (verbunden)` : c.name,
+        hint: verbunden.has(c.name) ? 'Live-Werte und Initiative-Phase' : 'Initiative-Phase dieses Charakters',
+        onSelect: () => screen.push(charLiveScreen(c)),
       }));
+      // Verbundene Spieler, die (noch) nicht in der Gruppe sind: nur Live-Werte.
+      const inGruppe = new Set(gruppe.map(c => c.name));
+      for (const n of verbunden) {
+        if (!inGruppe.has(n)) items.push({ label: `${n} (verbunden)`, hint: 'Live-Werte dieses Spielers', onSelect: () => screen.push(charLiveScreen({ name: n, bogen: null })) });
+      }
+      this.title = `Charakteransicht, ${items.length}`;
       return menuScreen({
         title: this.title,
-        subtitle: 'Enter oeffnet die Initiative-Phase des Charakters. Escape zurueck.',
+        subtitle: 'Enter oeffnet die Werte und die Initiative-Phase. Escape zurueck.',
         items,
         leer: 'Noch keine Helden in der Gruppe. Erst unter Gruppenzusammenstellung hinzufuegen.',
       }).build();
     },
-    onShow() { sprache.sage('Charakteransicht. Enter oeffnet die Initiative-Phase eines Helden.'); },
+    onShow() { sprache.sage('Charakteransicht. Verbundene Spieler sind markiert.'); },
+  };
+}
+
+/** Eine F2-Wertzeile aus dem Live-Status (oder null, wenn nicht vorhanden). */
+function statusZeile(werte, key, wort) {
+  const v = werte[key];
+  if (!v || typeof v.aktuell !== 'number') return null;
+  const max = (v.max !== undefined && v.max !== null) ? ` von ${v.max}` : '';
+  return infoZeile(`${wort}: ${v.aktuell}${max}`, `${wort} des Spielers, live uebertragen. Nur Anzeige.`);
+}
+
+/**
+ * Werte-Ansicht eines Charakters: oben der F2-Ueberblick (live vom verbundenen
+ * Spieler, sonst aus dem Bogen), darunter der Zugang zur Initiative-Phase (verdeckt).
+ */
+function charLiveScreen(c) {
+  return {
+    title: '',
+    build() {
+      const werte = post.getStatus(c.name);
+      const verbunden = !!werte;
+      this.title = verbunden ? `${c.name} (verbunden)` : c.name;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel(this.title));
+
+      if (verbunden) {
+        wrap.appendChild(abschnittTitel('Werte (live vom Spieler)'));
+        if (typeof werte.einschraenkungen === 'number') wrap.appendChild(infoZeile(`Einschraenkungen: ${werte.einschraenkungen}`, 'Wunden plus Erschoepfung. Live vom Spieler. Nur Anzeige.'));
+        for (const [k, wort] of [['Wunden', 'Wunden'], ['Erschoepfung', 'Erschoepfung'], ['SchiP', 'Schicksalspunkte'], ['AsP', 'Astralpunkte'], ['KaP', 'Karmapunkte'], ['GuP', 'Gunstpunkte'], ['AstralspeicherStab', 'Astralspeicher Stab']]) {
+          const z = statusZeile(werte, k, wort); if (z) wrap.appendChild(z);
+        }
+        const w2 = (k, wort) => { if (typeof werte[k] === 'number') wrap.appendChild(infoZeile(`${wort}: ${werte[k]}`, `${wort}, live vom Spieler. Nur Anzeige.`)); };
+        w2('WS', 'Wundschwelle'); w2('MR', 'Magieresistenz'); w2('GS', 'Geschwindigkeit'); w2('INI', 'Initiative'); w2('SB', 'Schadensbonus'); w2('DH', 'Durchhaltevermoegen'); w2('RS', 'Ruestungsschutz'); w2('BE', 'Behinderung');
+      } else if (c.bogen) {
+        wrap.appendChild(abschnittTitel('Werte (aus dem Bogen)'));
+        const w = abgeleiteteWerte(c.bogen);
+        wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}, Magieresistenz: ${w.MR}, Initiative: ${w.INI}`, 'Werte aus dem Charakterbogen. Der Spieler ist nicht verbunden, aktuelle Zaehler sind daher nicht live.'));
+        wrap.appendChild(infoZeile(`Geschwindigkeit: ${w.GS}, Schadensbonus: ${w.SB}, Ruestungsschutz: ${w.RS}`, 'Aus dem Charakterbogen.'));
+      } else {
+        wrap.appendChild(infoZeile('Keine Werte. Der Spieler ist nicht mehr verbunden.', ''));
+      }
+
+      // Zugang zur Initiative-Phase (verdeckt) - nur wenn der Bogen vorliegt.
+      if (c.bogen) {
+        wrap.appendChild(abschnittTitel('Initiative-Phase (verdeckt)'));
+        wrap.appendChild(aktionZeile('Wuerfeln, Kaempfen, Manoever, Zauber', () => oeffneInitiative(c),
+          'oeffnet die Initiative-Phase dieses Charakters; alle Wuerfe verdeckt'));
+      }
+
+      verbindeDetail(wrap);
+      return wrap;
+    },
+    onShow() { sprache.sage(post.getStatus(c.name) ? `${c.name}, verbunden. Live-Werte oben.` : `${c.name}.`); },
   };
 }
 

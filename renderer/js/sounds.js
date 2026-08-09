@@ -39,6 +39,8 @@ const SOUND_MAP = {
   // Nachrichteneingang (Meisterpost): auffaelliger Ton, wenn Post eingeht -
   // beim Spieler von Meister/Mitspielern, beim Meister von einem Spieler.
   post:           'nachricht-eingang.mp3',
+  // Pop-up (Meisterpost): eigener Ton, wenn ein Pop-up ausgeloest wird.
+  popup:          'popup.mp3',
 };
 
 const FALLBACK_BEEPS = {
@@ -66,6 +68,7 @@ const FALLBACK_BEEPS = {
   ap_zurueck:    { freq: 450, ms: 150 },
   ep_hinzu:      { freq: 880, ms: 180 },
   post:          { freq: 990, ms: 220 },
+  popup:         { freq: 1175, ms: 260 },
 };
 
 // Pro-Sound Lautstaerke-Faktor (Multiplikator auf _globalVolume).
@@ -100,6 +103,7 @@ const VOLUME_MAP = {
   click:      0.30,   // Menuepunkt auswaehlen (Alt-Satz)
   grenze:     0.30,   // Anschlag am Listenrand
   post:       0.65,   // Nachrichteneingang: bewusst auffaellig
+  popup:      0.7,    // Pop-up: noch etwas praesenter
 };
 const DEFAULT_VOLUME_FACTOR = 0.55;  // Ereignistoene (Wuerfeln, Speichern, Fehler, ...)
 
@@ -257,6 +261,7 @@ export function playLoeschen()     { play('loeschen'); }
 export function playSonderinhalt() { play('sonderinhalt'); }
 export function playNavigation()   { play('navigation'); }
 export function playPost()         { play('post'); }
+export function playPopup()        { play('popup'); }
 export function playEingabeStart() { play('eingabe_start'); }
 export function playEingabeEnde()  { play('eingabe_ende'); }
 export function playWertHoch()     { play('wert_hoch'); }

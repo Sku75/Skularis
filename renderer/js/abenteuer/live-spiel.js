@@ -16,6 +16,7 @@ import { getAbenteuer, speichere } from './state.js';
 import { wuerfeln, kampfProbe, schadenWurf, mitLetztemWurf, letztesKurz } from './wuerfel-kern.js';
 import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, GRUNDREGEL_AKTIONEN } from './kampf-menues.js';
 import { zauberspeicherVorhanden, zauberspeicherScreen } from './zauberspeicher.js';
+import { sendeStatusWennVerbunden } from './status-sync.js';
 
 const RES_NAME = {
   Wunden: 'Wunden', Erschoepfung: 'Erschöpfung', SchiP: 'Schicksalspunkte',
@@ -323,6 +324,7 @@ export function charakterstatusScreen() {
           onChange: () => {
             protokolliere(a, `${name} auf ${r.aktuell}.`);
             speichere();
+            sendeStatusWennVerbunden(); // F2-Live: den Meister ueber die Aenderung informieren
             // Bei Wunden/Erschöpfung die Einschränkungen-Zeile aktualisieren und
             // die Folge gleich mit ansagen; sonst nur der Maximal-Hinweis.
             if (istEinschr) return aktualisiereEinschr();
