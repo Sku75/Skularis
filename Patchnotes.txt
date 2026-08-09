@@ -4,6 +4,67 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.80, 9. August 2026
+
+
+Grosse Sammelversion: Meistertisch, Post, Gegner, Audio und Charakterverwaltung
+
+Meistertisch F4 heisst jetzt "Charaktere"
+- Zwei Punkte: "Charakteransicht meine Initiativephase" und "Charakterbögen".
+- Die Charakteransicht zeigt je Held eine Überschrift mit Status (verbunden,
+  offline oder nicht übertragen), darunter seine laufenden Werte (Einschränkungen,
+  Wunden, Erschöpfung, Schicksals-, Astral-, Karma- und Gunstpunkte, dazu der
+  Astralspeicher des Magierstabs und die geladenen Zauberspeicher), dann die
+  abgeleiteten Werte ab Wundschwelle und darunter die Initiative-Phase ab Kämpfen
+  abwärts. Alle Würfe hier sind verdeckt.
+
+Meistertisch F5 heisst jetzt "Post, Notizen und Ablageregal"
+- Reihenfolge: Post senden, Posteingang, Postausgang, Ablage, Notizen und ganz
+  unten Verbinden.
+- Post senden bietet Nachricht oder Pop-up, jeweils an alle, nur den Meister oder
+  einen einzelnen Mitspieler. Eine Nachricht landet im Posteingang des Ziels. Ein
+  Pop-up öffnet beim Empfänger sofort ein Fenster mit Ton, Text und OK und wird
+  nirgends gespeichert. Es ist immer nur ein Pop-up gleichzeitig offen.
+- Eingegangene Post kann in die Ablage oder in die Notizen verschoben werden. Die
+  Zähler in den Beschriftungen sind weg, dafür steht die Nachricht im Tooltip.
+
+Spielertisch: Meisterpost
+- Unter F5 gibt es Post senden, Posteingang, Postausgang und unten Verbinden.
+  Eingegangene Post lässt sich ins Notizbuch oder Tagebuch verschieben.
+
+Meister hört Wertänderungen der Spieler
+- Ändert ein verbundener Spieler einen Wert, meldet der Meister das kurz, zum
+  Beispiel "Wunden von 1 auf 2". Bei vielen Änderungen kurz hintereinander wird
+  gebündelt und nur der Endstand angesagt.
+
+Gegner-Bibliothek gebündelt
+- Die eigene Gegner-Bibliothek ist jetzt Teil von "Spieltisch bestücken, Gegner":
+  dort gibt es Erstellen, Generieren, Eigene Gegner bearbeiten und die
+  Kategorienübersicht. Der eigene Menüpunkt Gegner-Bibliothek entfällt, doppelte
+  Gegner erscheinen nur einmal.
+
+Freier Wurf auf der Würfelebene
+- Der freie Wurf ist wieder ein richtiges Menü, dessen Ergebnis in Ruhe
+  nachgelesen werden kann.
+
+Playlists wie die Bibliothek
+- Playlists werden genauso bedient wie die Audio-Bibliothek: Abspielen, Abspielen
+  als Schleife, Hintergrund, Hintergrund als Schleife, Einspielen. Eine ganze
+  Playlist lässt sich als Hintergrund und in Schleife abspielen.
+
+Kürzere Schlüssel
+- Der Schlüssel fürs Meisterradio und der Code für die Post sind jetzt vierstellig
+  und stehen im Tooltip in einer Zeile.
+
+Charakterverwaltung
+- Die Menüpunkte Charakter importieren und Charakter exportieren sind entfernt.
+- Neu unter Meine Charaktere: "Charakter umbenennen". Das benennt den
+  Charakterbogen um und speichert ihn unter dem neuen Namen.
+
+Echte Umlaute
+- In der Oberfläche stehen echte Umlaute (ä, ö, ü, ß) statt ae, oe, ue.
+
+
 Version 0.79, 9. August 2026
 
 

@@ -24,31 +24,79 @@ function gegnerAmTisch() { return tischKarten().filter(k => k.art === 'gegner');
 function spielerAmTisch() { return tischKarten().filter(k => k.art === 'spieler' || k.art === 'freund'); }
 
 // --- Freier Wurf ---------------------------------------------------------
+//
+// Als richtiges Menü (wie der Würfelbecher der Spieler): jedes Angebot würfelt
+// verdeckt, schreibt das Ergebnis rechts in die Zeile und merkt es für das
+// Nachschlagen (Shift und Pfeil-runter). So geht die Ansage nicht mehr im
+// Brett-Fokus verloren und der Wurf bleibt nachlesbar.
 
-export async function oeffneFreierWurf() {
-  const wahl = await knopfDialog({
-    titel: 'Freier Wurf', knoepfe: [
-      { label: '1 W6', wert: 'w6' },
-      { label: '2 W6', wert: 'w6x2' },
-      { label: '1 W20', wert: 'w20' },
-      { label: '3 W20', wert: 'w20x3' },
-      { label: 'Freier Wurf', wert: 'frei' },
-    ],
+const _tip = {};   // Ergebnis-Id -> mehrzeiliger Tooltip-Text (letzter Wurf)
+
+function schreibeErgebnis(id, kurz) {
+  const feld = document.querySelector(`[data-ergebnis="${id}"]`);
+  if (feld) feld.textContent = kurz;
+  const schalter = document.querySelector(`[data-ergebnis-ziel="${id}"]`);
+  if (schalter) { delete schalter.__detailText; delete schalter.__detailCache; }
+}
+
+function mitLetztem(id, basis) {
+  return () => {
+    const t = _tip[id];
+    return (t && t.length) ? [...t, '', basis] : basis;
+  };
+}
+
+function schnellItem(id, label, anzahl, seiten) {
+  return {
+    label, ergebnisId: id,
+    hint: 'verdeckt würfeln',
+    detail: mitLetztem(id, `${label}. Verdeckter Meister-Wurf.`),
+    onSelect: () => {
+      const r = verdeckterWurf(anzahl, seiten, 0, label); // sagt an und protokolliert
+      schreibeErgebnis(id, r.wuerfe.join(' '));
+      _tip[id] = ['Letzter Wurf:', `${label}: ${r.wuerfe.join(', ')}`];
+      const btn = document.querySelector(`[data-ergebnis-ziel="${id}"]`); if (btn) btn.focus();
+    },
+  };
+}
+
+export function oeffneFreierWurf() {
+  screen.push({
+    title: 'Freier Wurf',
+    build() {
+      const items = [
+        schnellItem('mw-w6', '1 W6', 1, 6),
+        schnellItem('mw-w6x2', '2 W6', 2, 6),
+        schnellItem('mw-w20', '1 W20', 1, 20),
+        schnellItem('mw-w20x3', '3 W20', 3, 20),
+        {
+          label: 'Freier Wurf', ergebnisId: 'mw-frei',
+          hint: 'Anzahl, Würfeltyp und Erschwernis wählen',
+          detail: mitLetztem('mw-frei', 'Anzahl, Würfeltyp und Modifikator frei wählen. Verdeckt.'),
+          onSelect: () => freierEinzelWurf(),
+        },
+      ];
+      return menuScreen({
+        title: 'Freier Wurf',
+        subtitle: 'Enter würfelt verdeckt. Shift und Pfeil-runter liest den letzten Wurf. Escape zurück.',
+        items,
+      }).build();
+    },
+    onShow() { sprache.sage('Freier Wurf. Verdeckte Meister-Würfe.'); },
   });
-  if (wahl === null) return;
-  if (wahl === 'w6') verdeckterWurf(1, 6, 0, 'Wurf 1 W6');
-  else if (wahl === 'w6x2') verdeckterWurf(2, 6, 0, 'Wurf 2 W6');
-  else if (wahl === 'w20') verdeckterWurf(1, 20, 0, 'Wurf 1 W20');
-  else if (wahl === 'w20x3') verdeckterWurf(3, 20, 0, 'Wurf 3 W20');
-  else if (wahl === 'frei') {
-    const anzahl = await zahlDialog({ titel: 'Freier Wurf', label: 'Anzahl der Wuerfel', wert: 1, min: 1, max: 50 });
-    if (anzahl === null) return;
-    const seiten = await spinnerDialog({ titel: 'Wuerfeltyp', optionen: [6, 20], index: 1, format: (v) => `W${v}` });
-    if (seiten === null) return;
-    const mod = await zahlDialog({ titel: 'Modifikator', label: 'Fester Zuschlag, 0 wenn keiner', wert: 0, min: -50, max: 50 });
-    if (mod === null) return;
-    verdeckterWurf(anzahl, seiten, mod, 'Freier Wurf');
-  }
+}
+
+async function freierEinzelWurf() {
+  const anzahl = await zahlDialog({ titel: 'Freier Wurf', label: 'Anzahl der Würfel', wert: 1, min: 1, max: 50 });
+  if (anzahl === null) return;
+  const seiten = await spinnerDialog({ titel: 'Würfeltyp', optionen: [6, 20], index: 1, format: (v) => `W${v}` });
+  if (seiten === null) return;
+  const mod = await zahlDialog({ titel: 'Erschwernis oder Modifikator', label: 'Fester Zuschlag, 0 wenn keiner', wert: 0, min: -50, max: 50 });
+  if (mod === null) return;
+  const r = verdeckterWurf(anzahl, seiten, mod, 'Freier Wurf');
+  schreibeErgebnis('mw-frei', mod ? `${r.wuerfe.join(' ')} = ${r.summe}` : r.wuerfe.join(' '));
+  _tip['mw-frei'] = ['Letzter Wurf:', `${anzahl} W ${seiten}${mod ? (mod > 0 ? ` plus ${mod}` : ` minus ${-mod}`) : ''}: ${r.wuerfe.join(', ')}${mod ? `, Summe ${r.summe}` : ''}`];
+  const btn = document.querySelector('[data-ergebnis-ziel="mw-frei"]'); if (btn) btn.focus();
 }
 
 // --- Angriffs-Wuerfe (gemeinsam fuer Monster und Spieler) ----------------

@@ -18,11 +18,16 @@ export function sammleStatus(a) {
   const paar = (k) => (res[k] ? { aktuell: res[k].aktuell || 0, max: (res[k].max !== undefined ? res[k].max : null) } : null);
   const wu = res.Wunden ? (res.Wunden.aktuell || 0) : 0;
   const er = res.Erschoepfung ? (res.Erschoepfung.aktuell || 0) : 0;
+  // Zauberspeicher des Magierstabs (geladene Zauber je Slot) mituebertragen.
+  const zauberspeicher = Array.isArray(a.zauberspeicher)
+    ? a.zauberspeicher.map(s => (s ? { name: s.name, qualitaet: s.qualitaet } : null))
+    : [];
   return {
     einschraenkungen: wu + er,
     Wunden: paar('Wunden'), Erschoepfung: paar('Erschoepfung'),
     SchiP: paar('SchiP'), AsP: paar('AsP'), KaP: paar('KaP'), GuP: paar('GuP'),
-    AstralspeicherStab: paar('AstralspeicherStab'),
+    AstralspeicherStab: paar('AstralspeicherStab'), // Magierstab-Astralspeicher
+    zauberspeicher,
     WS: w.WS, MR: w.MR, GS: w.GS, INI: w.INI, SB: w.SB, DH: w.DH, RS: w.RS, BE: w.BE,
   };
 }

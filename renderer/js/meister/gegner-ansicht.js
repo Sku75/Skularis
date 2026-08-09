@@ -1,11 +1,11 @@
 /**
- * Skularistool — Meistertisch: kategorisierte Gegner-Ansicht fuer "Bestuecken".
+ * Skularistool — Meistertisch: kategorisierte Gegner-Ansicht für "Bestücken".
  *
- * Zwei Quellen zusammengefuehrt: das mitgelieferte Bestiarium (fest, kategorisiert,
+ * Zwei Quellen zusammengeführt: das mitgelieferte Bestiarium (fest, kategorisiert,
  * nur lesen) und die eigenen Gegner des Abenteuers (a.nsc, mit Feld kategorie).
  * Aufbau nach Nutzerwunsch/Council:
- *   1. Gegner erstellen (Name -> Kategorie waehlen, auch eigene) -> Statblock-Editor
- *   2. Kategorienuebersicht (alle Kategorien mit Anzahl, "Sonstige", Kategorie erstellen)
+ *   1. Gegner erstellen (Name -> Kategorie wählen, auch eigene) -> Statblock-Editor
+ *   2. Kategorienübersicht (alle Kategorien mit Anzahl, "Sonstige", Kategorie erstellen)
  *   3. Filterzeile (durchsucht alle Gegner nach Namen)
  *   4. Alle Gegner (flache, gefilterte Liste)
  * Enter auf einem Gegner legt ihn als Kampfkarte auf den Spieltisch.
@@ -20,12 +20,26 @@ import { BESTIARIUM } from '../daten/gegner-bestiarium.js';
 import { baueStatblockKarte, angriffeText, leererStatblock } from '../core/meister-abenteuer.js';
 import { getMeister, speichere } from './state.js';
 import { statblockScreen } from './gegnerkartei.js';
+import { ladeUserBib, eigeneGegner, generiereGegner, neuerGegner, eigeneListeScreen } from './gegner-bibliothek.js';
 
-/** Bestiarium (fest) + eigene Gegner (a.nsc) als eine flache Liste. */
+/**
+ * Alle Gegner als eine flache Liste, aus drei Quellen zusammengeführt:
+ * die eigenen Gegner des Abenteuers (a.nsc), die globale eigene Bibliothek und
+ * das mitgelieferte Bestiarium. Doppelte (gleicher Name) erscheinen nur EINMAL;
+ * die eigene Version gewinnt (a.nsc vor Bibliothek vor Bestiarium).
+ */
 function alleGegner(a) {
   const out = [];
-  for (const kat of BESTIARIUM) for (const g of kat.gegner) out.push({ ...g, kategorie: kat.kategorie, eigen: false });
-  (a.nsc || []).forEach((sb, i) => out.push({ ...sb, kategorie: sb.kategorie || '', eigen: true, index: i }));
+  const seen = new Set();
+  const add = (g, quelle, index) => {
+    const key = (g.name || '').trim().toLowerCase();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push({ ...g, kategorie: g.kategorie || '', quelle, index });
+  };
+  (a.nsc || []).forEach((sb, i) => add(sb, 'nsc', i));
+  for (const g of eigeneGegner()) add(g, 'bib');
+  for (const kat of BESTIARIUM) for (const g of kat.gegner) add({ ...g, kategorie: kat.kategorie }, 'bestiarium');
   return out;
 }
 
@@ -44,9 +58,9 @@ function kategorienNamen(a, alle) {
 function gegnerDetail(g) {
   const faeh = [...(g.vorteile || []), ...(g.manoever || [])];
   return [
-    `${g.name}${g.kategorie ? ', ' + g.kategorie : ''}. Wundschwelle ${g.ws}, Ruestung ${g.rs}, Initiative ${g.ini}${g.ausweichen ? `, Ausweichen ${g.ausweichen}` : ''}.`,
+    `${g.name}${g.kategorie ? ', ' + g.kategorie : ''}. Wundschwelle ${g.ws}, Rüstung ${g.rs}, Initiative ${g.ini}${g.ausweichen ? `, Ausweichen ${g.ausweichen}` : ''}.`,
     angriffeText(g) || 'Keine Angriffe.',
-    faeh.length ? `Faehigkeiten: ${faeh.join(', ')}.` : '',
+    faeh.length ? `Fähigkeiten: ${faeh.join(', ')}.` : '',
     g.notizen ? `Notizen: ${g.notizen}` : '',
   ].filter(Boolean).join(' ');
 }
@@ -60,7 +74,7 @@ function aufTisch(g) {
   sprache.sage(`${g.name} auf den Spieltisch, ${a.tisch.karten.length} Karten.`);
 }
 
-/** Neuen eigenen Gegner anlegen: Name, Kategorie waehlen, dann in den Editor. */
+/** Neuen eigenen Gegner anlegen: Name, Kategorie wählen, dann in den Editor. */
 async function erstelleGegner() {
   const a = getMeister();
   const name = await textDialog({ titel: 'Neuer Gegner', label: 'Name' });
@@ -70,7 +84,7 @@ async function erstelleGegner() {
   const knoepfe = kategorienNamen(a, alle).map(k => ({ label: k, wert: k }));
   knoepfe.push({ label: 'Sonstige (ohne Kategorie)', wert: '' });
   knoepfe.push({ label: 'Neue Kategorie anlegen', wert: '__neu' });
-  let kat = await knopfDialog({ titel: 'Kategorie waehlen', knoepfe });
+  let kat = await knopfDialog({ titel: 'Kategorie wählen', knoepfe });
   if (kat === null) return;
   if (kat === '__neu') {
     const nk = await textDialog({ titel: 'Neue Kategorie', label: 'Name der Kategorie' });
@@ -88,10 +102,10 @@ async function erstelleGegner() {
   screen.push(statblockScreen('gegner', a.nsc.length - 1));
 }
 
-/** Kategorienuebersicht: je Kategorie eine Liste, "Sonstige", Kategorie erstellen. */
+/** Kategorienübersicht: je Kategorie eine Liste, "Sonstige", Kategorie erstellen. */
 function kategorienScreen() {
   return {
-    title: 'Kategorienuebersicht',
+    title: 'Kategorienübersicht',
     build() {
       const a = getMeister();
       const alle = alleGegner(a);
@@ -116,12 +130,12 @@ function kategorienScreen() {
         },
       });
       return menuScreen({
-        title: 'Kategorienuebersicht',
-        subtitle: 'Kategorie oeffnen, Enter legt einen Gegner auf den Spieltisch. Unten Kategorie erstellen. Escape zurueck.',
+        title: 'Kategorienübersicht',
+        subtitle: 'Kategorie öffnen, Enter legt einen Gegner auf den Spieltisch. Unten Kategorie erstellen. Escape zurück.',
         items, leer: 'Noch keine Kategorien.',
       }).build();
     },
-    onShow() { sprache.sage('Kategorienuebersicht.'); },
+    onShow() { sprache.sage('Kategorienübersicht.'); },
   };
 }
 
@@ -133,13 +147,13 @@ function kategorieGegnerScreen(katKey, katLabel) {
       const liste = alleGegner(a).filter(g => (g.kategorie || '') === katKey);
       const items = liste.map(g => ({
         label: g.name || '(ohne Name)',
-        hint: `Wundschwelle ${g.ws}, Ruestung ${g.rs}. Enter legt auf den Spieltisch`,
+        hint: `Wundschwelle ${g.ws}, Rüstung ${g.rs}. Enter legt auf den Spieltisch`,
         detail: gegnerDetail(g),
         onSelect: () => aufTisch(g),
       }));
       return menuScreen({
         title: katLabel,
-        subtitle: 'Enter legt den Gegner auf den Spieltisch. Escape zurueck.',
+        subtitle: 'Enter legt den Gegner auf den Spieltisch. Escape zurück.',
         items, leer: 'Keine Gegner in dieser Kategorie.', filter: liste.length >= 10,
       }).build();
     },
@@ -147,7 +161,7 @@ function kategorieGegnerScreen(katKey, katLabel) {
   };
 }
 
-/** Hauptansicht "Bestuecken -> Gegner". */
+/** Hauptansicht "Bestücken -> Gegner". */
 export function gegnerBestueckenScreen() {
   const scr = {
     title: 'Gegner',
@@ -163,11 +177,12 @@ export function gegnerBestueckenScreen() {
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel('Gegner'));
 
-      // 1. Erstellen
-      wrap.appendChild(aktionZeile('Gegner erstellen', () => erstelleGegner(), 'Name, Kategorie waehlen, dann Werte eintragen'));
-      // 2. Kategorienuebersicht
-      const katAnzahl = kategorienNamen(a, alle).length + (alle.some(g => !g.kategorie) ? 1 : 0);
-      wrap.appendChild(aktionZeile(`Kategorienuebersicht, ${katAnzahl} Kategorien`, () => screen.push(kategorienScreen()), 'Gegner nach Kategorien, Sonstige, Kategorie erstellen'));
+      // 1. Erstellen / Generieren / eigene bearbeiten
+      wrap.appendChild(aktionZeile('Gegner erstellen', () => erstelleGegner(), 'Name, Kategorie wählen, dann Werte eintragen'));
+      wrap.appendChild(aktionZeile('Gegner generieren', async () => { await generiereGegner(); screen.refresh(); }, 'aus Gefährlichkeit und Art schnell einen Gegner erzeugen (eigene Bibliothek)'));
+      wrap.appendChild(aktionZeile('Eigene Gegner bearbeiten', () => screen.push(eigeneListeScreen()), 'die selbst erstellten Gegner der Bibliothek ändern oder löschen'));
+      // 2. Kategorienübersicht
+      wrap.appendChild(aktionZeile('Kategorienübersicht', () => screen.push(kategorienScreen()), 'Gegner nach Kategorien, Sonstige, Kategorie erstellen'));
 
       // 3. Filterzeile
       if (alle.length) {
@@ -183,16 +198,22 @@ export function gegnerBestueckenScreen() {
 
       // 4. Alle Gegner (flach)
       for (const g of treffer) {
-        wrap.appendChild(aktionZeile(g.name || '(ohne Name)', () => aufTisch(g), `Wundschwelle ${g.ws}, Ruestung ${g.rs}. Enter legt auf den Spieltisch`, gegnerDetail(g)));
+        wrap.appendChild(aktionZeile(g.name || '(ohne Name)', () => aufTisch(g), `Wundschwelle ${g.ws}, Rüstung ${g.rs}. Enter legt auf den Spieltisch`, gegnerDetail(g)));
       }
 
       if (!alle.length) wrap.appendChild(infoZeile('Noch keine Gegner. Oben einen erstellen.', ''));
-      else if (scr.__filter && !treffer.length) wrap.appendChild(infoZeile('Keine Treffer.', 'Filter mit "Filter aufheben" zuruecksetzen.'));
+      else if (scr.__filter && !treffer.length) wrap.appendChild(infoZeile('Keine Treffer.', 'Filter mit "Filter aufheben" zurücksetzen.'));
 
       verbindeDetail(wrap);
       return wrap;
     },
-    onShow() { sprache.sage('Gegner. Oben Erstellen, Kategorienuebersicht, Filter, dann alle Gegner. Enter legt einen Gegner auf den Spieltisch.'); },
+    onShow() {
+      if (!scr.__bibGeladen) {
+        scr.__bibGeladen = true;
+        ladeUserBib().then(() => screen.refresh()).catch(() => {});
+      }
+      sprache.sage('Gegner. Oben Erstellen, Generieren, eigene bearbeiten, Kategorienübersicht, Filter, dann alle Gegner. Enter legt einen Gegner auf den Spieltisch.');
+    },
   };
   return scr;
 }

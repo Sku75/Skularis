@@ -1,13 +1,15 @@
 /**
- * Skularistool — Meistertisch: Postkasten (Meisterpost).
+ * Skularistool — Meistertisch F5: Post, Notizen und Ablageregal.
  *
- * Der Meister startet die Post-Verbindung unter einem Code. Danach:
- *  - Nachricht senden: an alle oder ein Einzelziel, dann Text -> Posteingang des Ziels.
- *  - Pop-up auslösen: wie senden, löst beim Empfänger sofort ein Pop-up mit Ton aus.
- *  - Verlauf: Kopien aller gesendeten und empfangenen Nachrichten.
- *  - Posteingang: eingegangene Nachrichten (antworten, löschen, in Notizen ablegen).
- * Zusätzlich empfängt er die F2-Live-Werte der Spieler (nur Meldung hier; angezeigt
- * werden sie in der Charakteransicht).
+ * Aufbau: Post senden (Nachricht/Pop-up), Posteingang, Postausgang, Ablage
+ * (Ablageregal), Notizen (je Charakter), ganz unten die Verbindung (Code im
+ * Tooltip). Eingegangene Post laesst sich in die Ablage oder in die Notizen des
+ * Absenders verschieben. Ein Pop-up geht beim Empfaenger sofort als Fenster auf
+ * (Ton, Text, OK) und wird nirgends gespeichert.
+ *
+ * Zusaetzlich: F2-Live-Notifikation. Aendert ein verbundener Spieler einen Wert,
+ * hoert der Meister einen Ton und eine Ansage der Aenderung ("Name, Wunden von 1
+ * auf 2"). Ein Ueberlaufschutz bremst absichtliches Dauer-Umschalten.
  */
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
@@ -19,46 +21,82 @@ import { generiereSchluessel } from '../net/radio.js';
 import * as post from '../net/post.js';
 
 let _code = '';
-const _letzterStatus = new Map(); // name -> werte (fuer die Aenderungs-Ansage)
+let _popupOffen = false;
 
 function kurz(t) { const s = String(t || '').replace(/\s+/g, ' ').trim(); return s.length > 50 ? s.slice(0, 50) + '…' : s; }
 
-function verlaufEintrag(a, richtung, wer, text, typ) {
-  a.postVerlauf = a.postVerlauf || [];
-  a.postVerlauf.unshift({ richtung, wer, text, zeit: Date.now(), typ });
+// --- Eingang: Nachricht bzw. Pop-up -------------------------------------
+
+function zeigePopup(von, text) {
+  if (_popupOffen) return; // nur ein Pop-up-Fenster gleichzeitig
+  _popupOffen = true;
+  sounds.playPopup();
+  sprache.sage(`Pop-up von ${von}. ${text || 'Kein Text.'}`);
+  knopfDialog({ titel: `Pop-up von ${von}`, frage: text || '(kein Text)', knoepfe: [{ label: 'OK', wert: 'ok' }] })
+    .then(() => { _popupOffen = false; })
+    .catch(() => { _popupOffen = false; });
 }
 
 function empfangePost(m) {
+  if (m && m.typ === 'popup') { zeigePopup(m.von || 'Spieler', String(m.text || '')); return; }
   const a = getMeister();
   if (!a) return;
-  const typ = m.typ === 'popup' ? 'popup' : 'msg';
-  const eintrag = { id: m.id, von: m.von || 'Spieler', text: String(m.text || ''), zeit: m.zeit || Date.now(), typ, gelesen: false };
-  verlaufEintrag(a, 'ein', eintrag.von, eintrag.text, typ);
+  const eintrag = { id: m.id, von: m.von || 'Spieler', text: String(m.text || ''), zeit: m.zeit || Date.now(), gelesen: false };
   a.posteingang = a.posteingang || [];
-  if (!(m.id && a.posteingang.some(x => x.id === m.id))) a.posteingang.unshift(eintrag);
+  if (m.id && a.posteingang.some(x => x.id === m.id)) return;
+  a.posteingang.unshift(eintrag);
   speichere();
-  if (typ === 'popup') { sounds.playPopup(); zeigePopup(eintrag.von, eintrag.text); }
-  else { sounds.playPost(); sprache.sage(`Neue Post von ${eintrag.von}.`); }
+  sounds.playPost();
+  sprache.sage(`Neue Post von ${eintrag.von}.`);
 }
 
-function zeigePopup(von, text) {
-  knopfDialog({ titel: `Pop-up von ${von}`, frage: 'Annehmen?', knoepfe: [{ label: 'Annehmen', wert: 'ja' }, { label: 'Ablehnen', wert: 'nein' }] })
-    .then((w) => { if (w === 'ja') sprache.sage(`Pop-up von ${von}. ${text || 'Kein Text.'}`); });
+// --- F2-Live-Notifikation + Ueberlaufschutz ------------------------------
+
+const _letzterStatus = new Map(); // name -> zuletzt empfangene Werte (fuer Diff)
+const _angesagt = new Map();      // name -> zuletzt ANGESAGTE Werte (fuer Resync)
+const _rate = new Map();          // name -> { count, seit, pause }
+
+const FELD = { Wunden: 'Wunden', Erschoepfung: 'Erschöpfung', SchiP: 'Schicksalspunkte', AsP: 'Astralpunkte', KaP: 'Karmapunkte', GuP: 'Gunstpunkte', AstralspeicherStab: 'Astralspeicher' };
+function az(werte, k) { return (werte && werte[k] && typeof werte[k].aktuell === 'number') ? werte[k].aktuell : null; }
+
+/** Geaenderte variable Werte als Liste "Feld von X auf Y". */
+function diffTeile(alt, neu) {
+  const teile = [];
+  for (const k of Object.keys(FELD)) {
+    const n = az(neu, k); const a = az(alt, k);
+    if (n !== null && n !== a) teile.push(`${FELD[k]} von ${a === null ? '—' : a} auf ${n}`);
+  }
+  return teile;
 }
 
-/** Nur die geänderten F2-Werte ansagen (gebündelt), damit es kein Dauerfeuer wird. */
 function statusAenderung(name, werte) {
   const alt = _letzterStatus.get(name) || {};
-  const teile = [];
-  const az = (k) => (werte[k] && typeof werte[k].aktuell === 'number') ? werte[k].aktuell : null;
-  const azAlt = (k) => (alt[k] && typeof alt[k].aktuell === 'number') ? alt[k].aktuell : null;
-  const feld = (k, wort) => { const n = az(k); if (n !== null && n !== azAlt(k)) teile.push(`${wort} ${n}`); };
-  feld('Wunden', 'Wunden'); feld('Erschoepfung', 'Erschöpfung'); feld('SchiP', 'Schicksalspunkte');
-  feld('AsP', 'Astralpunkte'); feld('KaP', 'Karmapunkte'); feld('GuP', 'Gunstpunkte');
-  feld('AstralspeicherStab', 'Astralspeicher');
   _letzterStatus.set(name, werte);
-  if (teile.length) { sounds.playBing(); sprache.sage(`${name}: ${teile.join(', ')}.`); }
+  const r = _rate.get(name) || { count: 0, seit: Date.now(), pause: false };
+  if (r.pause) return; // in der Pause: keine Einzel-Ansagen, der Resync meldet spaeter
+  const jetzt = Date.now();
+  if (jetzt - r.seit > 10000) { r.count = 0; r.seit = jetzt; } // gleitendes 10-Sekunden-Fenster
+  r.count += 1;
+  _rate.set(name, r);
+  if (r.count > 10) {
+    // Dauerfeuer: aussetzen, nach 20 Sekunden EINMAL den Endstand melden.
+    r.pause = true; _rate.set(name, r);
+    sprache.sage(`${name} ändert sehr schnell. Ich melde in 20 Sekunden den Stand.`);
+    setTimeout(() => {
+      const rr = _rate.get(name) || r; rr.pause = false; rr.count = 0; rr.seit = Date.now(); _rate.set(name, rr);
+      const aktuell = _letzterStatus.get(name) || {};
+      const teile = diffTeile(_angesagt.get(name) || {}, aktuell);
+      _angesagt.set(name, aktuell);
+      if (teile.length) { sounds.playBing(); sprache.sage(`${name}: ${teile.join(', ')}.`); }
+    }, 20000);
+    return;
+  }
+  const teile = diffTeile(alt, werte);
+  _angesagt.set(name, werte);
+  if (teile.length) { sounds.playBing(); sprache.sage(`${name}, ${teile.join(', ')}.`); }
 }
+
+// --- Verbindung ----------------------------------------------------------
 
 function starteVerbindung() {
   _code = generiereSchluessel();
@@ -72,20 +110,32 @@ function starteVerbindung() {
   });
 }
 
+/** Code fuer den Tooltip aufbereiten: die vier Ziffern in einer Zeile, wie beim Radio. */
+function codeTooltip() {
+  if (!_code) return 'Noch kein Code.';
+  return `Code zum Weitergeben: ${_code.split('').join(' ')}`;
+}
+
+// --- Senden --------------------------------------------------------------
+
 async function schreibeInhalt(ziel, typ) {
   const zielName = ziel === '*' ? 'alle' : ziel;
   const wort = typ === 'popup' ? 'Pop-up' : 'Post';
   const text = await textDialog({ titel: `${wort} an ${zielName}`, label: 'Nachricht schreiben', mehrzeilig: true });
   if (text === null || !text.trim()) return;
   if (post.meisterSende(ziel, text.trim(), typ)) {
-    verlaufEintrag(getMeister(), 'aus', zielName, text.trim(), typ);
-    speichere();
+    if (typ !== 'popup') { // Pop-ups werden nirgends gesammelt
+      const a = getMeister();
+      a.postAusgang = a.postAusgang || [];
+      a.postAusgang.unshift({ an: zielName, text: text.trim(), zeit: Date.now() });
+      speichere();
+    }
     sounds.playSpeichern(); screen.pop(); sprache.sage(`${wort} an ${zielName} gesendet.`);
   } else sprache.sage('Nicht gesendet. Kein passender Spieler verbunden.');
 }
 
 function zieleScreen(typ) {
-  const wort = typ === 'popup' ? 'Pop-up auslösen' : 'Nachricht senden';
+  const wort = typ === 'popup' ? 'Pop-up senden' : 'Nachricht senden';
   return {
     title: wort,
     build() {
@@ -98,32 +148,29 @@ function zieleScreen(typ) {
   };
 }
 
-function verlaufScreen() {
+function sendenScreen() {
   return {
-    title: '',
+    title: 'Post senden',
     build() {
-      const a = getMeister();
-      const v = a.postVerlauf || [];
-      this.title = `Verlauf, ${v.length}`;
-      const items = v.map((e) => {
-        const kopf = e.richtung === 'aus' ? `An ${e.wer}` : `Von ${e.wer}`;
-        const art = e.typ === 'popup' ? ' (Pop-up)' : '';
-        return { label: `${kopf}${art}: ${kurz(e.text)}`, detail: `${kopf}. ${e.text}`, onSelect: () => sprache.sage(`${kopf}. ${e.text}`) };
-      });
-      return menuScreen({ title: this.title, subtitle: 'Kopien aller gesendeten und empfangenen Nachrichten. Escape zurück.', items, leer: 'Noch nichts.' }).build();
+      return menuScreen({
+        title: 'Post senden',
+        subtitle: 'Nachricht landet im Posteingang; ein Pop-up geht beim Empfänger sofort auf. Escape zurück.',
+        items: [
+          { label: 'Nachricht senden', hint: 'landet im Posteingang des Spielers', onSelect: () => screen.push(zieleScreen('msg')) },
+          { label: 'Pop-up senden', hint: 'öffnet beim Spieler sofort ein Fenster', onSelect: () => screen.push(zieleScreen('popup')) },
+        ],
+      }).build();
     },
-    onShow() { sprache.sage('Verlauf.'); },
+    onShow() { sprache.sage('Post senden. Nachricht oder Pop-up?'); },
   };
 }
 
+// --- Posteingang / Postausgang / Ablage ----------------------------------
+
 /** Post in die Notizen des Charakters (Name = Absender) ablegen. */
 function inNotizen(a, von, text) {
-  a.charNotizen = a.charNotizen || {};
-  let v = a.charNotizen[von];
-  if (typeof v === 'string') v = v.trim() ? [{ text: v.trim(), spieltag: a.spieltag || 1 }] : [];
-  if (!Array.isArray(v)) v = [];
+  const v = charNotizen(a, von);
   v.unshift({ text: `Post von ${von}: ${text}`, spieltag: a.spieltag || 1 });
-  a.charNotizen[von] = v;
 }
 
 function nachrichtMenuScreen(index) {
@@ -139,7 +186,16 @@ function nachrichtMenuScreen(index) {
         { label: 'Vorlesen', onSelect: () => sprache.sage(`Post von ${m.von}. ${m.text || 'Kein Text.'}`) },
         { label: 'Antworten', hint: `Antwort an ${m.von}`, onSelect: () => schreibeInhalt(m.von, 'msg') },
         {
-          label: 'In Notizen verschieben (Postablage)',
+          label: 'In Ablage verschieben',
+          onSelect: async () => {
+            a.postAblage = a.postAblage || [];
+            a.postAblage.unshift({ von: m.von, text: m.text, zeit: m.zeit || Date.now() });
+            a.posteingang.splice(index, 1);
+            await speichere(); screen.pop(); sprache.sage('In die Ablage verschoben.');
+          },
+        },
+        {
+          label: 'In Notizen verschieben',
           hint: `in die Notizen von ${m.von}`,
           onSelect: async () => {
             inNotizen(a, m.von, m.text);
@@ -163,47 +219,174 @@ function nachrichtMenuScreen(index) {
 
 function posteingangScreen() {
   return {
-    title: '',
+    title: 'Posteingang',
     build() {
       const a = getMeister();
       const liste = a.posteingang || [];
-      this.title = `Posteingang, ${liste.length}`;
       const items = liste.map((m, i) => ({
-        label: `Post von ${m.von}${m.typ === 'popup' ? ' (Pop-up)' : ''}: ${kurz(m.text)}`,
+        label: `Post von ${m.von}`,
         detail: `Post von ${m.von}. ${m.text}`,
         hint: 'öffnen: vorlesen, antworten, verschieben, löschen',
         onSelect: () => screen.push(nachrichtMenuScreen(i)),
       }));
-      return menuScreen({ title: this.title, subtitle: 'Shift und Pfeil-runter liest die Nachricht, Enter öffnet sie. Escape zurück.', items, leer: 'Noch keine Post.' }).build();
+      return menuScreen({ title: 'Posteingang', subtitle: 'Shift und Pfeil-runter liest die Nachricht, Enter öffnet sie. Escape zurück.', items, leer: 'Noch keine Post.' }).build();
     },
     onShow() { sprache.sage('Posteingang.'); },
   };
 }
 
-export function postkastenScreen() {
+function postausgangScreen() {
   return {
-    title: 'Postkasten',
+    title: 'Postausgang',
     build() {
       const a = getMeister();
-      const liste = (a && a.posteingang) || [];
+      const liste = a.postAusgang || [];
+      const items = liste.map((m, i) => ({
+        label: `An ${m.an}`,
+        detail: `An ${m.an}. ${m.text}`,
+        hint: 'öffnen: vorlesen, löschen',
+        onSelect: () => screen.push({
+          title: `An ${m.an}`,
+          build() {
+            return menuScreen({
+              title: `An ${m.an}`, subtitle: 'Escape zurück.',
+              items: [
+                { label: 'Vorlesen', onSelect: () => sprache.sage(`An ${m.an}. ${m.text}`) },
+                { label: 'Löschen', onSelect: async () => { a.postAusgang.splice(i, 1); await speichere(); screen.pop(); sprache.sage('Gelöscht.'); } },
+              ],
+            }).build();
+          },
+        }),
+      }));
+      return menuScreen({ title: 'Postausgang', subtitle: 'Was du gesendet hast. Escape zurück.', items, leer: 'Noch nichts gesendet.' }).build();
+    },
+    onShow() { sprache.sage('Postausgang.'); },
+  };
+}
+
+function ablageScreen() {
+  return {
+    title: 'Ablage',
+    build() {
+      const a = getMeister();
+      const liste = a.postAblage || [];
+      const items = liste.map((m, i) => ({
+        label: `Post von ${m.von}`,
+        detail: `Post von ${m.von}. ${m.text}`,
+        hint: 'öffnen: vorlesen, löschen',
+        onSelect: () => screen.push({
+          title: `Post von ${m.von}`,
+          build() {
+            return menuScreen({
+              title: `Post von ${m.von}`, subtitle: 'Escape zurück.',
+              items: [
+                { label: 'Vorlesen', onSelect: () => sprache.sage(`Post von ${m.von}. ${m.text}`) },
+                { label: 'Löschen', onSelect: async () => { a.postAblage.splice(i, 1); await speichere(); screen.pop(); sprache.sage('Gelöscht.'); } },
+              ],
+            }).build();
+          },
+        }),
+      }));
+      return menuScreen({ title: 'Ablage', subtitle: 'Das Ablageregal für verschobene Post. Escape zurück.', items, leer: 'Ablage ist leer.' }).build();
+    },
+    onShow() { sprache.sage('Ablage.'); },
+  };
+}
+
+// --- Notizen (je Charakter) ----------------------------------------------
+
+function charNotizen(a, name) {
+  a.charNotizen = a.charNotizen || {};
+  let v = a.charNotizen[name];
+  if (typeof v === 'string') v = v.trim() ? [{ text: v.trim(), spieltag: a.spieltag || 1 }] : [];
+  if (!Array.isArray(v)) v = [];
+  a.charNotizen[name] = v;
+  return v;
+}
+
+async function bearbeiteNotiz(a, name, i) {
+  const eintraege = charNotizen(a, name);
+  const e = eintraege[i];
+  if (!e) return;
+  const w = await knopfDialog({ titel: 'Notiz', frage: e.text, knoepfe: [{ label: 'Bearbeiten', wert: 'edit' }, { label: 'Löschen', wert: 'del' }, { label: 'Zurück', wert: 'zur' }] });
+  if (w === 'edit') {
+    const t = await textDialog({ titel: 'Notiz bearbeiten', label: 'Notiz', wert: e.text, mehrzeilig: true });
+    if (t === null) return;
+    e.text = t.trim(); await speichere(); screen.refresh(); sprache.sage('Notiz geändert.');
+  } else if (w === 'del') {
+    eintraege.splice(i, 1); await speichere(); screen.refresh(); sprache.sage('Notiz gelöscht.');
+  }
+}
+
+function charNotizScreen(name) {
+  return {
+    title: '',
+    build() {
+      const a = getMeister();
+      const eintraege = charNotizen(a, name);
+      this.title = `Notizen zu ${name}`;
+      const items = [
+        {
+          label: 'Neue Notiz', hint: 'schnell etwas zu diesem Charakter festhalten',
+          onSelect: async () => {
+            const t = await textDialog({ titel: `Notiz zu ${name}`, label: 'Notiz', mehrzeilig: true });
+            if (t === null || !t.trim()) return;
+            eintraege.unshift({ text: t.trim(), spieltag: a.spieltag || 1 });
+            await speichere(); screen.refresh(); sprache.sage('Notiz gespeichert.');
+          },
+        },
+      ];
+      eintraege.forEach((e, i) => items.push({
+        label: `Spieltag ${e.spieltag || 1}: ${kurz(e.text)}`,
+        hint: 'Enter: bearbeiten oder löschen', detail: e.text,
+        onSelect: () => bearbeiteNotiz(a, name, i),
+      }));
+      return menuScreen({ title: this.title, subtitle: 'Neueste oben. Escape zurück.', items, leer: 'Noch keine Notiz.' }).build();
+    },
+  };
+}
+
+function notizenScreen() {
+  return {
+    title: 'Notizen',
+    build() {
+      const a = getMeister();
+      const items = (a.charaktere || []).map(c => ({
+        label: c.name, hint: 'Notizen zu diesem Charakter',
+        onSelect: () => screen.push(charNotizScreen(c.name)),
+      }));
+      return menuScreen({ title: 'Notizen', subtitle: 'Je Charakter. Hierhin verschiebst du auch Post. Escape zurück.', items, leer: 'Noch keine Helden in der Gruppe.' }).build();
+    },
+    onShow() { sprache.sage('Notizen. Wähle einen Charakter.'); },
+  };
+}
+
+// --- Hauptbildschirm F5 --------------------------------------------------
+
+export function postkastenScreen() {
+  return {
+    title: 'Post, Notizen und Ablageregal',
+    build() {
       const aktiv = post.istAktiv();
-      const items = [];
+      const items = [
+        { label: 'Post senden', hint: aktiv ? 'Nachricht oder Pop-up' : 'zuerst Verbindung starten', onSelect: () => screen.push(sendenScreen()) },
+        { label: 'Posteingang', hint: 'eingegangene Nachrichten', onSelect: () => screen.push(posteingangScreen()) },
+        { label: 'Postausgang', hint: 'was du gesendet hast', onSelect: () => screen.push(postausgangScreen()) },
+        { label: 'Ablage', hint: 'Ablageregal für verschobene Post', onSelect: () => screen.push(ablageScreen()) },
+        { label: 'Notizen', hint: 'je Charakter; Verschiebeziel für Post', onSelect: () => screen.push(notizenScreen()) },
+      ];
+      // Verbindung ganz unten (Code im Tooltip).
       if (aktiv) {
-        items.push({ label: `Post-Verbindung läuft, Code ${_code}`, hint: 'Enter beendet die Post-Verbindung', onSelect: () => { post.stopp(); sprache.sage('Post-Verbindung beendet.'); screen.refresh(); } });
-        items.push({ label: `Verbundene Spieler, ${post.verbundeneSpieler().length}`, hint: 'wer gerade verbunden ist', onSelect: () => sprache.sage(post.verbundeneSpieler().length ? ('Verbunden: ' + post.verbundeneSpieler().join(', ') + '.') : 'Niemand verbunden.') });
+        items.push({ label: 'Post-Verbindung läuft', hint: 'Code im Tooltip; Enter beendet die Verbindung', detail: codeTooltip(), onSelect: () => { post.stopp(); sprache.sage('Post-Verbindung beendet.'); screen.refresh(); } });
       } else {
-        items.push({ label: 'Post-Verbindung starten', hint: 'einen Code erzeugen, den die Spieler eingeben', onSelect: () => starteVerbindung() });
+        items.push({ label: 'Verbinden', hint: 'Post-Verbindung starten und Code erzeugen', onSelect: () => starteVerbindung() });
       }
-      items.push({ label: 'Nachricht senden', hint: aktiv ? 'an alle oder einen Spieler' : 'zuerst Verbindung starten', onSelect: () => screen.push(zieleScreen('msg')) });
-      items.push({ label: 'Pop-up auslösen', hint: aktiv ? 'löst beim Empfänger ein Pop-up aus' : 'zuerst Verbindung starten', onSelect: () => screen.push(zieleScreen('popup')) });
-      items.push({ label: 'Verlauf', hint: 'Kopien aller Nachrichten', onSelect: () => screen.push(verlaufScreen()) });
-      items.push({ label: `Posteingang, ${liste.length}`, hint: 'eingegangene Nachrichten', onSelect: () => screen.push(posteingangScreen()) });
       return menuScreen({
-        title: 'Postkasten',
-        subtitle: aktiv ? 'Verbindung läuft. Senden, Pop-up, Verlauf, Posteingang. Escape zurück.' : 'Verbindung starten, dann können die Spieler mit dem Code verbinden. Escape zurück.',
+        title: 'Post, Notizen und Ablageregal',
+        subtitle: 'Post senden, Ein- und Ausgang, Ablage, Notizen. Verbinden ganz unten. Escape zurück.',
         items,
       }).build();
     },
-    onShow() { sprache.sage(post.istAktiv() ? 'Postkasten. Verbindung läuft.' : 'Postkasten. Verbindung noch nicht gestartet.'); },
+    onShow() { sprache.sage('Post, Notizen und Ablageregal.'); },
   };
 }

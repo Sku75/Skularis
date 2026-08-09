@@ -1,126 +1,36 @@
 /**
- * Skularistool — Meister-Tisch: Spielerinfos (F4).
+ * Skularistool — Meistertisch F4: Charaktere (Spielerstatus).
  *
- * Baut auf JEDEM geladenen Charakter der Gruppe auf. Drei Unterbereiche:
- *   1. Vitalitaet-Tracker — je Charakter eine Karte mit Wunden und Erschoepfung
- *      (verstellbar) sowie der Einschraenkungs-Summe und den wichtigsten Werten.
- *      Die Wunden/Erschoepfung stehen in a.vitalitaet und sind damit DIESELBE
- *      Quelle wie im Spieltisch-Kampf: aendert sich dort eine Wunde, steht sie
- *      hier, und umgekehrt. Der Stand wird mit dem Abenteuer gespeichert.
- *   2. Charakterboegen — die Boegen der Gruppe zum Nachlesen.
- *   3. Notizen zu den Charakteren — je Charakter eine freie Notiz.
+ * Zwei Punkte: "Charakteransicht meine Initiativephase" und "Charakterbögen".
+ * Die Charakteransicht zeigt je Gruppen-Charakter eine Überschrift mit Status
+ * (verbunden / offline / nicht übertragen), darunter die variablen F2-Werte des
+ * Spielers (Wunden, Erschöpfung, Schicksals-/Astral-/Karma-/Gunstpunkte,
+ * Astralspeicher des Magierstabs und der Zauberspeicher), dann die abgeleiteten
+ * Werte ab Wundschwelle, und darunter die Initiative-Phase ab "Kämpfen" abwärts
+ * (verdeckte Meister-Würfe). Verbundene Spieler liefern die Werte live; offline
+ * werden die zuletzt übertragenen Werte gezeigt.
  */
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
 import { menuScreen } from '../ui/menu-screen.js';
-import { wertZeile, infoZeile, abschnittTitel, aktionZeile, verbindeDetail } from '../editor/widgets.js';
-import { textDialog, knopfDialog } from '../ui/dialog.js';
-import { abgeleiteteWerte, wundabzug } from '../core/regeln.js';
+import { infoZeile, abschnittTitel, aktionZeile, verbindeDetail } from '../editor/widgets.js';
 import { baueCharakterbogen } from '../abenteuer/charakterbogen.js';
-import { liveSpielScreen } from '../abenteuer/live-spiel.js';
-import { setAbenteuer, setDb } from '../abenteuer/state.js';
+import { kampfwerteScreen } from '../abenteuer/live-spiel.js';
+import { manoeverScreen, zauberScreen, zauberVorhanden } from '../abenteuer/kampf-menues.js';
+import { zauberspeicherVorhanden, zauberspeicherScreen } from '../abenteuer/zauberspeicher.js';
 import { setVerdeckt } from '../abenteuer/wuerfel-kern.js';
-import { postkastenScreen } from './postkasten.js';
-import * as post from '../net/post.js';
-import { getMeister, speichere } from './state.js';
+import { setAbenteuer, setDb } from '../abenteuer/state.js';
 import { getDb } from '../core/db-laden.js';
-import { vitalitaet } from '../core/meister-abenteuer.js';
+import { getMeister } from './state.js';
+import * as post from '../net/post.js';
 
-const EINSCHR_REGEL = 'Wunden und Erschoepfung zaehlen zusammen als Einschraenkungen. '
-  + 'Ab der dritten sind alle Proben um zwei erschwert, je weitere um zwei mehr. '
-  + 'Ab fuenf droht nach jeder weiteren die Kampfunfaehigkeit.';
-
-/** Kurzer Summen-/Status-Text fuer einen Charakter aus seiner Vitalitaet. */
-function einschrText(v) {
-  const summe = (v.wunden || 0) + (v.erschoepfung || 0);
-  const ab = wundabzug(summe);
-  let s = `Einschraenkungen ${summe}`;
-  if (ab > 0) s += `, alle Proben minus ${ab}`;
-  if (summe >= 5) s += ', Kampfunfaehigkeit droht';
-  return s;
-}
-
-/** Maxima der Energien/Schicksalspunkte aus dem Bogen (nur zur Anzeige). */
-function eckwerte(bogen) {
-  const w = abgeleiteteWerte(bogen);
-  const teile = [`Wundschwelle ${w.WS}`];
-  for (const [k, name] of [['AsP', 'Astralpunkte'], ['KaP', 'Karmapunkte']]) {
-    const e = bogen.energien && bogen.energien[k];
-    if (e) {
-      const max = (e.basis || 0) + (e.gekauft || 0);
-      if (max > 0) teile.push(`${name} ${max}`);
-    }
-  }
-  teile.push(`Schicksalspunkte ${w.SchiP}`);
-  return teile.join(', ');
-}
-
-/** Vitalitaet-Tracker: je Charakter eine Karte, Wunden/Erschoepfung verstellbar. */
-export function vitalitaetTrackerScreen() {
-  return {
-    title: '',
-    build() {
-      const a = getMeister();
-      const chars = a.charaktere || [];
-      this.title = `Vitalitaet-Tracker, ${chars.length} Helden`;
-
-      const wrap = document.createElement('div');
-      wrap.className = 'db-menu ed-bereich';
-      wrap.appendChild(abschnittTitel('Vitalitaet-Tracker'));
-
-      if (!chars.length) {
-        wrap.appendChild(infoZeile('Noch keine Helden in der Gruppe. Erst unter Gruppenzusammenstellung hinzufuegen.'));
-        verbindeDetail(wrap);
-        return wrap;
-      }
-
-      for (const c of chars) {
-        const v = vitalitaet(a, c.name);
-        const bogen = c.bogen || {};
-        wrap.appendChild(abschnittTitel(c.name));
-        // Kopfzeile mit Summe/Status (aktualisiert sich beim Verstellen).
-        const kopf = infoZeile(einschrText(v), () => [einschrText(v), '', EINSCHR_REGEL]);
-        wrap.appendChild(kopf);
-        const frischeKopf = () => {
-          const t = einschrText(v);
-          kopf.textContent = t;
-          kopf.setAttribute('data-sr-label', t); kopf.dataset.srValue = t; kopf.setAttribute('aria-label', t);
-          kopf.dispatchEvent(new CustomEvent('detail-refresh', { bubbles: true }));
-          return t;
-        };
-        wrap.appendChild(wertZeile({
-          label: `${c.name}, Wunden`,
-          get: () => v.wunden || 0,
-          set: (x) => { v.wunden = x; },
-          min: 0, max: 99,
-          onChange: () => { speichere(); return frischeKopf(); },
-          detail: () => [einschrText(v), '', `Wunden verstellen. ${EINSCHR_REGEL}`],
-        }));
-        wrap.appendChild(wertZeile({
-          label: `${c.name}, Erschoepfung`,
-          get: () => v.erschoepfung || 0,
-          set: (x) => { v.erschoepfung = x; },
-          min: 0, max: 99,
-          onChange: () => { speichere(); return frischeKopf(); },
-          detail: () => [einschrText(v), '', `Erschoepfung verstellen. ${EINSCHR_REGEL}`],
-        }));
-        wrap.appendChild(infoZeile(eckwerte(bogen), 'Wichtige Werte aus dem Charakterbogen (Maxima). Die aktuellen Astral- und Karmapunkte fuehren die Spieler an ihrem Abenteuertisch.'));
-      }
-
-      verbindeDetail(wrap);
-      return wrap;
-    },
-    onShow() { sprache.sage('Vitalitaet-Tracker. Wunden und Erschoepfung je Held mit Pfeil links und rechts. Der Stand ist mit dem Spieltisch-Kampf geteilt.'); },
-  };
-}
-
-/** Charakterboegen der Gruppe (nur ansehen). */
+/** Charakterbögen der Gruppe (nur ansehen). */
 export function charakterboegenScreen() {
   return {
     title: '',
     build() {
       const a = getMeister();
-      this.title = `Charakterboegen, ${a.charaktere.length}`;
+      this.title = 'Charakterbögen';
       const items = a.charaktere.map(c => ({
         label: c.name,
         hint: 'Bogen ansehen',
@@ -128,110 +38,11 @@ export function charakterboegenScreen() {
       }));
       return menuScreen({
         title: this.title,
-        subtitle: 'Enter oeffnet den Bogen. Escape zurueck.',
+        subtitle: 'Enter öffnet den Bogen. Escape zurück.',
         items,
         leer: 'Noch keine Helden in der Gruppe.',
       }).build();
     },
-  };
-}
-
-/**
- * Tagebuch-artige Notizen zu EINEM Charakter: mehrere Eintraege, neueste oben.
- * Migriert eine alte Einzelnotiz (String) automatisch in einen ersten Eintrag.
- */
-function charNotizen(a, name) {
-  a.charNotizen = a.charNotizen || {};
-  let v = a.charNotizen[name];
-  if (typeof v === 'string') v = v.trim() ? [{ text: v.trim(), spieltag: a.spieltag || 1 }] : [];
-  if (!Array.isArray(v)) v = [];
-  a.charNotizen[name] = v;
-  return v;
-}
-
-async function bearbeiteNotiz(a, name, i) {
-  const eintraege = charNotizen(a, name);
-  const e = eintraege[i];
-  if (!e) return;
-  const w = await knopfDialog({
-    titel: 'Notiz', frage: e.text,
-    knoepfe: [
-      { label: 'Bearbeiten', wert: 'edit' },
-      { label: 'Loeschen', wert: 'del' },
-      { label: 'Zurueck', wert: 'zur' },
-    ],
-  });
-  if (w === 'edit') {
-    const t = await textDialog({ titel: 'Notiz bearbeiten', label: 'Notiz', wert: e.text, mehrzeilig: true });
-    if (t === null) return;
-    e.text = t.trim();
-    await speichere(); screen.refresh(); sprache.sage('Notiz geaendert.');
-  } else if (w === 'del') {
-    eintraege.splice(i, 1);
-    await speichere(); screen.refresh(); sprache.sage('Notiz geloescht.');
-  }
-}
-
-/** Notizen zu einem Charakter (tagebuch-artig: schnell etwas festhalten). */
-export function charNotizScreen(name) {
-  return {
-    title: '',
-    build() {
-      const a = getMeister();
-      const eintraege = charNotizen(a, name);
-      this.title = `Notizen zu ${name}, ${eintraege.length}`;
-      const items = [
-        { label: 'Neue Notiz', hint: 'schnell etwas zu diesem Charakter festhalten', onSelect: async () => {
-            const t = await textDialog({ titel: `Notiz zu ${name}`, label: 'Notiz', mehrzeilig: true });
-            if (t === null || !t.trim()) return;
-            eintraege.unshift({ text: t.trim(), spieltag: a.spieltag || 1 });
-            await speichere(); screen.refresh(); sprache.sage('Notiz gespeichert.');
-          } },
-      ];
-      eintraege.forEach((e, i) => items.push({
-        label: `Spieltag ${e.spieltag || 1}: ${e.text}`,
-        hint: 'Enter: bearbeiten oder loeschen',
-        detail: e.text,
-        onSelect: () => bearbeiteNotiz(a, name, i),
-      }));
-      return menuScreen({ title: this.title, subtitle: 'Neueste oben. Escape zurueck.', items, leer: 'Noch keine Notiz.' }).build();
-    },
-  };
-}
-
-/**
- * Charakteransicht "Meine Initiative-Phase": der Meister waehlt einen Helden und
- * sieht dessen Spieler-Ansicht der Initiative-Phase (wie am Abenteuertisch F1) —
- * Wuerfelbecher, Kaempfen, Manoever, Zauber, Zauberspeicher. Dazu wird der Bogen
- * kurz als TRANSIENTER Abenteuer-Kontext gesetzt; es wird NICHTS gespeichert und
- * der Kontext beim Verlassen wieder geloescht (siehe abenteuer/state.js: _transient).
- */
-export function charAnsichtInitiativeScreen() {
-  return {
-    title: '',
-    build() {
-      const a = getMeister();
-      const gruppe = a.charaktere || [];
-      const verbunden = new Set(post.statusNamen());
-      const items = gruppe.map(c => ({
-        label: verbunden.has(c.name) ? `${c.name} (verbunden)` : c.name,
-        hint: verbunden.has(c.name) ? 'Live-Werte und Initiative-Phase' : 'Initiative-Phase dieses Charakters',
-        onSelect: () => screen.push(charLiveScreen(c)),
-      }));
-      // Verbundene Spieler, die (noch) nicht in der Gruppe sind: nur Live-Werte.
-      const inGruppe = new Set(gruppe.map(c => c.name));
-      for (const n of verbunden) {
-        if (!inGruppe.has(n)) items.push({ label: `${n} (verbunden)`, hint: 'Live-Werte dieses Spielers', onSelect: () => screen.push(charLiveScreen({ name: n, bogen: null })) });
-      }
-      this.title = `Charakteransicht, ${items.length}`;
-      return menuScreen({
-        title: this.title,
-        subtitle: 'Enter oeffnet die Werte und die Initiative-Phase. Escape zurueck.',
-        items,
-        leer: 'Noch keine Helden in der Gruppe. Erst unter Gruppenzusammenstellung hinzufuegen.',
-      }).build();
-    },
-    onShow() { sprache.sage('Charakteransicht. Verbundene Spieler sind markiert.'); },
   };
 }
 
@@ -240,111 +51,101 @@ function statusZeile(werte, key, wort) {
   const v = werte[key];
   if (!v || typeof v.aktuell !== 'number') return null;
   const max = (v.max !== undefined && v.max !== null) ? ` von ${v.max}` : '';
-  return infoZeile(`${wort}: ${v.aktuell}${max}`, `${wort} des Spielers, live uebertragen. Nur Anzeige.`);
+  return infoZeile(`${wort}: ${v.aktuell}${max}`, `${wort} des Spielers, live übertragen. Nur Anzeige.`);
 }
 
-/**
- * Werte-Ansicht eines Charakters: oben der F2-Ueberblick (live vom verbundenen
- * Spieler, sonst aus dem Bogen), darunter der Zugang zur Initiative-Phase (verdeckt).
- */
-function charLiveScreen(c) {
-  return {
-    title: '',
-    build() {
-      const werte = post.getStatus(c.name);
-      const verbunden = !!werte;
-      this.title = verbunden ? `${c.name} (verbunden)` : c.name;
-
-      const wrap = document.createElement('div');
-      wrap.className = 'db-menu ed-bereich';
-      wrap.appendChild(abschnittTitel(this.title));
-
-      if (verbunden) {
-        wrap.appendChild(abschnittTitel('Werte (live vom Spieler)'));
-        if (typeof werte.einschraenkungen === 'number') wrap.appendChild(infoZeile(`Einschraenkungen: ${werte.einschraenkungen}`, 'Wunden plus Erschoepfung. Live vom Spieler. Nur Anzeige.'));
-        for (const [k, wort] of [['Wunden', 'Wunden'], ['Erschoepfung', 'Erschoepfung'], ['SchiP', 'Schicksalspunkte'], ['AsP', 'Astralpunkte'], ['KaP', 'Karmapunkte'], ['GuP', 'Gunstpunkte'], ['AstralspeicherStab', 'Astralspeicher Stab']]) {
-          const z = statusZeile(werte, k, wort); if (z) wrap.appendChild(z);
-        }
-        const w2 = (k, wort) => { if (typeof werte[k] === 'number') wrap.appendChild(infoZeile(`${wort}: ${werte[k]}`, `${wort}, live vom Spieler. Nur Anzeige.`)); };
-        w2('WS', 'Wundschwelle'); w2('MR', 'Magieresistenz'); w2('GS', 'Geschwindigkeit'); w2('INI', 'Initiative'); w2('SB', 'Schadensbonus'); w2('DH', 'Durchhaltevermoegen'); w2('RS', 'Ruestungsschutz'); w2('BE', 'Behinderung');
-      } else if (c.bogen) {
-        wrap.appendChild(abschnittTitel('Werte (aus dem Bogen)'));
-        const w = abgeleiteteWerte(c.bogen);
-        wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}, Magieresistenz: ${w.MR}, Initiative: ${w.INI}`, 'Werte aus dem Charakterbogen. Der Spieler ist nicht verbunden, aktuelle Zaehler sind daher nicht live.'));
-        wrap.appendChild(infoZeile(`Geschwindigkeit: ${w.GS}, Schadensbonus: ${w.SB}, Ruestungsschutz: ${w.RS}`, 'Aus dem Charakterbogen.'));
-      } else {
-        wrap.appendChild(infoZeile('Keine Werte. Der Spieler ist nicht mehr verbunden.', ''));
-      }
-
-      // Zugang zur Initiative-Phase (verdeckt) - nur wenn der Bogen vorliegt.
-      if (c.bogen) {
-        wrap.appendChild(abschnittTitel('Initiative-Phase (verdeckt)'));
-        wrap.appendChild(aktionZeile('Wuerfeln, Kaempfen, Manoever, Zauber', () => oeffneInitiative(c),
-          'oeffnet die Initiative-Phase dieses Charakters; alle Wuerfe verdeckt'));
-      }
-
-      verbindeDetail(wrap);
-      return wrap;
-    },
-    onShow() { sprache.sage(post.getStatus(c.name) ? `${c.name}, verbunden. Live-Werte oben.` : `${c.name}.`); },
-  };
-}
-
-function oeffneInitiative(c) {
-  // Transienter Abenteuer-Kontext nur zum Ansehen: der Bogen als Charakter, keine
-  // Persistenz. speichere() in abenteuer/state.js bricht bei _transient ab.
+/** Transienten Ansicht-Kontext setzen (Bogen als Charakter, verdeckt, keine Persistenz). */
+function setzeAnsicht(c) {
   setAbenteuer({
     name: `Ansicht ${c.name}`, charakter: c.bogen,
     ressourcen: {}, inventar: { geldboerse: {}, rucksack: [], guertel: [] },
     journal: [], protokoll: [], mitspieler: [], zauberspeicher: [], _transient: true,
   });
   setDb(getDb());
-  setVerdeckt(true); // Wuerfe in dieser Ansicht sind verdeckte Meister-Wuerfe
-  const scr = liveSpielScreen();
-  // Beim Verlassen der Initiative-Phase den transienten Kontext + Verdeckt-Modus
-  // wieder loeschen. onBack MUSS true liefern, sonst blockiert der Waechter.
-  const origBack = scr.onBack;
-  scr.onBack = () => { setVerdeckt(false); setAbenteuer(null); return origBack ? origBack() : true; };
-  screen.push(scr);
+  setVerdeckt(true);
 }
 
-/** Notizen-Menue: je Charakter ein Eintrag, darin die tagebuch-artigen Notizen. */
-export function notizenMenuScreen() {
+/** Charakteransicht: Status-Überschrift, F2-Werte, abgeleitete Werte, dann ab Kämpfen. */
+function charLiveScreen(c) {
+  return {
+    title: '',
+    build() {
+      const werte = post.getStatus(c.name);
+      const online = post.verbundeneSpieler().includes(c.name);
+      const status = online ? 'verbunden' : (werte ? 'offline' : 'nicht übertragen');
+      this.title = `${c.name} — ${status}`;
+      setzeAnsicht(c);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel(this.title));
+
+      wrap.appendChild(abschnittTitel('Werte'));
+      if (werte) {
+        if (typeof werte.einschraenkungen === 'number') wrap.appendChild(infoZeile(`Einschränkungen: ${werte.einschraenkungen}`, 'Wunden plus Erschöpfung. Live vom Spieler. Nur Anzeige.'));
+        for (const [k, wort] of [['Wunden', 'Wunden'], ['Erschoepfung', 'Erschöpfung'], ['SchiP', 'Schicksalspunkte'], ['AsP', 'Astralpunkte'], ['KaP', 'Karmapunkte'], ['GuP', 'Gunstpunkte'], ['AstralspeicherStab', 'Astralspeicher Stab']]) {
+          const z = statusZeile(werte, k, wort); if (z) wrap.appendChild(z);
+        }
+        const zs = Array.isArray(werte.zauberspeicher) ? werte.zauberspeicher : [];
+        if (zs.length) {
+          const txt = zs.map((s, i) => s ? `${i + 1}: ${s.name}, Qualität ${s.qualitaet}` : `${i + 1}: leer`).join('; ');
+          wrap.appendChild(infoZeile(`Zauberspeicher: ${txt}`, 'Geladene Zauber im Magierstab, live vom Spieler.'));
+        }
+        const w2 = (k, wort) => { if (typeof werte[k] === 'number') wrap.appendChild(infoZeile(`${wort}: ${werte[k]}`, `${wort}, live vom Spieler. Nur Anzeige.`)); };
+        w2('WS', 'Wundschwelle'); w2('MR', 'Magieresistenz'); w2('GS', 'Geschwindigkeit'); w2('INI', 'Initiative'); w2('SB', 'Schadensbonus'); w2('DH', 'Durchhaltevermögen'); w2('RS', 'Rüstungsschutz'); w2('BE', 'Behinderung');
+      } else {
+        wrap.appendChild(infoZeile('Nicht übertragen. Der Spieler war noch nicht verbunden.', 'Sobald der Spieler über die Meisterpost verbunden ist, erscheinen hier seine Werte.'));
+      }
+
+      // Initiative-Phase ab "Kämpfen" abwärts (verdeckt). Kein Würfelbecher, keine Aktionen.
+      wrap.appendChild(abschnittTitel('Initiative-Phase (verdeckt)'));
+      const db = getDb();
+      wrap.appendChild(aktionZeile('Kämpfen', () => screen.push(kampfwerteScreen()), 'Attacke oder Parade und Schaden je Waffenset, verdeckt'));
+      wrap.appendChild(aktionZeile('Manöver', () => screen.push(manoeverScreen()), 'Nahkampf-Manöver mit ihrer Wirkung'));
+      if (zauberVorhanden(c.bogen, db)) wrap.appendChild(aktionZeile('Zauber und Rituale', () => screen.push(zauberScreen()), 'bekannte Zauber, verdeckt würfeln'));
+      if (zauberspeicherVorhanden(c.bogen)) wrap.appendChild(aktionZeile('Zauberspeicher', () => screen.push(zauberspeicherScreen()), 'Magierstab-Zauberspeicher'));
+
+      verbindeDetail(wrap);
+      return wrap;
+    },
+    // Beim Verlassen den transienten Kontext + Verdeckt-Modus wieder löschen (true = normal zurück).
+    onBack() { setVerdeckt(false); setAbenteuer(null); return true; },
+    onShow() { sprache.sage(post.verbundeneSpieler().includes(c.name) ? `${c.name}, verbunden. Live-Werte oben.` : `${c.name}.`); },
+  };
+}
+
+export function charAnsichtInitiativeScreen() {
   return {
     title: '',
     build() {
       const a = getMeister();
-      this.title = `Notizen, ${(a.charaktere || []).length}`;
-      const items = (a.charaktere || []).map(c => ({
-        label: c.name,
-        hint: 'Notizen zu diesem Charakter',
-        onSelect: () => screen.push(charNotizScreen(c.name)),
-      }));
+      const gruppe = a.charaktere || [];
+      const verbunden = new Set(post.verbundeneSpieler());
+      const hatStatus = new Set(post.statusNamen());
+      this.title = `Charakteransicht, ${gruppe.length}`;
+      const items = gruppe.map(c => {
+        const zus = verbunden.has(c.name) ? ' (verbunden)' : (hatStatus.has(c.name) ? ' (offline)' : '');
+        return { label: `${c.name}${zus}`, hint: 'Status und Initiative-Phase dieses Charakters', onSelect: () => screen.push(charLiveScreen(c)) };
+      });
       return menuScreen({
         title: this.title,
-        subtitle: 'Enter oeffnet die Notizen eines Helden. Escape zurueck.',
+        subtitle: 'Enter öffnet Werte und Initiative-Phase des Charakters. Escape zurück.',
         items,
-        leer: 'Noch keine Helden in der Gruppe. Erst unter Gruppenzusammenstellung hinzufuegen.',
+        leer: 'Noch keine Helden in der Gruppe. Erst unter Gruppenzusammenstellung hinzufügen.',
       }).build();
     },
-    onShow() { sprache.sage('Notizen. Waehle einen Charakter.'); },
+    onShow() { sprache.sage('Charakteransicht. Verbundene Spieler sind markiert.'); },
   };
 }
 
-/**
- * F4: Charakteransicht (Initiative-Phase), Charakterboegen und Notizen.
- * Die Vitalitaet steht am Spieltisch-Kampf und ist hier bewusst nicht mehr doppelt.
- */
-export function spielerinfosScreen() {
-  const items = [
-    { label: 'Postkasten', hint: 'Meisterpost: Verbindung, versenden, Posteingang', onSelect: () => screen.push(postkastenScreen()) },
-    { label: 'Charakteransicht meine Initiativephase', hint: 'die Initiative-Phase eines Helden ansehen (wie am Spielertisch)', onSelect: () => screen.push(charAnsichtInitiativeScreen()) },
-    { label: 'Charakterboegen', hint: 'die Boegen der Gruppe zum Nachlesen', onSelect: () => screen.push(charakterboegenScreen()) },
-    { label: 'Notizen und Postablage', hint: 'je Charakter Notizen; hierhin verschiebst du Post', onSelect: () => screen.push(notizenMenuScreen()) },
-  ];
+/** F4: Charaktere — Charakteransicht und Charakterbögen. */
+export function charaktereScreen() {
   return menuScreen({
-    title: 'Postkasten, Charakteransicht und Notizen',
-    subtitle: 'Postkasten, Charakteransicht, Boegen und Notizen. Escape zurueck.',
-    items,
+    title: 'Charaktere',
+    subtitle: 'Charakteransicht und Charakterbögen. Escape zurück.',
+    items: [
+      { label: 'Charakteransicht meine Initiativephase', hint: 'Status und Werte der Helden, verdeckt würfeln', onSelect: () => screen.push(charAnsichtInitiativeScreen()) },
+      { label: 'Charakterbögen', hint: 'die Bögen der Gruppe zum Nachlesen', onSelect: () => screen.push(charakterboegenScreen()) },
+    ],
   });
 }

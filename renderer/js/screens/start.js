@@ -16,7 +16,7 @@ export function build() {
     items: [
       {
         label: 'Charakterverwaltung',
-        hint: 'Charaktere erstellen, ansehen, importieren und exportieren',
+        hint: 'Charaktere erstellen, ansehen und verwalten',
         onSelect: () => import('./charakterverwaltung.js').then(m => screen.push(m.build())),
       },
       {

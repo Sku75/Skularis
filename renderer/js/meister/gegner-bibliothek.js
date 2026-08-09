@@ -1,12 +1,12 @@
 /**
  * Skularistool — Meistertisch: globale Gegner-Bibliothek.
  *
- * Ueber allen Meisterabenteuern liegt eine grosse Sammlung: das mitgelieferte
- * Bestiarium (nach Ilaris uebersetzt, in Kategorien) plus die eigene, global
+ * Über allen Meisterabenteuern liegt eine große Sammlung: das mitgelieferte
+ * Bestiarium (nach Ilaris übersetzt, in Kategorien) plus die eigene, global
  * gespeicherte Bibliothek des Meisters. Aufbau des Bildschirms:
  *   - Meine Auswahl: die Gegner dieses Abenteuers (a.nsc), auf den Spieltisch legbar.
- *   - Gesamtliste: alle Gegner, filterbar. Enter uebernimmt in die Auswahl.
- *   - je Kategorie eine Liste. Enter uebernimmt in die Auswahl.
+ *   - Gesamtliste: alle Gegner, filterbar. Enter übernimmt in die Auswahl.
+ *   - je Kategorie eine Liste. Enter übernimmt in die Auswahl.
  *   - Eigene Gegner: die selbst erstellten, mit Editor.
  *   - Neuen Gegner erstellen.
  * Enter auf einem Gegner kopiert ihn in a.nsc (die Auswahl des Abenteuers).
@@ -25,7 +25,10 @@ const ipc = window.skularis?.ipc;
 
 let _userBib = null;
 
-async function ladeUserBib() {
+/** Die global gespeicherten eigenen Gegner (leer, solange nicht geladen). */
+export function eigeneGegner() { return (_userBib && _userBib.gegner) || []; }
+
+export async function ladeUserBib() {
   if (_userBib) return _userBib;
   try { const r = await ipc.gegnerBibLaden(); _userBib = r && r.inhalt ? JSON.parse(r.inhalt) : { gegner: [] }; }
   catch { _userBib = { gegner: [] }; }
@@ -40,30 +43,30 @@ async function speichereUserBib() {
 function vorlageDetail(v) {
   const faeh = [...(v.vorteile || []), ...(v.manoever || [])];
   return [
-    `${v.name}${v.kategorie ? ', ' + v.kategorie : ''}. Wundschwelle ${v.ws}, Ruestung ${v.rs}, Initiative ${v.ini}.`,
+    `${v.name}${v.kategorie ? ', ' + v.kategorie : ''}. Wundschwelle ${v.ws}, Rüstung ${v.rs}, Initiative ${v.ini}.`,
     angriffeText(v) || 'Keine Angriffe.',
-    faeh.length ? `Faehigkeiten: ${faeh.join(', ')}.` : '',
+    faeh.length ? `Fähigkeiten: ${faeh.join(', ')}.` : '',
     v.notizen ? `Notizen: ${v.notizen}` : '',
   ].filter(Boolean).join(' ');
 }
 
-/** Einen Bibliotheks-Gegner in die Auswahl des Abenteuers uebernehmen. */
+/** Einen Bibliotheks-Gegner in die Auswahl des Abenteuers übernehmen. */
 function uebernehmen(v) {
   const a = getMeister();
   a.nsc.push(statblockAusVorlage(a, v));
   speichere();
   sounds.playOeffnen();
-  sprache.sage(`${v.name} in deine Auswahl uebernommen. ${a.nsc.length} Gegner in der Auswahl.`);
+  sprache.sage(`${v.name} in deine Auswahl übernommen. ${a.nsc.length} Gegner in der Auswahl.`);
 }
 
-/** Liste von Gegner-Vorlagen; Enter uebernimmt in die Auswahl. */
+/** Liste von Gegner-Vorlagen; Enter übernimmt in die Auswahl. */
 function vorlagenListe(titel, vorlagen, filter) {
   return menuScreen({
     title: titel,
-    subtitle: 'Enter uebernimmt den Gegner in deine Auswahl. Shift und Pfeil-runter liest die Werte. Escape zurueck.',
+    subtitle: 'Enter übernimmt den Gegner in deine Auswahl. Shift und Pfeil-runter liest die Werte. Escape zurück.',
     items: vorlagen.map(v => ({
       label: v.name,
-      hint: `Wundschwelle ${v.ws}, Ruestung ${v.rs}, Initiative ${v.ini}`,
+      hint: `Wundschwelle ${v.ws}, Rüstung ${v.rs}, Initiative ${v.ini}`,
       detail: vorlageDetail(v),
       onSelect: () => uebernehmen(v),
     })),
@@ -94,11 +97,11 @@ export function gegnerBibliothekScreen() {
       const eigene = (_userBib && _userBib.gegner) || [];
       items.push({ label: `Eigene Gegner, ${eigene.length}`, hint: 'selbst erstellte Gegner, bearbeitbar', onSelect: () => screen.push(eigeneListeScreen()) });
       items.push({ label: 'Neuen Gegner erstellen', hint: 'eigenen Gegner anlegen und in die Bibliothek speichern', onSelect: () => neuerGegner() });
-      items.push({ label: 'Gegner generieren', hint: 'aus Gefaehrlichkeit und Art schnell erzeugen', onSelect: () => generiereGegner() });
+      items.push({ label: 'Gegner generieren', hint: 'aus Gefährlichkeit und Art schnell erzeugen', onSelect: () => generiereGegner() });
 
       return menuScreen({
         title: this.title,
-        subtitle: 'Gesamtliste oder Kategorie oeffnen, Enter uebernimmt einen Gegner in deine Auswahl. Escape zurueck.',
+        subtitle: 'Gesamtliste oder Kategorie öffnen, Enter übernimmt einen Gegner in deine Auswahl. Escape zurück.',
         items,
       }).build();
     },
@@ -112,7 +115,7 @@ export function gegnerBibliothekScreen() {
 
 // --- Eigene Bibliothek: Liste, Anlegen, Bearbeiten ---
 
-function eigeneListeScreen() {
+export function eigeneListeScreen() {
   return {
     title: '',
     build() {
@@ -120,12 +123,12 @@ function eigeneListeScreen() {
       this.title = `Eigene Gegner, ${eigene.length}`;
       const items = eigene.map((g, i) => ({
         label: g.name || 'Gegner',
-        hint: `Wundschwelle ${g.ws}, Ruestung ${g.rs}. Enter: uebernehmen, bearbeiten, loeschen`,
+        hint: `Wundschwelle ${g.ws}, Rüstung ${g.rs}. Enter: übernehmen, bearbeiten, löschen`,
         detail: vorlageDetail(g),
         onSelect: () => screen.push(eigenEintragScreen(i)),
       }));
       items.push({ label: 'Neuen Gegner erstellen', onSelect: () => neuerGegner() });
-      return menuScreen({ title: this.title, subtitle: 'Escape zurueck.', items, leer: 'Noch keine eigenen Gegner.' }).build();
+      return menuScreen({ title: this.title, subtitle: 'Escape zurück.', items, leer: 'Noch keine eigenen Gegner.' }).build();
     },
   };
 }
@@ -139,18 +142,18 @@ function eigenEintragScreen(index) {
       this.title = g.name || 'Gegner';
       return menuScreen({
         title: this.title,
-        subtitle: 'Escape zurueck.',
+        subtitle: 'Escape zurück.',
         items: [
-          { label: 'In die Auswahl uebernehmen', onSelect: () => uebernehmen(g) },
+          { label: 'In die Auswahl übernehmen', onSelect: () => uebernehmen(g) },
           { label: 'Bearbeiten', onSelect: () => screen.push(editorScreen(g, async () => { await speichereUserBib(); })) },
           {
-            label: 'Aus der Bibliothek loeschen',
+            label: 'Aus der Bibliothek löschen',
             onSelect: async () => {
-              if (!await jaNeinDialog({ titel: 'Loeschen', frage: `${g.name} aus der Bibliothek loeschen?` })) return;
+              if (!await jaNeinDialog({ titel: 'Löschen', frage: `${g.name} aus der Bibliothek löschen?` })) return;
               _userBib.gegner.splice(index, 1);
               await speichereUserBib();
               screen.pop();
-              sprache.sage(`${g.name} geloescht.`);
+              sprache.sage(`${g.name} gelöscht.`);
             },
           },
         ],
@@ -164,20 +167,20 @@ const GEFAHR = [
   { name: 'Normal', ws: 6, rs: 1, at: 11, pa: 10, wuerfel: 1, bonus: 3, ini: 4 },
   { name: 'Stark', ws: 8, rs: 2, at: 13, pa: 11, wuerfel: 1, bonus: 5, ini: 5 },
   { name: 'Sehr stark', ws: 11, rs: 3, at: 14, pa: 12, wuerfel: 2, bonus: 6, ini: 5 },
-  { name: 'Legendaer', ws: 15, rs: 5, at: 16, pa: 13, wuerfel: 3, bonus: 8, ini: 6 },
+  { name: 'Legendär', ws: 15, rs: 5, at: 16, pa: 13, wuerfel: 3, bonus: 8, ini: 6 },
 ];
 const ARTEN = [
   { name: 'Mensch', angriff: 'Waffe', hatPa: true, vorteile: [] },
   { name: 'Tier', angriff: 'Biss', hatPa: false, vorteile: ['Flink'] },
-  { name: 'Ork oder Oger', angriff: 'Wuchtwaffe', hatPa: true, vorteile: ['Zaeh'] },
+  { name: 'Ork oder Oger', angriff: 'Wuchtwaffe', hatPa: true, vorteile: ['Zäh'] },
   { name: 'Untot', angriff: 'Klauen', hatPa: true, vorteile: ['Untot', 'Schmerzlos'] },
-  { name: 'Daemon', angriff: 'Krallen', hatPa: true, vorteile: ['Daemonisch', 'Furchteinfloessend'] },
-  { name: 'Bestie oder Drache', angriff: 'Biss', hatPa: true, vorteile: ['Zaeh', 'Furchteinfloessend'] },
+  { name: 'Dämon', angriff: 'Krallen', hatPa: true, vorteile: ['Dämonisch', 'Furchteinflößend'] },
+  { name: 'Bestie oder Drache', angriff: 'Biss', hatPa: true, vorteile: ['Zäh', 'Furchteinflößend'] },
 ];
 
-async function generiereGegner() {
+export async function generiereGegner() {
   await ladeUserBib();
-  const gefahr = await spinnerDialog({ titel: 'Gefaehrlichkeit', optionen: GEFAHR, index: 1, format: (g) => g.name });
+  const gefahr = await spinnerDialog({ titel: 'Gefährlichkeit', optionen: GEFAHR, index: 1, format: (g) => g.name });
   if (gefahr === null) return;
   const art = await spinnerDialog({ titel: 'Art', optionen: ARTEN, index: 0, format: (a) => a.name });
   if (art === null) return;
@@ -197,7 +200,7 @@ async function generiereGegner() {
   sprache.sage(`${g.name} generiert und in die eigene Bibliothek gelegt. Wundschwelle ${g.ws}, Angriff ${gefahr.at}.`);
 }
 
-async function neuerGegner() {
+export async function neuerGegner() {
   const name = await textDialog({ titel: 'Neuer Gegner', label: 'Name' });
   if (name === null || !name.trim()) return;
   await ladeUserBib();
@@ -207,7 +210,7 @@ async function neuerGegner() {
   screen.push(editorScreen(g, async () => { await speichereUserBib(); }));
 }
 
-/** Editor fuer einen Gegner-Statblock (Bibliothek oder Auswahl). onChange nach jeder Aenderung. */
+/** Editor für einen Gegner-Statblock (Bibliothek oder Auswahl). onChange nach jeder Änderung. */
 export function editorScreen(sb, onChange) {
   const sichern = () => { if (onChange) Promise.resolve(onChange()).catch(() => {}); };
   return {
@@ -232,7 +235,7 @@ export function editorScreen(sb, onChange) {
       textFeld('Name', 'name');
       textFeld('Kategorie', 'kategorie');
       zahlFeld('Wundschwelle', 'ws', 0, 60);
-      zahlFeld('Ruestung', 'rs', 0, 20);
+      zahlFeld('Rüstung', 'rs', 0, 20);
       zahlFeld('Initiative', 'ini', -20, 40);
 
       (sb.angriffe || []).forEach((ang, ai) => {
@@ -242,32 +245,32 @@ export function editorScreen(sb, onChange) {
           onSelect: () => screen.push(angriffEditorScreen(sb, ai, sichern)),
         });
       });
-      items.push({ label: 'Angriff hinzufuegen', onSelect: () => neuerAngriff(sb, sichern) });
+      items.push({ label: 'Angriff hinzufügen', onSelect: () => neuerAngriff(sb, sichern) });
 
       listeFeld('Vorteile', 'vorteile');
-      listeFeld('Manoever', 'manoever');
+      listeFeld('Manöver', 'manoever');
       textFeld('Notizen', 'notizen');
 
-      return menuScreen({ title: this.title, subtitle: 'Werte aendern, Angriffe pflegen. Escape zurueck.', items }).build();
+      return menuScreen({ title: this.title, subtitle: 'Werte ändern, Angriffe pflegen. Escape zurück.', items }).build();
     },
   };
 }
 
 async function neuerAngriff(sb, sichern) {
-  const name = await textDialog({ titel: 'Angriff', label: 'Name, z. B. Krummsaebel' });
+  const name = await textDialog({ titel: 'Angriff', label: 'Name, z. B. Krummsäbel' });
   if (name === null || !name.trim()) return;
   const at = await zahlDialog({ titel: 'Attacke', label: 'Attacke-Wert (AT)', wert: 12, min: 0, max: 40 });
   if (at === null) return;
   const pa = await zahlDialog({ titel: 'Parade', label: 'Parade-Wert (PA), 0 wenn keine', wert: 0, min: 0, max: 40 });
   if (pa === null) return;
-  const wuerfel = await zahlDialog({ titel: 'Schadenswuerfel', label: 'Anzahl Wuerfel', wert: 1, min: 0, max: 20 });
+  const wuerfel = await zahlDialog({ titel: 'Schadenswürfel', label: 'Anzahl Würfel', wert: 1, min: 0, max: 20 });
   if (wuerfel === null) return;
-  const seiten = await spinnerDialog({ titel: 'Wuerfeltyp', optionen: [6, 20], index: 0, format: (v) => `W${v}` });
+  const seiten = await spinnerDialog({ titel: 'Würfeltyp', optionen: [6, 20], index: 0, format: (v) => `W${v}` });
   if (seiten === null) return;
   const bonus = await zahlDialog({ titel: 'Schadensbonus', label: 'Fester Schadensbonus, 0 wenn keiner', wert: 0, min: -20, max: 40 });
   if (bonus === null) return;
   sb.angriffe.push({ name: name.trim(), at, pa: pa || null, wuerfel, seiten, bonus });
-  sichern(); screen.refresh(); sprache.sage(`Angriff ${name.trim()} hinzugefuegt.`);
+  sichern(); screen.refresh(); sprache.sage(`Angriff ${name.trim()} hinzugefügt.`);
 }
 
 function angriffEditorScreen(sb, ai, sichern) {
@@ -279,17 +282,17 @@ function angriffEditorScreen(sb, ai, sichern) {
       this.title = `Angriff ${ang.name}`;
       return menuScreen({
         title: this.title,
-        subtitle: 'Escape zurueck.',
+        subtitle: 'Escape zurück.',
         items: [
           {
             label: 'Werte bearbeiten',
             onSelect: async () => {
               const at = await zahlDialog({ titel: 'Attacke', label: 'Attacke (AT)', wert: ang.at != null ? ang.at : ang.wert || 0, min: 0, max: 40 }); if (at === null) return;
               const pa = await zahlDialog({ titel: 'Parade', label: 'Parade (PA), 0 wenn keine', wert: ang.pa || 0, min: 0, max: 40 }); if (pa === null) return;
-              const wuerfel = await zahlDialog({ titel: 'Schadenswuerfel', label: 'Anzahl Wuerfel', wert: ang.wuerfel || 0, min: 0, max: 20 }); if (wuerfel === null) return;
+              const wuerfel = await zahlDialog({ titel: 'Schadenswürfel', label: 'Anzahl Würfel', wert: ang.wuerfel || 0, min: 0, max: 20 }); if (wuerfel === null) return;
               const bonus = await zahlDialog({ titel: 'Schadensbonus', label: 'Schadensbonus', wert: ang.bonus || 0, min: -20, max: 40 }); if (bonus === null) return;
               ang.at = at; ang.pa = pa || null; ang.wuerfel = wuerfel; ang.bonus = bonus; delete ang.wert;
-              sichern(); screen.refresh(); sprache.sage('Angriff geaendert.');
+              sichern(); screen.refresh(); sprache.sage('Angriff geändert.');
             },
           },
           {

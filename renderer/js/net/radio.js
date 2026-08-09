@@ -41,11 +41,11 @@ let _reconnectVersuch = 0;
 let _amReconnect = false;
 let _verbundenGewesen = false; // Reconnect erst, wenn die Verbindung einmal STAND
 
-/** Einen kurzen Zahlen-Schluessel erzeugen: sechs Ziffern (z. B. "123456"). */
+/** Einen kurzen Zahlen-Schluessel erzeugen: vier Ziffern (z. B. "1234"). */
 export function generiereSchluessel() {
   const arr = new Uint32Array(1);
   crypto.getRandomValues(arr);
-  return String(arr[0] % 1000000).padStart(6, '0');
+  return String(arr[0] % 10000).padStart(4, '0');
 }
 
 /** Schluessel -> feste PeerJS-Kennung (nur erlaubte Zeichen). */

@@ -24,10 +24,10 @@ import { createMeisterAbenteuer, parseMeisterAbenteuer, protokolliere } from '..
 import { ladeBogenFrisch, waehleCharakterBogen } from '../core/bogen-laden.js';
 import { getMeister, setMeister, speichere } from '../meister/state.js';
 import { gruppenzusammenstellungScreen } from '../meister/gruppe.js';
-import { spielerinfosScreen } from '../meister/spielerinfos.js';
+import { charaktereScreen } from '../meister/spielerinfos.js';
+import { postkastenScreen } from '../meister/postkasten.js';
 import { gruppenrechercheScreen, gruppenprobeScreen } from '../meister/gruppenrecherche.js';
 import { gegnerkarteiScreen } from '../meister/gegnerkartei.js';
-import { gegnerBibliothekScreen } from '../meister/gegner-bibliothek.js';
 import { szenenBereichScreen } from '../meister/szenen-spielen.js';
 import { meisterNotizenScreen } from '../meister/notizen.js';
 import { audioBereichScreen } from '../meister/audio-bereich.js';
@@ -37,7 +37,7 @@ import { versteckeEP } from '../ui/ep-anzeige.js';
 const ipc = window.skularis?.ipc;
 
 // Einstiegs-Bildschirm des Meister-Tisches; beim Verlassen des Hubs kehrt der
-// Fokus hierher zurueck (nicht in ein Zwischenmenue).
+// Fokus hierher zurück (nicht in ein Zwischenmenue).
 let _einstieg = null;
 
 export function oeffne() {
@@ -91,7 +91,7 @@ async function erstellen() {
     await speichere();
     sounds.playOeffnen();
     oeffneHub();
-    sprache.sage(`Meisterabenteuer ${a.name} erstellt. Fuege unter Gruppenzusammenstellung deine Helden hinzu.`);
+    sprache.sage(`Meisterabenteuer ${a.name} erstellt. Füge unter Gruppenzusammenstellung deine Helden hinzu.`);
   } catch (e) {
     console.error('Meisterabenteuer erstellen:', e);
     sprache.sage('Meisterabenteuer konnte nicht erstellt werden.');
@@ -150,7 +150,7 @@ async function oeffneMeister(eintrag) {
     if (!ok) { sprache.sage('Öffnen abgebrochen.'); return; } // Abbrechen: nichts laden
     setMeister(a);
     await speichere();               // aufgefrischten/bereinigten Stand sichern (nur Meister-JSON)
-    sounds.play('oeffnen', 0.7);     // 30 Prozent leiser beim Oeffnen eines Meisterabenteuers
+    sounds.play('oeffnen', 0.7);    // 30 Prozent leiser beim Öffnen eines Meisterabenteuers
     oeffneHub();
   } catch (e) {
     console.error('Meisterabenteuer laden:', e);
@@ -190,7 +190,7 @@ function meisterEintragScreen(eintrag) {
             label: 'Löschen',
             onSelect: async () => {
               if (!await jaNeinDialog({ titel: 'Löschen', frage: `Meisterabenteuer ${eintrag.name} wirklich löschen?` })) return;
-              try { await ipc.meisterLoeschen(eintrag.pfad); } catch (e) { console.error('loeschen:', e); }
+              try { await ipc.meisterLoeschen(eintrag.pfad); } catch (e) { console.error('löschen:', e); }
               if (_einstieg) _einstieg._liste = null; // beim Zurück neu laden
               screen.pop();
               sprache.sage(`${eintrag.name} gelöscht.`);
@@ -214,31 +214,31 @@ function oeffneHub() {
   const punkte = [
     { label: 'Gruppenrecherche', hint: 'Werte der Gruppe abfragen und verdeckt wuerfeln', factory: () => gruppenrechercheScreen() },
     { label: 'Gruppenprobe', hint: 'die ganze Gruppe gegen eine Schwierigkeit', factory: () => gruppenprobeScreen() },
-    { label: 'Spieltisch', hint: 'aktiver Spieltisch, bestuecken, Sets', factory: () => szenenBereichScreen() },
-    { label: 'Gegner-Bibliothek', hint: 'Gesamtliste und Kategorien, Gegner in die Auswahl uebernehmen', factory: () => gegnerBibliothekScreen() },
-    { label: 'Postkasten, Charakteransicht und Notizen', hint: 'Meisterpost, Initiative-Phase der Helden, Boegen und Notizen', factory: () => spielerinfosScreen() },
+    { label: 'Spieltisch', hint: 'aktiver Spieltisch, bestücken, Sets', factory: () => szenenBereichScreen() },
+    { label: 'Charaktere', hint: 'Charakteransicht (Status, Werte, verdeckt würfeln) und Charakterbögen', factory: () => charaktereScreen() },
+    { label: 'Post, Notizen und Ablageregal', hint: 'Meisterpost senden und empfangen, Ablage und Notizen', factory: () => postkastenScreen() },
     { label: 'Freundliche NPC', hint: 'Meister-NPC verwalten', factory: () => gegnerkarteiScreen('freund') },
     { label: 'Meistertexte 1', hint: 'Abenteuertexte, geheime Notizen, Vorlesetexte, Zufallstabellen, Namen (erste Arbeitsflaeche)', factory: () => meisterNotizenScreen(1) },
     { label: 'Meistertexte 2', hint: 'dasselbe unabhaengig, mit eigenem Text-Ordner (zweite Arbeitsflaeche)', factory: () => meisterNotizenScreen(2) },
     { label: 'Regeln', hint: 'Kurzregelfilter und das ganze Ilaris-Regelwerk', factory: () => regelnMenuScreen({ db: getDb(), helden: regelHelden() }) },
     { label: 'Protokoll', hint: 'was im Abenteuer passiert ist', factory: () => protokollScreen() },
-    { label: 'Gruppenzusammenstellung', hint: 'Helden hinzufuegen und entfernen', factory: () => gruppenzusammenstellungScreen() },
-    { label: 'Audio', hint: 'Klaenge abspielen und ans Radio senden', festeTaste: 12, factory: () => audioBereichScreen('meister') },
+    { label: 'Gruppenzusammenstellung', hint: 'Helden hinzufügen und entfernen', factory: () => gruppenzusammenstellungScreen() },
+    { label: 'Audio', hint: 'Klänge abspielen und ans Radio senden', festeTaste: 12, factory: () => audioBereichScreen('meister') },
     { label: 'Verdeckter Meister-Wurf', hint: 'schnell und leise wuerfeln', ergebnisId: 'meisterwurf', aktion: () => verdeckterMeisterWurf() },
     { label: 'Zwischenspeichern', hint: 'Spielstand sichern', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
-    { label: 'Speichern und schliessen', hint: 'sichern und zum Meister-Tisch zurueck', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Gespeichert.'); if (_einstieg) _einstieg._liste = null; post.stopp(); hub.verlasse(); } },
+    { label: 'Speichern und schließen', hint: 'sichern und zum Meister-Tisch zurück', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Gespeichert.'); if (_einstieg) _einstieg._liste = null; post.stopp(); hub.verlasse(); } },
   ];
 
   hub = reiterHub.oeffneHub({
-    titel, subtitle: 'Mit F1 bis F12 direkt zum Menue. Escape verlaesst den Bereich.', punkte,
+    titel, subtitle: 'Mit F1 bis F12 direkt zum Menü. Escape verlässt den Bereich.', punkte,
     bereich: 'meister',
     zurueckAuf: _einstieg,
     beimVerlassen: async () => {
-      sounds.play('esc_verlassen'); // ESC-/Verlassen-Menue
+      sounds.play('esc_verlassen'); // ESC-/Verlassen-Menü
       const w = await knopfDialog({
         titel: 'Meister-Tisch verlassen',
         knoepfe: [
-          { label: 'Speichern und schliessen', wert: 'ja' },
+          { label: 'Speichern und schließen', wert: 'ja' },
           { label: 'Schliessen ohne Speichern', wert: 'nein' },
           { label: 'Abbrechen', wert: 'abbrechen' },
         ],
@@ -257,15 +257,15 @@ function protokollScreen() {
       const a = getMeister();
       const prot = a.protokoll || [];
       const items = prot.map((p, i) => ({ label: `${prot.length - i}. ${p.text}`, detail: p.zeit || '', onSelect: () => {} }));
-      return menuScreen({ title: 'Protokoll', subtitle: 'Neueste oben. Escape zurueck.', items, leer: 'Noch keine Eintraege.' }).build();
+      return menuScreen({ title: 'Protokoll', subtitle: 'Neueste oben. Escape zurück.', items, leer: 'Noch keine Eintraege.' }).build();
     },
   };
 }
 
 async function verdeckterMeisterWurf() {
-  const anzahl = await spinnerDialog({ titel: 'Anzahl Wuerfel', optionen: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], index: 0, format: (v) => `${v} Wuerfel` });
+  const anzahl = await spinnerDialog({ titel: 'Anzahl Würfel', optionen: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], index: 0, format: (v) => `${v} Würfel` });
   if (anzahl === null) return;
-  const seiten = await spinnerDialog({ titel: 'Wuerfeltyp', optionen: [6, 20], index: 1, format: (v) => `W${v}` });
+  const seiten = await spinnerDialog({ titel: 'Würfeltyp', optionen: [6, 20], index: 1, format: (v) => `W${v}` });
   if (seiten === null) return;
   const ersch = await erschwernisDialog({ titel: 'Erschwernis', wert: 0 });
   if (ersch === null) return;

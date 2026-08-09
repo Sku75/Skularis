@@ -1,13 +1,12 @@
 /**
  * Skularistool — Abenteuertisch (Spieler): Meisterpost.
  *
- * Verbinden mit Code + Namen (net/post.js). Danach:
- *  - Nachricht senden: an alle oder ein Einzelziel, dann Text -> Posteingang des Ziels.
- *  - Pop-up auslösen: wie senden, löst beim Empfänger sofort ein Pop-up mit Ton aus.
- *  - Verlauf: Kopien aller gesendeten und empfangenen Nachrichten.
- *  - Mein Posteingang: eingegangene Nachrichten (antworten, löschen, verschieben).
- * Beim Verbinden und bei jeder F2-Änderung wird der Charakterstatus an den Meister
- * übertragen (status-sync.js).
+ * Aufbau: oben Post senden (Nachricht oder Pop-up), darunter Posteingang und
+ * Postausgang, ganz unten Verbinden (braucht man nur einmal). Nachrichten landen
+ * im Posteingang; ein Pop-up geht beim Empfaenger sofort als Fenster auf (Ton, Text,
+ * OK) und wird NICHT gespeichert. Eingegangene Post laesst sich ins Notizbuch oder
+ * Tagebuch verschieben. Beim Verbinden und bei jeder F2-Aenderung wird der
+ * Charakterstatus an den Meister uebertragen (status-sync.js).
  */
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
@@ -20,31 +19,33 @@ import { sammleStatus } from './status-sync.js';
 
 let _mitspieler = [];
 let _eigenerName = '';
+let _popupOffen = false; // nur EIN Pop-up-Fenster gleichzeitig (kein Spam-Stapel)
 
 function kurz(t) { const s = String(t || '').replace(/\s+/g, ' ').trim(); return s.length > 50 ? s.slice(0, 50) + '…' : s; }
 
-function verlaufEintrag(a, richtung, wer, text, typ) {
-  a.postVerlauf = a.postVerlauf || [];
-  a.postVerlauf.unshift({ richtung, wer, text, zeit: Date.now(), typ });
+/** Ein eingehendes Pop-up: sofort ein Fenster mit dem Text und OK. Nichts speichern. */
+function zeigePopup(von, text) {
+  if (_popupOffen) return; // ein neues Pop-up waehrend eines offenen wird verworfen
+  _popupOffen = true;
+  sounds.playPopup();
+  sprache.sage(`Pop-up von ${von}. ${text || 'Kein Text.'}`);
+  knopfDialog({ titel: `Pop-up von ${von}`, frage: text || '(kein Text)', knoepfe: [{ label: 'OK', wert: 'ok' }] })
+    .then(() => { _popupOffen = false; })
+    .catch(() => { _popupOffen = false; });
 }
 
-/** Eingehende Post/Pop-up ablegen, Ton und Ansage (kein Fokuswechsel). */
+/** Eingehende Nachricht (kein Pop-up) ablegen, Ton und kurze Ansage. */
 function empfangePost(m) {
+  if (m && m.typ === 'popup') { zeigePopup(m.von || 'Meister', String(m.text || '')); return; }
   const a = getAbenteuer();
   if (!a) return;
-  const typ = m.typ === 'popup' ? 'popup' : 'msg';
-  const eintrag = { id: m.id, von: m.von || 'Meister', text: String(m.text || ''), zeit: m.zeit || Date.now(), typ, gelesen: false };
-  verlaufEintrag(a, 'ein', eintrag.von, eintrag.text, typ);
+  const eintrag = { id: m.id, von: m.von || 'Meister', text: String(m.text || ''), zeit: m.zeit || Date.now(), gelesen: false };
   a.posteingang = a.posteingang || [];
-  if (!(m.id && a.posteingang.some(x => x.id === m.id))) a.posteingang.unshift(eintrag);
+  if (m.id && a.posteingang.some(x => x.id === m.id)) return;
+  a.posteingang.unshift(eintrag);
   speichere();
-  if (typ === 'popup') { sounds.playPopup(); zeigePopup(eintrag.von, eintrag.text); }
-  else { sounds.playPost(); sprache.sage(`Neue Post von ${eintrag.von}.`); }
-}
-
-function zeigePopup(von, text) {
-  knopfDialog({ titel: `Pop-up von ${von}`, frage: 'Annehmen?', knoepfe: [{ label: 'Annehmen', wert: 'ja' }, { label: 'Ablehnen', wert: 'nein' }] })
-    .then((w) => { if (w === 'ja') sprache.sage(`Pop-up von ${von}. ${text || 'Kein Text.'}`); });
+  sounds.playPost();
+  sprache.sage(`Neue Post von ${eintrag.von}.`);
 }
 
 async function verbinde() {
@@ -61,7 +62,6 @@ async function verbinde() {
     onFehler: (t) => { sprache.sage(t); },
     onSpielerListe: (namen) => { _mitspieler = (namen || []).filter(n => n !== _eigenerName); },
     onNachricht: (m) => empfangePost(m),
-    // Auto-Reconnect (sparsame Ansagen); bei Erfolg den F2-Stand neu senden.
     onReconnectStart: () => { sprache.sage('Verbindung zum Meister verloren. Ich versuche, wieder zu verbinden.'); },
     onReconnectErfolg: () => { try { post.spielerStatus(sammleStatus(getAbenteuer())); } catch { /* egal */ } sprache.sage('Wieder mit dem Meister verbunden.'); },
     onAufgegeben: () => { sprache.sage('Wiederverbinden aufgegeben. Bitte bei Bedarf neu verbinden.'); },
@@ -75,14 +75,18 @@ async function schreibeInhalt(ziel, typ) {
   const text = await textDialog({ titel: `${wort} an ${zielName}`, label: 'Nachricht schreiben', mehrzeilig: true });
   if (text === null || !text.trim()) return;
   if (post.spielerSende(ziel, text.trim(), typ)) {
-    verlaufEintrag(getAbenteuer(), 'aus', zielName, text.trim(), typ);
-    speichere();
+    if (typ !== 'popup') { // Pop-ups werden nirgends gesammelt
+      const a = getAbenteuer();
+      a.postAusgang = a.postAusgang || [];
+      a.postAusgang.unshift({ an: zielName, text: text.trim(), zeit: Date.now() });
+      speichere();
+    }
     sounds.playSpeichern(); screen.pop(); sprache.sage(`${wort} an ${zielName} gesendet.`);
   } else sprache.sage('Nicht gesendet. Keine Verbindung.');
 }
 
 function zieleScreen(typ) {
-  const wort = typ === 'popup' ? 'Pop-up auslösen' : 'Nachricht senden';
+  const wort = typ === 'popup' ? 'Pop-up senden' : 'Nachricht senden';
   return {
     title: wort,
     build() {
@@ -98,21 +102,20 @@ function zieleScreen(typ) {
   };
 }
 
-function verlaufScreen() {
+function sendenScreen() {
   return {
-    title: '',
+    title: 'Post senden',
     build() {
-      const a = getAbenteuer();
-      const v = a.postVerlauf || [];
-      this.title = `Verlauf, ${v.length}`;
-      const items = v.map((e) => {
-        const kopf = e.richtung === 'aus' ? `An ${e.wer}` : `Von ${e.wer}`;
-        const art = e.typ === 'popup' ? ' (Pop-up)' : '';
-        return { label: `${kopf}${art}: ${kurz(e.text)}`, detail: `${kopf}. ${e.text}`, onSelect: () => sprache.sage(`${kopf}. ${e.text}`) };
-      });
-      return menuScreen({ title: this.title, subtitle: 'Kopien aller gesendeten und empfangenen Nachrichten. Escape zurück.', items, leer: 'Noch nichts.' }).build();
+      return menuScreen({
+        title: 'Post senden',
+        subtitle: 'Nachricht landet im Posteingang; ein Pop-up geht beim Empfänger sofort auf. Escape zurück.',
+        items: [
+          { label: 'Nachricht senden', hint: 'landet im Posteingang des Ziels', onSelect: () => screen.push(zieleScreen('msg')) },
+          { label: 'Pop-up senden', hint: 'öffnet beim Empfänger sofort ein Fenster', onSelect: () => screen.push(zieleScreen('popup')) },
+        ],
+      }).build();
     },
-    onShow() { sprache.sage('Verlauf.'); },
+    onShow() { sprache.sage('Post senden. Nachricht oder Pop-up?'); },
   };
 }
 
@@ -152,20 +155,48 @@ function nachrichtMenuScreen(index) {
 
 function posteingangScreen() {
   return {
-    title: '',
+    title: 'Posteingang',
     build() {
       const a = getAbenteuer();
       const liste = a.posteingang || [];
-      this.title = `Mein Posteingang, ${liste.length}`;
       const items = liste.map((m, i) => ({
-        label: `Post von ${m.von}${m.typ === 'popup' ? ' (Pop-up)' : ''}: ${kurz(m.text)}`,
+        label: `Post von ${m.von}`,
         detail: `Post von ${m.von}. ${m.text}`,
         hint: 'öffnen: vorlesen, antworten, verschieben, löschen',
         onSelect: () => screen.push(nachrichtMenuScreen(i)),
       }));
-      return menuScreen({ title: this.title, subtitle: 'Shift und Pfeil-runter liest die Nachricht, Enter öffnet sie. Escape zurück.', items, leer: 'Noch keine Post.' }).build();
+      return menuScreen({ title: 'Posteingang', subtitle: 'Shift und Pfeil-runter liest die Nachricht, Enter öffnet sie. Escape zurück.', items, leer: 'Noch keine Post.' }).build();
     },
-    onShow() { sprache.sage('Mein Posteingang.'); },
+    onShow() { sprache.sage('Posteingang.'); },
+  };
+}
+
+function postausgangScreen() {
+  return {
+    title: 'Postausgang',
+    build() {
+      const a = getAbenteuer();
+      const liste = a.postAusgang || [];
+      const items = liste.map((m, i) => ({
+        label: `An ${m.an}`,
+        detail: `An ${m.an}. ${m.text}`,
+        hint: 'öffnen: vorlesen, löschen',
+        onSelect: () => screen.push({
+          title: `An ${m.an}`,
+          build() {
+            return menuScreen({
+              title: `An ${m.an}`, subtitle: 'Escape zurück.',
+              items: [
+                { label: 'Vorlesen', onSelect: () => sprache.sage(`An ${m.an}. ${m.text}`) },
+                { label: 'Löschen', onSelect: async () => { a.postAusgang.splice(i, 1); await speichere(); screen.pop(); sprache.sage('Gelöscht.'); } },
+              ],
+            }).build();
+          },
+        }),
+      }));
+      return menuScreen({ title: 'Postausgang', subtitle: 'Was du gesendet hast. Shift und Pfeil-runter liest den Text. Escape zurück.', items, leer: 'Noch nichts gesendet.' }).build();
+    },
+    onShow() { sprache.sage('Postausgang.'); },
   };
 }
 
@@ -173,19 +204,18 @@ export function meisterpostScreen() {
   return {
     title: 'Meisterpost',
     build() {
-      const a = getAbenteuer();
-      const liste = (a && a.posteingang) || [];
       const verbunden = post.istVerbunden();
-      const items = [];
+      const items = [
+        { label: 'Post senden', hint: verbunden ? 'Nachricht oder Pop-up' : 'zuerst verbinden', onSelect: () => screen.push(sendenScreen()) },
+        { label: 'Posteingang', hint: 'eingegangene Nachrichten', onSelect: () => screen.push(posteingangScreen()) },
+        { label: 'Postausgang', hint: 'was du gesendet hast', onSelect: () => screen.push(postausgangScreen()) },
+      ];
+      // Verbinden ganz unten (braucht man nur einmal).
       if (verbunden) items.push({ label: 'Verbindung trennen', hint: 'die Post-Verbindung zum Meister beenden', onSelect: () => { post.stopp(); sprache.sage('Verbindung getrennt.'); screen.refresh(); } });
       else items.push({ label: 'Mit dem Meister verbinden', hint: 'Code und Namen eingeben', onSelect: () => verbinde() });
-      items.push({ label: 'Nachricht senden', hint: verbunden ? 'an alle oder ein Ziel' : 'zuerst verbinden', onSelect: () => screen.push(zieleScreen('msg')) });
-      items.push({ label: 'Pop-up auslösen', hint: verbunden ? 'löst beim Empfänger ein Pop-up aus' : 'zuerst verbinden', onSelect: () => screen.push(zieleScreen('popup')) });
-      items.push({ label: 'Verlauf', hint: 'Kopien aller Nachrichten', onSelect: () => screen.push(verlaufScreen()) });
-      items.push({ label: `Mein Posteingang, ${liste.length}`, hint: 'eingegangene Nachrichten', onSelect: () => screen.push(posteingangScreen()) });
       return menuScreen({
         title: 'Meisterpost',
-        subtitle: verbunden ? 'Verbunden. Nachricht senden, Pop-up, Verlauf, Posteingang. Escape zurück.' : 'Nicht verbunden. Oben verbinden. Escape zurück.',
+        subtitle: verbunden ? 'Verbunden. Post senden, Posteingang, Postausgang. Escape zurück.' : 'Nicht verbunden. Unten verbinden. Escape zurück.',
         items,
       }).build();
     },

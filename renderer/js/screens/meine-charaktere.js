@@ -10,7 +10,7 @@ import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import * as editor from '../editor/editor.js';
 import { aktionZeile, infoZeile, abschnittTitel } from '../editor/widgets.js';
-import { auswahlDialog, zahlDialog, jaNeinDialog } from '../ui/dialog.js';
+import { auswahlDialog, zahlDialog, jaNeinDialog, textDialog } from '../ui/dialog.js';
 import { ladeDb } from '../core/db-laden.js';
 import { parse, serialisiere } from '../core/sephrasto-xml.js';
 import { exportHtml } from '../core/export-html.js';
@@ -55,7 +55,7 @@ function listeScreen() {
         return;
       }
       for (const c of daten) {
-        liste.appendChild(aktionZeile(c.name, () => screen.push(charakterMenu(c)), 'Öffnen, Erfahrungspunkte, Export, Löschen'));
+        liste.appendChild(aktionZeile(c.name, () => screen.push(charakterMenu(c)), 'Öffnen, Umbenennen, Erfahrungspunkte, Löschen'));
       }
     },
   };
@@ -72,6 +72,26 @@ function charakterMenu(c) {
         const { parsed } = await ladeChar(c);
         sounds.playOeffnen();
         editor.bearbeite(parsed);
+      } },
+      { label: 'Charakter umbenennen', hint: 'Benennt den Charakterbogen um und speichert ihn unter dem neuen Namen', onSelect: async () => {
+        const eingabe = await textDialog({ titel: 'Charakter umbenennen', label: 'Neuer Name', wert: c.name });
+        if (eingabe === null) return;
+        const name = eingabe.trim();
+        if (!name || name === c.name) return;
+        let daten = [];
+        try { daten = await ipc.bibliothekListe(); } catch { daten = []; }
+        if (daten.some(x => (x.name || '').toLowerCase() === name.toLowerCase() && x.pfad !== c.pfad)) {
+          sounds.playError();
+          sprache.sage('Es gibt schon einen Charakter mit diesem Namen. Bitte einen anderen wählen.');
+          return;
+        }
+        const { db, parsed } = await ladeChar(c);
+        parsed.name = name;
+        await ipc.bibliothekSpeichern({ name, inhalt: serialisiere(parsed, db) });
+        await ipc.bibliothekLoeschen(c.pfad); // alte Datei mit dem alten Namen entfernen
+        sounds.playSpeichern();
+        sprache.sage(`Charakter heißt jetzt ${name}.`);
+        screen.pop();
       } },
       { label: 'Erfahrungspunkte hinzufügen', hint: 'Erhöht die Gesamt-EP', onSelect: async () => {
         const menge = await zahlDialog({ titel: 'Erfahrungspunkte hinzufügen', label: 'EP hinzufügen', wert: 0, min: -100000, max: 100000 });
