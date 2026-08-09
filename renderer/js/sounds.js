@@ -36,6 +36,9 @@ const SOUND_MAP = {
   ap_bezahlen:    'ep-minus.wav',
   ap_zurueck:     'ep-plus.wav',
   ep_hinzu:       'success2.mp3', // Erfolg: Gesamt-EP hinzugefuegt
+  // Nachrichteneingang (Meisterpost): auffaelliger Ton, wenn Post eingeht -
+  // beim Spieler von Meister/Mitspielern, beim Meister von einem Spieler.
+  post:           'nachricht-eingang.mp3',
 };
 
 const FALLBACK_BEEPS = {
@@ -62,6 +65,7 @@ const FALLBACK_BEEPS = {
   ap_bezahlen:   { freq: 750, ms: 150 },
   ap_zurueck:    { freq: 450, ms: 150 },
   ep_hinzu:      { freq: 880, ms: 180 },
+  post:          { freq: 990, ms: 220 },
 };
 
 // Pro-Sound Lautstaerke-Faktor (Multiplikator auf _globalVolume).
@@ -95,6 +99,7 @@ const VOLUME_MAP = {
   schliessen: 0.30,   // Bildschirmwechsel zurueck (Alt-Satz)
   click:      0.30,   // Menuepunkt auswaehlen (Alt-Satz)
   grenze:     0.30,   // Anschlag am Listenrand
+  post:       0.65,   // Nachrichteneingang: bewusst auffaellig
 };
 const DEFAULT_VOLUME_FACTOR = 0.55;  // Ereignistoene (Wuerfeln, Speichern, Fehler, ...)
 
@@ -251,6 +256,7 @@ export function playSpeichern()    { play('speichern'); }
 export function playLoeschen()     { play('loeschen'); }
 export function playSonderinhalt() { play('sonderinhalt'); }
 export function playNavigation()   { play('navigation'); }
+export function playPost()         { play('post'); }
 export function playEingabeStart() { play('eingabe_start'); }
 export function playEingabeEnde()  { play('eingabe_ende'); }
 export function playWertHoch()     { play('wert_hoch'); }

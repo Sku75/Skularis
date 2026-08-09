@@ -18,6 +18,7 @@ import { menuScreen } from '../ui/menu-screen.js';
 import { textDialog, knopfDialog, jaNeinDialog, spinnerDialog, erschwernisDialog } from '../ui/dialog.js';
 import { zeigeErgebnis } from '../abenteuer/wuerfel-kern.js';
 import * as reiterHub from '../ui/reiter-hub.js';
+import * as post from '../net/post.js';
 import { ladeDb, getDb } from '../core/db-laden.js';
 import { createMeisterAbenteuer, parseMeisterAbenteuer, protokolliere } from '../core/meister-abenteuer.js';
 import { ladeBogenFrisch, waehleCharakterBogen } from '../core/bogen-laden.js';
@@ -214,8 +215,8 @@ function oeffneHub() {
     { label: 'Gruppenrecherche', hint: 'Werte der Gruppe abfragen und verdeckt wuerfeln', factory: () => gruppenrechercheScreen() },
     { label: 'Gruppenprobe', hint: 'die ganze Gruppe gegen eine Schwierigkeit', factory: () => gruppenprobeScreen() },
     { label: 'Spieltisch', hint: 'aktiver Spieltisch, bestuecken, Sets', factory: () => szenenBereichScreen() },
-    { label: 'Charakterboegen und Notizen', hint: 'Boegen der Gruppe, Vitalitaet und je Charakter Notizen', factory: () => spielerinfosScreen() },
     { label: 'Gegner-Bibliothek', hint: 'Gesamtliste und Kategorien, Gegner in die Auswahl uebernehmen', factory: () => gegnerBibliothekScreen() },
+    { label: 'Postkasten, Charakteransicht und Notizen', hint: 'Meisterpost, Initiative-Phase der Helden, Boegen und Notizen', factory: () => spielerinfosScreen() },
     { label: 'Freundliche NPC', hint: 'Meister-NPC verwalten', factory: () => gegnerkarteiScreen('freund') },
     { label: 'Meistertexte 1', hint: 'Abenteuertexte, geheime Notizen, Vorlesetexte, Zufallstabellen, Namen (erste Arbeitsflaeche)', factory: () => meisterNotizenScreen(1) },
     { label: 'Meistertexte 2', hint: 'dasselbe unabhaengig, mit eigenem Text-Ordner (zweite Arbeitsflaeche)', factory: () => meisterNotizenScreen(2) },
@@ -225,7 +226,7 @@ function oeffneHub() {
     { label: 'Audio', hint: 'Klaenge abspielen und ans Radio senden', festeTaste: 12, factory: () => audioBereichScreen('meister') },
     { label: 'Verdeckter Meister-Wurf', hint: 'schnell und leise wuerfeln', ergebnisId: 'meisterwurf', aktion: () => verdeckterMeisterWurf() },
     { label: 'Zwischenspeichern', hint: 'Spielstand sichern', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
-    { label: 'Speichern und schliessen', hint: 'sichern und zum Meister-Tisch zurueck', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Gespeichert.'); if (_einstieg) _einstieg._liste = null; hub.verlasse(); } },
+    { label: 'Speichern und schliessen', hint: 'sichern und zum Meister-Tisch zurueck', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Gespeichert.'); if (_einstieg) _einstieg._liste = null; post.stopp(); hub.verlasse(); } },
   ];
 
   hub = reiterHub.oeffneHub({
@@ -243,7 +244,7 @@ function oeffneHub() {
         ],
       });
       if (w === 'ja') { await speichere(); sounds.playSpeichern(); }
-      if (w === 'ja' || w === 'nein') { if (_einstieg) _einstieg._liste = null; }
+      if (w === 'ja' || w === 'nein') { if (_einstieg) _einstieg._liste = null; post.stopp(); }
       return w || 'abbrechen';
     },
   });

@@ -4,6 +4,29 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.75, 9. August 2026
+
+
+Meisterpost: Textnachrichten zwischen Meister und Spielern
+
+- Ganz neu: Post über den Radio-Datenkanal (kein Server, kein Konto). Der Meister
+  startet im Postkasten eine Post-Verbindung und bekommt einen Code. Der Spieler
+  gibt unter Meisterpost diesen Code und seinen Namen ein und ist verbunden.
+- Spielertisch: Unter "Notizen und Tagebuch" (F5) steht ganz oben neu "Meisterpost"
+  mit "Post versenden" (an Meister oder Mitspieler) und "Mein Posteingang".
+- Meistertisch: F4 und F5 sind getauscht. F4 ist jetzt die Gegner-Bibliothek, F5
+  heißt "Postkasten, Charakteransicht und Notizen". Ganz oben liegt der Postkasten
+  (Verbindung, Post versenden, Posteingang); der frühere Punkt "Notizen" heißt jetzt
+  "Notizen und Postablage".
+- Eingehende Post spielt einen auffälligen Ton und wird kurz angesagt.
+- Jede Nachricht kann beantwortet, gelöscht oder verschoben werden: beim Spieler ins
+  Notizbuch oder Tagebuch, beim Meister in die Notizen des jeweiligen Charakters.
+  Verschobene Nachrichten erscheinen dort mit dem Zusatz "Post von XY".
+- Verbindungsabbrüche sind unkritisch: die Zuordnung läuft über den Namen, ein
+  erneutes Verbinden ersetzt den alten Eintrag (keine Doppel), und jede Nachricht
+  trägt eine Kennung gegen Doppelzustellung.
+
+
 Version 0.74, 9. August 2026
 
 

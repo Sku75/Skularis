@@ -24,6 +24,7 @@ import { createAbenteuer, parseAbenteuer, protokolliere, mergeRessourcen } from 
 import { ladeBogenFrisch, waehleCharakterBogen } from '../core/bogen-laden.js';
 import { getAbenteuer, setAbenteuer, setDb, speichere, speichereMitBogen } from '../abenteuer/state.js';
 import * as reiterHub from '../ui/reiter-hub.js';
+import * as post from '../net/post.js';
 import { liveSpielScreen, charakterstatusScreen } from '../abenteuer/live-spiel.js';
 import { charakterbogenScreen } from '../abenteuer/charakterbogen.js';
 import { inventarScreen } from '../abenteuer/inventar.js';
@@ -273,7 +274,7 @@ function oeffneHub() {
         ],
       });
       if (w === 'ja') { await speichereMitBogen(); sounds.playSpeichern(); }
-      if (w === 'ja' || w === 'nein') { versteckeEP(); setAbenteuer(null); if (_einstieg) _einstieg._liste = null; }
+      if (w === 'ja' || w === 'nein') { versteckeEP(); setAbenteuer(null); if (_einstieg) _einstieg._liste = null; post.stopp(); }
       return w || 'abbrechen';
     },
   });
@@ -306,5 +307,6 @@ async function speichernUndZurueck(hub) {
   sprache.sage('Abenteuer gespeichert.');
   versteckeEP();
   setAbenteuer(null);
+  post.stopp();
   if (hub) hub.verlasse(); else screen.pop();
 }

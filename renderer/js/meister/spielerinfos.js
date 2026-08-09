@@ -20,6 +20,7 @@ import { baueCharakterbogen } from '../abenteuer/charakterbogen.js';
 import { liveSpielScreen } from '../abenteuer/live-spiel.js';
 import { setAbenteuer, setDb } from '../abenteuer/state.js';
 import { setVerdeckt } from '../abenteuer/wuerfel-kern.js';
+import { postkastenScreen } from './postkasten.js';
 import { getMeister, speichere } from './state.js';
 import { getDb } from '../core/db-laden.js';
 import { vitalitaet } from '../core/meister-abenteuer.js';
@@ -273,13 +274,14 @@ export function notizenMenuScreen() {
  */
 export function spielerinfosScreen() {
   const items = [
+    { label: 'Postkasten', hint: 'Meisterpost: Verbindung, versenden, Posteingang', onSelect: () => screen.push(postkastenScreen()) },
     { label: 'Charakteransicht meine Initiativephase', hint: 'die Initiative-Phase eines Helden ansehen (wie am Spielertisch)', onSelect: () => screen.push(charAnsichtInitiativeScreen()) },
     { label: 'Charakterboegen', hint: 'die Boegen der Gruppe zum Nachlesen', onSelect: () => screen.push(charakterboegenScreen()) },
-    { label: 'Notizen', hint: 'je Charakter tagebuch-artige Notizen', onSelect: () => screen.push(notizenMenuScreen()) },
+    { label: 'Notizen und Postablage', hint: 'je Charakter Notizen; hierhin verschiebst du Post', onSelect: () => screen.push(notizenMenuScreen()) },
   ];
   return menuScreen({
-    title: 'Charakteransicht und Notizen',
-    subtitle: 'Charakteransicht, Boegen und Notizen. Escape zurueck.',
+    title: 'Postkasten, Charakteransicht und Notizen',
+    subtitle: 'Postkasten, Charakteransicht, Boegen und Notizen. Escape zurueck.',
     items,
   });
 }

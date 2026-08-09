@@ -13,6 +13,7 @@ import * as sprache from '../sprache.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { textDialog, jaNeinDialog } from '../ui/dialog.js';
 import { getAbenteuer, speichere } from './state.js';
+import { meisterpostScreen } from './meisterpost.js';
 
 async function neuerEintrag(typ) {
   const a = getAbenteuer();
@@ -96,6 +97,14 @@ export function notizenScreen() {
     build() {
       const a = getAbenteuer();
       const items = [];
+
+      // Ganz oben: Meisterpost (über dem Tagebuch).
+      const postZahl = (a.posteingang || []).length;
+      items.push({
+        label: postZahl ? `Meisterpost, ${postZahl} im Posteingang` : 'Meisterpost',
+        hint: 'Post versenden und Posteingang',
+        onSelect: () => screen.push(meisterpostScreen()),
+      });
 
       items.push({
         label: `Tagebuch-Eintrag hinzufügen, Spieltag ${a.spieltag}`,

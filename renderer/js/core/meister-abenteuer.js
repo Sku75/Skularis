@@ -46,6 +46,7 @@ export function createMeisterAbenteuer(name) {
     textLesezeichen: {},   // pfad -> { zeile }
     protokoll: [],
     apProtokoll: [],       // { spieltag, text } — vergebene EP je Abend
+    posteingang: [],       // Meisterpost von Spielern: { id, von, text, zeit, gelesen }
     // Audio-Schnelltasten. Je Abenteuer eigene Belegung: 24 Plaetze (Block 1
     // Strg+1..Strg+´, Block 2 Strg+Shift+1..Strg+Shift+´), jeder null (frei) oder
     // { name, pfad, modus, loop, lautstaerke }. modus: 'einspielen' | 'abspielen'
@@ -138,6 +139,7 @@ export function parseMeisterAbenteuer(text) {
   a.textLesezeichen = a.textLesezeichen && typeof a.textLesezeichen === 'object' ? a.textLesezeichen : {};
   a.protokoll = Array.isArray(a.protokoll) ? a.protokoll : [];
   a.apProtokoll = Array.isArray(a.apProtokoll) ? a.apProtokoll : [];
+  a.posteingang = Array.isArray(a.posteingang) ? a.posteingang : [];
   // Audio-Schnelltasten: immer genau 24 Plaetze (fehlende mit null auffuellen).
   // Aeltere Datensaetze mit 12 Plaetzen werden so auf 24 erweitert (Block 2 leer).
   a.kurztasten = Array.isArray(a.kurztasten) ? a.kurztasten.slice(0, 24) : [];
