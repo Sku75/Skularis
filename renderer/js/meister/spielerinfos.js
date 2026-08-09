@@ -19,6 +19,7 @@ import { abgeleiteteWerte, wundabzug } from '../core/regeln.js';
 import { baueCharakterbogen } from '../abenteuer/charakterbogen.js';
 import { liveSpielScreen } from '../abenteuer/live-spiel.js';
 import { setAbenteuer, setDb } from '../abenteuer/state.js';
+import { setVerdeckt } from '../abenteuer/wuerfel-kern.js';
 import { getMeister, speichere } from './state.js';
 import { getDb } from '../core/db-laden.js';
 import { vitalitaet } from '../core/meister-abenteuer.js';
@@ -234,11 +235,12 @@ function oeffneInitiative(c) {
     journal: [], protokoll: [], mitspieler: [], zauberspeicher: [], _transient: true,
   });
   setDb(getDb());
+  setVerdeckt(true); // Wuerfe in dieser Ansicht sind verdeckte Meister-Wuerfe
   const scr = liveSpielScreen();
-  // Beim Verlassen der Initiative-Phase den transienten Kontext wieder loeschen.
-  // onBack MUSS true liefern, sonst blockiert der Waechter den Ruecksprung.
+  // Beim Verlassen der Initiative-Phase den transienten Kontext + Verdeckt-Modus
+  // wieder loeschen. onBack MUSS true liefern, sonst blockiert der Waechter.
   const origBack = scr.onBack;
-  scr.onBack = () => { setAbenteuer(null); return origBack ? origBack() : true; };
+  scr.onBack = () => { setVerdeckt(false); setAbenteuer(null); return origBack ? origBack() : true; };
   screen.push(scr);
 }
 

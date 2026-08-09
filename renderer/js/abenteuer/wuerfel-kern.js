@@ -17,6 +17,13 @@ import { knopfDialog, erschwernisDialog } from '../ui/dialog.js';
 import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
 
+// Verdeckt-Modus: am Meistertisch (Charakteransicht Initiative-Phase) sollen die
+// Würfe als verdeckte Meister-Würfe angesagt werden. Der Aufrufer schaltet ihn
+// beim Öffnen ein und beim Verlassen wieder aus.
+let _verdeckt = false;
+export function setVerdeckt(v) { _verdeckt = !!v; }
+function vd() { return _verdeckt ? 'Verdeckt. ' : ''; }
+
 /** Der mittlere von drei Würfeln (Ilaris: der mittlere zählt). */
 function mittel3(w) {
   const s = [...w].sort((a, b) => a - b);
@@ -68,7 +75,7 @@ export function wuerfeln(anzahl, seiten, mod, id, stumm) {
   sounds.playWuerfel();
   protokolliere(a, `Wurf ${bez}: ${wuerfe.join(', ')}${summeText}.`);
   speichere();
-  const ansage = `Gewürfelt, ${bez}, Ergebnis: ${wuerfe.join(', ')}${summeText}.`;
+  const ansage = `${vd()}Gewürfelt, ${bez}, Ergebnis: ${wuerfe.join(', ')}${summeText}.`;
   // Auch einfache Wuerfe (Schnellwuerfe, freier Wurf) fuers Tooltip merken.
   if (id) _letzterWurf[id] = ['Letzter Wurf:', `${bez}: ${wuerfe.join(', ')}${summeText}`];
   zeigeErgebnis(id, mod ? `${wuerfe.join(' ')} = ${summe}` : wuerfe.join(' '), ansage);
@@ -223,7 +230,7 @@ export async function kampfProbe(o) {
   // Das Probenergebnis steht bewusst ganz vorn — das ist beim Würfeln die
   // wichtigste Zahl. Danach Erfolg/Misserfolg, dann Herkunft (Titel, Würfel,
   // Werte) und zuletzt die Zusätze (Kosten usw.).
-  const ansage = `Probenergebnis ${ew}.${erfolgText} ${o.titel}, ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}.${zusatzText}${modNamenText}`;
+  const ansage = `${vd()}Probenergebnis ${ew}.${erfolgText} ${o.titel}, ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}.${zusatzText}${modNamenText}`;
 
   // Letzten Wurf mehrzeilig fuer den Tooltip merken (bleibt die Sitzung ueber).
   _letzterWurf[o.id] = [
@@ -261,7 +268,7 @@ export function schadenWurf(o) {
   const bText = o.bonus ? (o.bonus > 0 ? ` plus ${o.bonus}` : ` minus ${-o.bonus}`) : '';
   const zusatz = o.bonusText ? ` (${o.bonusText})` : '';
   // Erst das Ergebnis ansagen (Schaden X), dann die Rechnung.
-  const ansage = `Schaden ${summe}. ${o.name}. ${wuerfelText}${bText}${zusatz}.`;
+  const ansage = `${vd()}Schaden ${summe}. ${o.name}. ${wuerfelText}${bText}${zusatz}.`;
   // Auch fuers Tooltip: oben das Ergebnis, danach die Rechnung.
   _letzterWurf[o.id] = [`Schaden Ergebnis ${summe}`, `${o.name}`, `${wuerfelText}${bText}`].filter(Boolean);
   protokolliere(a, `Schaden ${o.name}: ${wuerfelText}${bText}, gesamt ${summe}.`);

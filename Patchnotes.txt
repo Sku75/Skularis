@@ -4,6 +4,16 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.74, 9. August 2026
+
+
+Charakteransicht: verdeckte Würfe
+
+- In der Charakteransicht meine Initiativephase (Meistertisch F4) werden alle Würfe
+  jetzt als verdeckte Meister-Würfe angesagt (Ansage beginnt mit "Verdeckt"). So
+  kannst du parallel zum Spieler nachschlagen und heimlich würfeln.
+
+
 Version 0.73, 9. August 2026
 
 
