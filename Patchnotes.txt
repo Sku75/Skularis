@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.82, 9. August 2026
+
+
+Der Updater hat jetzt ein eigenes Fenster
+
+- Beim Aktualisieren öffnet sich kein Konsolenfenster mehr, sondern ein
+  aufgeräumtes Fenster mit Statuszeile, Fortschrittsbalken und einer Ampel, die
+  von Rot über Gelb auf Grün wechselt.
+- Der OK-Knopf wird erst anklickbar, wenn das Update fertig ist, und bekommt dann
+  den Fokus, sodass der Screenreader das Ergebnis sofort vorliest.
+- Die Warntöne während der Arbeit bleiben als hörbarer Fortschritt erhalten.
+
+
 Version 0.81, 9. August 2026
 
 
