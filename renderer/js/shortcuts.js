@@ -1,5 +1,5 @@
 /**
- * Skularis Alpha 0.02.03 — Tastenkuerzel-Manager
+ * Skularis — Tastenkuerzel-Manager
  * Portierung der 35+ Shortcuts aus hauptfenster.py _registriere_shortcuts()
  */
 

@@ -1,5 +1,5 @@
 /**
- * Skularis Alpha 0.02.03 — Pfeil-Navigation + Fokus-Containment
+ * Skularis — Pfeil-Navigation + Fokus-Containment
  * Portierung der Pfeilsteuerung aus charakter_view.py _nav_pfeil()
  *
  * - Arrow Down/Up: Nächstes/Voriges fokussierbares Element im aktiven Panel

@@ -1,5 +1,5 @@
 /**
- * Skularis Alpha 0.02.03 — File Operations (Main Process)
+ * Skularis — File Operations (Main Process)
  */
 const { dialog, shell } = require('electron');
 const fs = require('fs');

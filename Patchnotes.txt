@@ -4,6 +4,20 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.81, 9. August 2026
+
+
+Neue, dauerhafte Download-Adresse und selbstpflegender Updater
+
+- Skularis hat eine neue, feste Projektadresse. Die alte Adresse wird weiterhin
+  automatisch dorthin umgeleitet, sodass nichts kaputtgeht.
+- Der Updater "Skularis Updaten.exe" kennt jetzt zwei Adressen: Er sucht zuerst
+  an der neuen Adresse und weicht bei Bedarf auf die alte aus. So findet er die
+  neueste Version auch bei künftigen Umzügen zuverlässig.
+- Der Updater bringt sich bei jedem Update selbst auf den neuesten Stand. Du musst
+  die Updater-Datei nie mehr von Hand austauschen.
+
+
 Version 0.80, 9. August 2026
 
 

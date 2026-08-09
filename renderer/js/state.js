@@ -1,5 +1,5 @@
 /**
- * Skularis Alpha 0.02.03 — Zentraler State (Event-Emitter)
+ * Skularis — Zentraler State (Event-Emitter)
  * Haelt den aktuellen Charakter, Datenbank-Cache und App-Zustand.
  */
 

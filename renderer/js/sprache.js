@@ -1,5 +1,5 @@
 /**
- * Skularis Alpha 0.02.03 — Screenreader-Ansagen (aria-live)
+ * Skularis — Screenreader-Ansagen (aria-live)
  * Ersetzt gui/sprache.py: statt accessible_output2 werden
  * aria-live-Regionen im DOM befuellt.
  * NVDA/JAWS lesen diese automatisch vor.

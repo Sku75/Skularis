@@ -1,5 +1,5 @@
 /**
- * Skularis Alpha 0.02.03 — Preload Script (Context Bridge)
+ * Skularis — Preload Script (Context Bridge)
  */
 const { contextBridge, ipcRenderer } = require('electron');
 

@@ -1,5 +1,5 @@
 /**
- * Skularis Alpha 0.02.03 — Einstellungen (Renderer-seitig)
+ * Skularis — Einstellungen (Renderer-seitig)
  * Wrapper um IPC-Aufrufe zum Main-Prozess.
  * Portierung von daten/einstellungen.py
  */

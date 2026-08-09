@@ -1,5 +1,5 @@
 /**
- * Skularis Alpha 0.02.03 — Settings Management (skularis_config.json)
+ * Skularis — Settings Management (skularis_config.json)
  */
 const fs = require('fs');
 const path = require('path');

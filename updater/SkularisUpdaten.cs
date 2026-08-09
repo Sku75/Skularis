@@ -2,16 +2,25 @@
  * Skularis Updaten — eigenständiger Updater (kein Teil von Skularis selbst).
  *
  * Liegt im Portable-Wurzelordner, NEBEN dem Programmordner "Skularis x.xx".
- * Er tauscht nur diesen Geschwister-Programmordner aus und rührt seine eigene
- * Datei sowie die Nutzerdaten (Charakter-Dateien, Abenteuer-Daten) nie an.
+ * Er tauscht diesen Geschwister-Programmordner aus und rührt die Nutzerdaten
+ * (Charakter-Dateien, Abenteuer-Daten) nie an.
+ *
+ * Zwei Adressen: zuerst wird beim neuen Projekt (Sku75/Skularis) nach der
+ * neuesten Version gefragt; klappt das nicht, wird auf die frühere Adresse
+ * (Sku75/Skularis-alpha) zurückgegriffen. So bleibt der Updater auch nach einer
+ * Umbenennung des Projekts nutzbar.
+ *
+ * Selbst-Erneuerung: liegt im Download eine neuere Fassung dieses Updaters, wird
+ * sie nach getaner Arbeit über ein kleines Hilfsskript ausgetauscht, sobald sich
+ * der Updater beendet. So verteilen sich künftige Adress- oder Ablauf-Änderungen
+ * von allein, ohne dass die Updater-Datei von Hand getauscht werden muss.
  *
  * Ablauf: eigene Version aus dem Ordnernamen lesen, GitHub nach der neuesten
  * Version fragen, bei Bedarf die Portable-ZIP in einen Temp-Ordner laden und
  * entpacken, Skularis schließen, den alten Programmordner durch den neuen
- * ersetzen, aufräumen, neue Versionsnummer ansagen.
+ * ersetzen, Beilagen und Updater erneuern, aufräumen, neue Version ansagen.
  *
- * Während der Arbeit alle 10 Sekunden ein Warteton (Console.Beep, keine Datei —
- * damit der Updater nicht von Dateien im getauschten Ordner abhängt).
+ * Während der Arbeit alle 10 Sekunden ein Warteton (Console.Beep, keine Datei).
  *
  * Kompilieren (bordeigener .NET-Framework-Compiler):
  *   csc /target:exe /out:"Skularis Updaten.exe" \
@@ -30,8 +39,13 @@ using System.Windows.Forms;
 
 class SkularisUpdaten
 {
-    const string ApiUrl   = "https://api.github.com/repos/Sku75/Skularis-alpha/releases/latest";
-    const string AssetUrl = "https://github.com/Sku75/Skularis-alpha/releases/latest/download/Skularis-Portable.zip";
+    // Zuerst das neue Projekt, dann die frühere Adresse als Rückfall.
+    static readonly string[] Repos = { "Sku75/Skularis", "Sku75/Skularis-alpha" };
+
+    static string ApiUrl(string repo)   { return "https://api.github.com/repos/" + repo + "/releases/latest"; }
+    static string AssetUrl(string repo) { return "https://github.com/" + repo + "/releases/latest/download/Skularis-Portable.zip"; }
+
+    static string _repoGewaehlt = null; // das Repo, bei dem eine Version gefunden wurde
 
     static System.Threading.Timer _tonTimer;
     static bool _leise = false;
@@ -78,7 +92,7 @@ class SkularisUpdaten
                     return 0;
                 }
                 Log("Neue Version wird geladen. Das kann eine Minute dauern.");
-                LadeDatei(AssetUrl, zip);
+                LadeDatei(AssetUrl(_repoGewaehlt), zip);
             }
             else
             {
@@ -114,14 +128,16 @@ class SkularisUpdaten
             }
 
             // Beilagen an der Wurzel mit aktualisieren (v. a. die Patchnotes), damit
-            // sie zur neuen Version passen. Nutzerdaten und die eigene Updater-Exe
-            // bleiben unberührt.
+            // sie zur neuen Version passen. Nutzerdaten bleiben unberührt.
             string paketWurzel = Path.GetDirectoryName(neuProgramm);
             foreach (var name in new[] { "Patchnotes.txt", "Skularis Starten.bat" })
             {
                 string q = Path.Combine(paketWurzel, name);
                 if (File.Exists(q)) { try { File.Copy(q, Path.Combine(wurzel, name), true); } catch { } }
             }
+
+            // Den Updater selbst erneuern, falls im Download eine andere Fassung liegt.
+            ErneuereUpdater(paketWurzel);
 
             try { Directory.Delete(tmp, true); } catch { }
 
@@ -139,16 +155,27 @@ class SkularisUpdaten
 
     // --- GitHub ---
 
+    // Fragt der Reihe nach alle Adressen ab; merkt sich das Repo, das antwortet.
     static string HoleNeuestenTag()
     {
-        using (var wc = new WebClient())
+        Exception letzter = null;
+        foreach (var repo in Repos)
         {
-            wc.Headers.Add("User-Agent", "Skularis-Updaten");
-            wc.Headers.Add("Accept", "application/vnd.github+json");
-            string json = wc.DownloadString(ApiUrl);
-            var m = Regex.Match(json, "\"tag_name\"\\s*:\\s*\"([^\"]+)\"");
-            return m.Success ? m.Groups[1].Value : null;
+            try
+            {
+                using (var wc = new WebClient())
+                {
+                    wc.Headers.Add("User-Agent", "Skularis-Updaten");
+                    wc.Headers.Add("Accept", "application/vnd.github+json");
+                    string json = wc.DownloadString(ApiUrl(repo));
+                    var m = Regex.Match(json, "\"tag_name\"\\s*:\\s*\"([^\"]+)\"");
+                    if (m.Success) { _repoGewaehlt = repo; return m.Groups[1].Value; }
+                }
+            }
+            catch (Exception ex) { letzter = ex; }
         }
+        if (letzter != null) throw letzter;
+        return null;
     }
 
     static void LadeDatei(string url, string ziel)
@@ -168,6 +195,47 @@ class SkularisUpdaten
         {
             if (fs.ReadByte() != 0x50 || fs.ReadByte() != 0x4B) throw new Exception("Der Download ist keine gültige ZIP-Datei.");
         }
+    }
+
+    // --- Selbst-Erneuerung ---
+
+    // Liegt im Paket eine andere Fassung des Updaters, wird sie neben die eigene
+    // gelegt und per Hilfsskript getauscht, sobald sich dieser Updater beendet.
+    static void ErneuereUpdater(string paketWurzel)
+    {
+        try
+        {
+            string neuer = Path.Combine(paketWurzel, "Skularis Updaten.exe");
+            if (!File.Exists(neuer)) return;
+            string eigen = Process.GetCurrentProcess().MainModule.FileName;
+            if (string.IsNullOrEmpty(eigen) || !File.Exists(eigen)) return;
+            if (new FileInfo(neuer).Length == new FileInfo(eigen).Length) return; // gleiche Größe: nichts zu tun
+
+            string neuTmp = eigen + ".neu";
+            File.Copy(neuer, neuTmp, true);
+            StarteSelbsttausch(eigen, neuTmp);
+            Log("Der Updater wird beim Beenden auf den neuesten Stand gebracht.");
+        }
+        catch { /* Selbst-Erneuerung ist optional; bei Problemen bleibt der alte Updater */ }
+    }
+
+    static void StarteSelbsttausch(string eigen, string neu)
+    {
+        int pid = Process.GetCurrentProcess().Id;
+        string cmd = Path.Combine(Path.GetTempPath(), "skularis-updater-swap-" + Guid.NewGuid().ToString("N") + ".cmd");
+        string s =
+            "@echo off\r\n" +
+            ":warte\r\n" +
+            "ping -n 2 127.0.0.1 >nul\r\n" +
+            "tasklist /fi \"PID eq " + pid + "\" | find \"" + pid + "\" >nul && goto warte\r\n" +
+            "move /y \"" + neu + "\" \"" + eigen + "\" >nul\r\n" +
+            "del \"%~f0\"\r\n";
+        File.WriteAllText(cmd, s, new System.Text.UTF8Encoding(false));
+        var psi = new ProcessStartInfo("cmd.exe", "/c \"" + cmd + "\"");
+        psi.CreateNoWindow = true;
+        psi.UseShellExecute = false;
+        psi.WindowStyle = ProcessWindowStyle.Hidden;
+        Process.Start(psi);
     }
 
     // --- Versionen ---

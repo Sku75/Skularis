@@ -1,5 +1,5 @@
 /**
- * Skularis Alpha 0.02.03 — Sound-System (HTML5 Audio + AudioContext Fallback)
+ * Skularis — Sound-System (HTML5 Audio + AudioContext Fallback)
  * Komplettes Audio-Redesign mit benutzerdefinierten WAV-Dateien
  */
 

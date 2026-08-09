@@ -1,4 +1,4 @@
-# Skularis alpha 0.04
+# Skularis
 
 Barrierefreie Charaktererstellung für das DSA-Hausregelsystem **Ilaris** — eine
 zugängliche Übersetzung von [Sephrasto](https://github.com/Aeolitus/Sephrasto).
@@ -13,8 +13,8 @@ per Tastatur und Screenreader (NVDA) bedienbar — und für Sehende genauso gut.
   Spezies, Kultur, Profession).
 - Alle Bereiche: Attribute, Fertigkeiten + Talente, Vorteile, Übernatürliches
   (Zauber/Liturgien), Ausrüstung, Beschreibung — mit **Live-EP**.
-- Charakterverwaltung: speichern, öffnen, Abenteuerpunkte hinzufügen, löschen,
-  Import von Sephrasto-`.xml`, Export als HTML-Charakterblatt.
+- Charakterverwaltung: speichern, öffnen, umbenennen, Erfahrungspunkte
+  hinzufügen, als HTML-Charakterblatt exportieren, löschen.
 - Alle Charaktere liegen als `.xml` im Ordner `Charakter-Dateien` — der ganze
   Ordner ist weitergabefähig.
 

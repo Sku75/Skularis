@@ -1,5 +1,5 @@
 /**
- * Skularis Alpha 0.02.03 — Native Menu Bar (5 Menus)
+ * Skularis — Native Menu Bar (5 Menus)
  */
 const { Menu, app } = require('electron');
 

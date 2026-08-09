@@ -1,5 +1,5 @@
 /**
- * Skularis Alpha 0.02.03 — IPC Handler Registration
+ * Skularis — IPC Handler Registration
  */
 const { ipcMain, app } = require('electron');
 const path = require('path');
