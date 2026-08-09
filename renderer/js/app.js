@@ -12,7 +12,6 @@ import * as navigation from './navigation.js';
 import * as einstellungen from './daten/einstellungen.js';
 import * as screen from './ui/screen.js';
 import * as reiterHub from './ui/reiter-hub.js';
-import * as radio from './net/radio.js';
 import * as post from './net/post.js';
 import * as startScreen from './screens/start.js';
 import { hatInhalt } from './core/infotext.js';

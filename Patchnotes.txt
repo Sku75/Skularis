@@ -4,6 +4,16 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.79, 9. August 2026
+
+
+Wichtiger Fehler behoben: Programm startete nicht mehr
+
+- In 0.78 war ein doppelter interner Verweis, der beim Start das ganze Programm
+  blockierte: das Fenster kam nicht in den Fokus und das Hauptmenü erschien nicht.
+  Das ist behoben. Skularis startet wieder normal.
+
+
 Version 0.78, 9. August 2026
 
 
