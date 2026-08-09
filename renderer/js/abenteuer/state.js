@@ -16,6 +16,9 @@ export function setDb(db) { _db = db; }
 /** Aktuellen Spielstand sicher speichern (atomar im Hauptprozess). */
 export async function speichere() {
   if (!aktuell) return false;
+  // Transienter Ansicht-Kontext (z. B. Meister sieht die Initiative-Phase eines
+  // Helden): NICHTS auf die Platte schreiben.
+  if (aktuell._transient) return false;
   try {
     const r = await ipc.abenteuerSpeichern({ name: aktuell.name, inhalt: serialisiereAbenteuer(aktuell) });
     aktuell._pfad = r.pfad;

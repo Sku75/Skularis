@@ -4,6 +4,26 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.73, 9. August 2026
+
+
+Meistertisch: Bedienung verbessert
+
+- Gruppenzusammenstellung: Nach dem Hinzufügen eines Helden springt das Menü
+  eine Ebene zurück in die Gruppenliste, sodass du sofort siehst, wer dabei ist.
+  Für einen weiteren Helden gehst du erneut auf "Charakter hinzufügen".
+- Audio (F12): "Kurztasten" steht jetzt eine Ebene höher, direkt unter
+  "Bibliothek", statt in der Bibliothek versteckt.
+- Kurztasten: ganz unten unter Schnelltaste 24 gibt es jetzt "Alle leeren" mit
+  Sicherheitsabfrage, das alle 24 Schnelltasten dieses Abenteuers zurücksetzt.
+- Das F4-Menü heißt jetzt "Charakteransicht und Notizen" und hat drei Punkte:
+  "Charakteransicht meine Initiativephase" (die Initiative-Phase eines Helden
+  ansehen, wie am Spielertisch), "Charakterbögen" und "Notizen". Die Notizen sind
+  jetzt ein eigenes Menü mit den Charakternamen, darin je Charakter die Notizen
+  (oben "Neue Notiz", darunter die Einträge). Der Vitalitäts-Tracker ist hier
+  entfallen (Wunden und Erschöpfung führst du am Spieltisch im Kampf).
+
+
 Version 0.72, 7. August 2026
 
 

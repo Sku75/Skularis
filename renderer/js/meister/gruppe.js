@@ -33,10 +33,12 @@ export async function charakterHinzufuegen() {
     .map(c => ({ label: c.name, wert: c.pfad, detail: 'Diesen Helden zur Gruppe hinzufuegen.' }));
   if (!eintraege.length) { sprache.sage('Alle vorhandenen Charaktere sind schon in der Gruppe.'); return; }
 
+  // Nach der Wahl EINE Ebene zurueck in die Gruppenliste (Nutzerwunsch): so sieht
+  // man sofort, wer dabei ist. Fuer einen weiteren Helden neu hineingehen. Darum
+  // hier KEIN bleibt:true; der Auswahl-Bildschirm schliesst sich nach der Wahl.
   auswahlScreen({
     titel: 'Held zur Gruppe hinzufuegen',
     eintraege,
-    bleibt: true,
     onWahl: async (pfad) => {
       try {
         const db = await ladeDb();
@@ -47,6 +49,9 @@ export async function charakterHinzufuegen() {
         protokolliere(a, `Held ${name} zur Gruppe hinzugefuegt.`);
         await speichere();
         sounds.playSpeichern(); // wie beim Charakter-Speichern, nicht der schrille Öffnen-Ton
+        // Auswahl-Bildschirm ist bereits geschlossen; jetzt die Gruppenliste frisch
+        // zeichnen, damit der neue Held direkt in der Liste steht.
+        screen.refresh();
         sprache.sage(`${name} ist jetzt in der Gruppe. ${a.charaktere.length} Helden.`);
       } catch (e) {
         console.error('Charakter laden:', e);

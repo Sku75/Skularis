@@ -17,6 +17,8 @@ import { wertZeile, infoZeile, abschnittTitel, verbindeDetail } from '../editor/
 import { textDialog, knopfDialog } from '../ui/dialog.js';
 import { abgeleiteteWerte, wundabzug } from '../core/regeln.js';
 import { baueCharakterbogen } from '../abenteuer/charakterbogen.js';
+import { liveSpielScreen } from '../abenteuer/live-spiel.js';
+import { setAbenteuer, setDb } from '../abenteuer/state.js';
 import { getMeister, speichere } from './state.js';
 import { getDb } from '../core/db-laden.js';
 import { vitalitaet } from '../core/meister-abenteuer.js';
@@ -195,23 +197,87 @@ export function charNotizScreen(name) {
 }
 
 /**
- * F4: Charakterboegen und Notizen. Oben die Boegen (zum Nachlesen) und der
- * Vitalitaet-Tracker, darunter je Charakter ein eigener Notiz-Punkt
- * (tagebuch-artig), damit man zu jedem Spieler schnell etwas festhalten kann.
+ * Charakteransicht "Meine Initiative-Phase": der Meister waehlt einen Helden und
+ * sieht dessen Spieler-Ansicht der Initiative-Phase (wie am Abenteuertisch F1) —
+ * Wuerfelbecher, Kaempfen, Manoever, Zauber, Zauberspeicher. Dazu wird der Bogen
+ * kurz als TRANSIENTER Abenteuer-Kontext gesetzt; es wird NICHTS gespeichert und
+ * der Kontext beim Verlassen wieder geloescht (siehe abenteuer/state.js: _transient).
+ */
+export function charAnsichtInitiativeScreen() {
+  return {
+    title: '',
+    build() {
+      const a = getMeister();
+      this.title = `Charakteransicht, ${a.charaktere.length}`;
+      const items = (a.charaktere || []).map(c => ({
+        label: c.name,
+        hint: 'Meine Initiative-Phase dieses Charakters ansehen',
+        onSelect: () => oeffneInitiative(c),
+      }));
+      return menuScreen({
+        title: this.title,
+        subtitle: 'Enter oeffnet die Initiative-Phase des Charakters. Escape zurueck.',
+        items,
+        leer: 'Noch keine Helden in der Gruppe. Erst unter Gruppenzusammenstellung hinzufuegen.',
+      }).build();
+    },
+    onShow() { sprache.sage('Charakteransicht. Enter oeffnet die Initiative-Phase eines Helden.'); },
+  };
+}
+
+function oeffneInitiative(c) {
+  // Transienter Abenteuer-Kontext nur zum Ansehen: der Bogen als Charakter, keine
+  // Persistenz. speichere() in abenteuer/state.js bricht bei _transient ab.
+  setAbenteuer({
+    name: `Ansicht ${c.name}`, charakter: c.bogen,
+    ressourcen: {}, inventar: { geldboerse: {}, rucksack: [], guertel: [] },
+    journal: [], protokoll: [], mitspieler: [], zauberspeicher: [], _transient: true,
+  });
+  setDb(getDb());
+  const scr = liveSpielScreen();
+  // Beim Verlassen der Initiative-Phase den transienten Kontext wieder loeschen.
+  // onBack MUSS true liefern, sonst blockiert der Waechter den Ruecksprung.
+  const origBack = scr.onBack;
+  scr.onBack = () => { setAbenteuer(null); return origBack ? origBack() : true; };
+  screen.push(scr);
+}
+
+/** Notizen-Menue: je Charakter ein Eintrag, darin die tagebuch-artigen Notizen. */
+export function notizenMenuScreen() {
+  return {
+    title: '',
+    build() {
+      const a = getMeister();
+      this.title = `Notizen, ${(a.charaktere || []).length}`;
+      const items = (a.charaktere || []).map(c => ({
+        label: c.name,
+        hint: 'Notizen zu diesem Charakter',
+        onSelect: () => screen.push(charNotizScreen(c.name)),
+      }));
+      return menuScreen({
+        title: this.title,
+        subtitle: 'Enter oeffnet die Notizen eines Helden. Escape zurueck.',
+        items,
+        leer: 'Noch keine Helden in der Gruppe. Erst unter Gruppenzusammenstellung hinzufuegen.',
+      }).build();
+    },
+    onShow() { sprache.sage('Notizen. Waehle einen Charakter.'); },
+  };
+}
+
+/**
+ * F4: Charakteransicht (Initiative-Phase), Charakterboegen und Notizen.
+ * Die Vitalitaet steht am Spieltisch-Kampf und ist hier bewusst nicht mehr doppelt.
  */
 export function spielerinfosScreen() {
-  const a = getMeister();
   const items = [
+    { label: 'Charakteransicht meine Initiativephase', hint: 'die Initiative-Phase eines Helden ansehen (wie am Spielertisch)', onSelect: () => screen.push(charAnsichtInitiativeScreen()) },
     { label: 'Charakterboegen', hint: 'die Boegen der Gruppe zum Nachlesen', onSelect: () => screen.push(charakterboegenScreen()) },
-    { label: 'Vitalitaet-Tracker', hint: 'Wunden und Erschoepfung je Held, geteilt mit dem Spieltisch-Kampf', onSelect: () => screen.push(vitalitaetTrackerScreen()) },
+    { label: 'Notizen', hint: 'je Charakter tagebuch-artige Notizen', onSelect: () => screen.push(notizenMenuScreen()) },
   ];
-  for (const c of (a.charaktere || [])) {
-    items.push({ label: `Notizen zu ${c.name}`, hint: 'tagebuch-artige Notizen zu diesem Charakter', onSelect: () => screen.push(charNotizScreen(c.name)) });
-  }
   return menuScreen({
-    title: 'Charakterboegen und Notizen',
-    subtitle: 'Boegen, Vitalitaet und je Charakter eigene Notizen. Escape zurueck.',
+    title: 'Charakteransicht und Notizen',
+    subtitle: 'Charakteransicht, Boegen und Notizen. Escape zurueck.',
     items,
-    leer: 'Noch keine Helden in der Gruppe. Erst unter Gruppenzusammenstellung hinzufuegen.',
   });
 }

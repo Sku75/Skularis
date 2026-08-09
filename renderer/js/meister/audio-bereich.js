@@ -430,6 +430,7 @@ function meisterScreen() {
     subtitle: 'Bibliothek, Playlists, Verbindung, Lautstaerken. Strg und F12 stoppt alles. Escape zurueck.',
     items: [
       { label: 'Bibliothek', hint: 'deine Klaenge nach Ordnern', onSelect: () => screen.push(bibliothekScreen()) },
+      { label: 'Kurztasten', hint: 'Strg-Tasten mit Klaengen dieses Abenteuers belegen', onSelect: () => screen.push(kurztastenScreen()) },
       { label: 'Playlists', hint: 'eigene Zusammenstellungen, Auto abspielen', onSelect: () => screen.push(playlistsScreen()) },
       { label: 'Verbindung', hint: 'Schluessel und Senden ans Radio', onSelect: () => screen.push(verbindungScreen()) },
       { label: 'Lautstaerken', hint: 'eigene Audio-Lautstaerke', onSelect: () => screen.push(lautstaerkenScreen()) },
@@ -480,6 +481,14 @@ function kurztastenScreen() {
         const b = kurzSlotLabel(a, i);
         wrap.appendChild(aktionZeile(b.label, () => screen.push(kurztastenSlotScreen(i)), 'aendern', b.detail));
       }
+      // Ganz unten: alle Schnelltasten auf einmal freimachen (mit Rueckfrage).
+      wrap.appendChild(aktionZeile('Alle leeren', async () => {
+        if (!await jaNeinDialog({ titel: 'Alle leeren', frage: 'Bist du sicher? Alle 24 Schnelltasten dieses Abenteuers werden zurueckgesetzt.' })) return;
+        a.kurztasten = Array.from({ length: 24 }, () => null);
+        kurzSpeichern();
+        screen.refresh();
+        sprache.sage('Alle Schnelltasten geleert.');
+      }, 'alle 24 Schnelltasten zuruecksetzen'));
       verbindeDetail(wrap);
       rueckKnopf(wrap);
       return wrap;
@@ -651,10 +660,7 @@ function bibliothekScreen() {
       const wrap = document.createElement('div');
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel('Bibliothek'));
-      // Audio-Schnelltasten dieses Meisterabenteuers (Strg+1 bis Strg+´).
-      wrap.appendChild(aktionZeile('Kurztasten', () => screen.push(kurztastenScreen()),
-        'Strg-Tasten mit Klaengen belegen',
-        'Belege Strg+1 bis Strg+´ mit Klaengen dieses Abenteuers. Im Spiel spielt ein Tastendruck den Klang sofort, ohne Menue.'));
+      // (Kurztasten stehen jetzt eine Ebene hoeher, direkt unter "Bibliothek".)
       const meine = _wurzeln && _wurzeln.meineAudios;
       wrap.appendChild(aktionZeile(
         meine ? `Meine Audios, ${ordnerName(meine)}` : 'Meine Audios, Ordner waehlen',
