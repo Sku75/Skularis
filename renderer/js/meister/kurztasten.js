@@ -43,6 +43,11 @@ export function modusName(m) {
   return m === 'abspielen' ? 'Abspielen' : (m === 'hintergrund' ? 'Hintergrund' : 'Einspielen');
 }
 
+/** Ist ein Platz belegt? Entweder mit einer Audiodatei (pfad) oder einer Playlist. */
+export function istBelegt(d) {
+  return !!(d && (d.pfad || (d.typ === 'playlist' && (d.playlist || d.name))));
+}
+
 let _overrides = {};   // { '1': 'Strg+J', ... } nur abweichende Belegungen
 let _persist = null;
 
@@ -113,29 +118,77 @@ function slotDaten(index) {
   return a.kurztasten[index] || null;
 }
 
-/** Den Platz index (0..11) im gewaehlten Modus abspielen. */
+// Zeitfenster fuer den schnellen Doppeldruck (Pause dann Stop): 0,7 Sekunden.
+const STOPP_FENSTER_MS = 700;
+// Je Platz die Uhrzeit des Pause-Drucks (fuer die Doppeldruck-Erkennung).
+const _pauseZeit = {};
+
+function pegelVon(d) {
+  return (typeof d.lautstaerke === 'number') ? Math.max(0, Math.min(1, d.lautstaerke / 100)) : null;
+}
+
+/**
+ * Den Platz index im gewaehlten Modus bedienen.
+ * Audiodatei (Abspielen/Hintergrund): 1. Druck spielt, 2. Druck pausiert, ein
+ * schneller 3. Druck (innerhalb 0,7 s) stoppt und setzt an den Anfang zurueck;
+ * ein spaeterer Druck spielt an der pausierten Stelle weiter.
+ * Einspielen und Playlist: 1. Druck startet, erneuter Druck stoppt.
+ * Bewusst OHNE Sprachausgabe — nur der Klang selbst ist zu hoeren.
+ */
 export async function spiele(index) {
   const d = slotDaten(index);
-  if (!d || !d.pfad) return false;
-  // Umschalten: laeuft der Klang dieser Taste schon (egal auf welchem Kanal),
-  // blendet ein zweiter Druck ihn weich aus und stoppt ihn (Ausblendzeit rund
-  // 1,2 Sekunden wie im Player). Kein neues Starten.
-  // Bewusst OHNE Sprachausgabe: beim Ausloesen (und Stoppen) einer Schnelltaste
-  // wird nicht vorgelesen, was passiert — nur der Klang selbst ist zu hoeren.
-  if (player.laeuftKanalFuer(d.pfad)) {
-    player.stoppePfad(d.pfad);
+  if (!istBelegt(d)) return false;
+  const pegel = pegelVon(d);
+
+  // Playlist-Platz: eigene Wiedergabe (Start/Stopp-Umschaltung).
+  if (d.typ === 'playlist') {
+    try {
+      const mod = await import('./audio-bereich.js');
+      await mod.spielePlaylistFuerTaste(d.playlist || d.name, { modus: d.modus, loop: !!d.loop, pegel });
+    } catch (err) {
+      console.error('Kurztaste Playlist:', err);
+      sprache.sage('Playlist konnte nicht abgespielt werden.');
+    }
     return true;
   }
+
+  if (!d.pfad) return false;
   const datei = { name: d.name, pfad: d.pfad };
-  const pegel = (typeof d.lautstaerke === 'number') ? Math.max(0, Math.min(1, d.lautstaerke / 100)) : null;
+
+  // Einspielen: kurzes Darueberlegen, keine Pause — erneuter Druck stoppt.
+  if (d.modus === 'einspielen') {
+    if (player.laeuftKanalFuer(d.pfad)) { player.stoppePfad(d.pfad); return true; }
+    try { await player.spieleEin(datei, pegel != null ? { pegel } : {}); }
+    catch (err) { console.error('Kurztaste einspielen:', err); sprache.sage('Konnte nicht abgespielt werden.'); }
+    return true;
+  }
+
+  const kanal = d.modus === 'hintergrund' ? 'hintergrund' : 'abspielen';
+
+  // Laeuft gerade -> pausieren, Zeitpunkt merken.
+  if (player.laeuftKanalFuer(d.pfad)) {
+    player.pausiereKanal(kanal);
+    _pauseZeit[index] = Date.now();
+    return true;
+  }
+
+  // Pausiert -> schneller zweiter Druck stoppt (auf Anfang), sonst weiter.
+  if (player.istPfadPausiert(d.pfad)) {
+    const seitPause = Date.now() - (_pauseZeit[index] || 0);
+    if (seitPause <= STOPP_FENSTER_MS) player.pauseVerwerfen(d.pfad); // Stop, zurueck auf Anfang
+    else player.fortsetzePfad(d.pfad);                                // an der Stelle weiter
+    return true;
+  }
+
+  // Nichts laeuft -> von vorne starten. Eine evtl. laufende Kurztasten-Playlist
+  // vorher beenden, damit sie nicht in denselben Kanal hineinredet.
   try {
-    if (d.modus === 'abspielen') {
-      await player.spieleKanal('abspielen', datei, { loop: !!d.loop, pegel: pegel != null ? pegel : 1 });
-    } else if (d.modus === 'hintergrund') {
-      await player.spieleKanal('hintergrund', datei, { loop: !!d.loop, pegel: pegel != null ? pegel : player.getHintergrundPegel() });
-    } else {
-      await player.spieleEin(datei, pegel != null ? { pegel } : {});
-    }
+    const mod = await import('./audio-bereich.js');
+    if (mod.stopPlaylistWiedergabe) mod.stopPlaylistWiedergabe();
+  } catch { /* egal */ }
+  try {
+    const zielPegel = pegel != null ? pegel : (kanal === 'hintergrund' ? player.getHintergrundPegel() : 1);
+    await player.spieleKanal(kanal, datei, { loop: !!d.loop, pegel: zielPegel });
   } catch (err) {
     console.error('Kurztaste abspielen:', err);
     sprache.sage('Konnte nicht abgespielt werden.'); // nur der Fehlerfall bleibt hoerbar
@@ -168,7 +221,7 @@ export function initHandler() {
     const nr = trefferNr(e);
     if (!nr) return;
     const d = slotDaten(nr - 1);
-    if (!d || !d.pfad) return; // freier Platz: Taste NICHT abfangen (andere Kuerzel bleiben nutzbar)
+    if (!istBelegt(d)) return; // freier Platz: Taste NICHT abfangen (andere Kuerzel bleiben nutzbar)
     e.preventDefault();
     e.stopImmediatePropagation();
     spiele(nr - 1);

@@ -39,6 +39,9 @@ let _hintergrundVol = 0.15; // Standard: wie laut der Hintergrund-Kanal in den M
 // Die drei Kanaele. Je Kanal genau EIN laufender Klang (oder null).
 const _kanaele = { abspielen: null, hintergrund: null, einspielen: null };
 const KANAELE = ['abspielen', 'hintergrund', 'einspielen'];
+// Pausierte Klaenge je Kanal (fuer Pause/Weiter der Schnelltasten). Merkt sich die
+// Stelle im Track, damit ein zweiter Tastendruck an genau dieser Stelle weiterspielt.
+const _pausiert = { abspielen: null, hintergrund: null, einspielen: null };
 const _decodeCache = new Map(); // pfad -> AudioBuffer
 
 function ctx() {
@@ -101,9 +104,10 @@ function gibFrei(kanal, eintrag) {
  * @param {Function}[opts.onEnde]      Aufruf bei NATUERLICHEM Ende (Playlist-Weiter)
  */
 export async function spieleKanal(kanal, datei, opts = {}) {
-  const { loop = false, pegel = 1, onEnde } = opts;
+  const { loop = false, pegel = 1, onEnde, offset = 0 } = opts;
   const puffer = await ladePuffer(datei.pfad);
   const c = ctx();
+  _pausiert[kanal] = null; // ein Neustart verwirft eine evtl. gemerkte Pause dieses Kanals
   const source = c.createBufferSource();
   source.buffer = puffer;
   source.loop = loop;
@@ -114,15 +118,64 @@ export async function spieleKanal(kanal, datei, opts = {}) {
   // Bisherigen Klang dieses Kanals ausblenden.
   const alt = _kanaele[kanal];
   if (alt) { alt.gestoppt = true; if (alt.zurueck) { try { alt.zurueck(); } catch { /* egal */ } } blendeAus(alt); }
-  const eintrag = { source, gain, name: datei.name, pfad: datei.pfad, pegel, loop, gestoppt: false };
+  const startAt = c.currentTime;
+  const startOffset = (puffer.duration && offset > 0) ? Math.min(offset, Math.max(0, puffer.duration - 0.05)) : 0;
+  const eintrag = { source, gain, name: datei.name, pfad: datei.pfad, pegel, loop, gestoppt: false, startTime: startAt, offset: startOffset };
   _kanaele[kanal] = eintrag;
   source.onended = () => {
     try { gain.disconnect(); } catch { /* egal */ }
     gibFrei(kanal, eintrag);
     if (!eintrag.gestoppt && typeof onEnde === 'function') { try { onEnde(); } catch { /* egal */ } }
   };
-  source.start();
+  source.start(startAt, startOffset);
   rampe(gain.gain, pegel, loop ? FADE_EIN : FADE_EIN_KURZ);
+}
+
+/**
+ * Einen Kanal PAUSIEREN: die aktuelle Stelle im Track merken und den Klang schnell
+ * ausblenden. Mit fortsetzePfad() spielt er an genau dieser Stelle weiter. Fuer die
+ * Schnelltasten (Play, Pause, Weiter, Stop).
+ */
+export function pausiereKanal(kanal) {
+  const e = _kanaele[kanal];
+  if (!e) return false;
+  const c = ctx();
+  const dur = (e.source && e.source.buffer) ? e.source.buffer.duration : 0;
+  let pos = (e.offset || 0) + (c.currentTime - e.startTime);
+  if (dur > 0) { pos = e.loop ? (pos % dur) : Math.min(pos, dur); }
+  if (!isFinite(pos) || pos < 0) pos = 0;
+  e.gestoppt = true;
+  _kanaele[kanal] = null;
+  try { rampe(e.gain.gain, 0, 0.12); e.source.stop(c.currentTime + 0.16); } catch { /* schon gestoppt */ }
+  _pausiert[kanal] = { pfad: e.pfad, name: e.name, pegel: e.pegel, loop: e.loop, pos: pos };
+  return true;
+}
+
+/** Auf welchem Kanal ist dieser Pfad pausiert? (Kanalname oder null) */
+export function pausiertKanalFuer(pfad) {
+  for (const k of KANAELE) if (_pausiert[k] && _pausiert[k].pfad === pfad) return k;
+  return null;
+}
+
+/** Ist dieser Pfad gerade pausiert? */
+export function istPfadPausiert(pfad) { return pausiertKanalFuer(pfad) !== null; }
+
+/** Einen pausierten Pfad an der gemerkten Stelle weiterspielen. */
+export function fortsetzePfad(pfad) {
+  const k = pausiertKanalFuer(pfad);
+  if (!k) return false;
+  const p = _pausiert[k];
+  _pausiert[k] = null;
+  spieleKanal(k, { name: p.name, pfad: p.pfad }, { loop: p.loop, pegel: p.pegel, offset: p.pos });
+  return true;
+}
+
+/** Eine gemerkte Pause verwerfen (Stop: der naechste Start beginnt wieder bei 0). */
+export function pauseVerwerfen(pfad) {
+  const k = pausiertKanalFuer(pfad);
+  if (!k) return false;
+  _pausiert[k] = null;
+  return true;
 }
 
 // --- Alt-API (Rueckwaertskompatibilitaet) --------------------------------
@@ -197,6 +250,7 @@ export async function spieleEin(datei, opts = {}) {
 
 /** Einen Kanal stoppen (mit Ausblenden). Bei Einspielen die geduckten Kanaele zurueck. */
 export function stoppeKanal(kanal) {
+  _pausiert[kanal] = null; // eine gemerkte Pause dieses Kanals verwerfen
   const e = _kanaele[kanal];
   if (!e) return;
   _kanaele[kanal] = null;

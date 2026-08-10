@@ -32,6 +32,7 @@ let _verbunden = false;      // Spieler wirklich verbunden (Ton kommt an)
 let _playlists = null;       // { auto:bool, listen:[{name, sounds:[{name,pfad}]}] }
 let _autoWeiter = false;     // Playlist: automatisch zum nächsten Titel
 let _plToken = 0;            // laufende Playlist-Wiedergabe (Abbruch-Marke)
+let _kurzPlaylist = null;    // { name, kanal } der ueber eine Schnelltaste laufenden Playlist
 
 async function ladeGrunddaten() {
   if (!_config) {
@@ -311,6 +312,7 @@ function speicherePlaylists() {
 /** Alles stoppen: laufende Klänge, Vorhören, Playlist und das Radio (Übertragung). */
 export function alleStoppen() {
   _plToken += 1;
+  _kurzPlaylist = null;
   try { player.stoppeAlles(); } catch { /* egal */ }
   try { if (player.istVorhoeren()) player.beendeVorhoeren(); } catch { /* egal */ }
   try { radio.stopp(); } catch { /* egal */ }
@@ -324,6 +326,7 @@ export function alleStoppen() {
  */
 export function klaengeStoppen() {
   _plToken += 1;
+  _kurzPlaylist = null;
   try { player.stoppeAlles(); } catch { /* egal */ }
   try { if (player.istVorhoeren()) player.beendeVorhoeren(); } catch { /* egal */ }
 }
@@ -380,11 +383,37 @@ function spielePlaylistGesamt(pl, { kanal = 'abspielen', loop = false, pegel } =
   const p = pegel != null ? pegel : (kanal === 'hintergrund' ? player.getHintergrundPegel() : 1);
   const los = (i) => {
     if (token !== _plToken) return;
-    if (i >= liste.length) { if (loop) i = 0; else return; }
+    if (i >= liste.length) { if (loop) i = 0; else { _kurzPlaylist = null; return; } }
     player.spieleKanal(kanal, liste[i], { loop: false, pegel: p, onEnde: () => { if (token === _plToken) los(i + 1); } })
       .catch((e) => { console.error('Playlist gesamt:', e); if (token === _plToken) los(i + 1); });
   };
   los(0);
+}
+
+/**
+ * Eine ganze Playlist ueber eine Schnelltaste starten oder (bei erneutem Druck auf
+ * dieselbe Playlist) wieder stoppen. modus 'hintergrund' spielt leiser, sonst
+ * normal; loop wiederholt die ganze Liste. Wird aus kurztasten.js aufgerufen.
+ */
+export async function spielePlaylistFuerTaste(name, opts) {
+  opts = opts || {};
+  await ladePlaylists();
+  const pl = ((_playlists && _playlists.listen) || []).find(p => p.name === name);
+  if (!pl) { sprache.sage('Playlist nicht gefunden.'); return; }
+  // Umschalten: laeuft genau diese Playlist schon -> stoppen.
+  if (_kurzPlaylist && _kurzPlaylist.name === name) { stopPlaylistWiedergabe(); return; }
+  if (!pl.sounds || !pl.sounds.length) { sprache.sage('Diese Playlist ist leer.'); return; }
+  const loop = !!opts.loop;
+  const kanal = opts.modus === 'hintergrund' ? 'hintergrund' : 'abspielen';
+  const pegel = (typeof opts.pegel === 'number') ? opts.pegel : (kanal === 'hintergrund' ? player.getHintergrundPegel() : 1);
+  spielePlaylistGesamt(pl, { kanal: kanal, loop: loop, pegel: pegel });
+  _kurzPlaylist = { name: name, kanal: kanal };
+}
+
+/** Eine ueber eine Schnelltaste laufende Playlist beenden (falls eine laeuft). */
+export function stopPlaylistWiedergabe() {
+  _plToken += 1;
+  if (_kurzPlaylist) { try { player.stoppeKanal(_kurzPlaylist.kanal); } catch { /* egal */ } _kurzPlaylist = null; }
 }
 
 // Untermenü "Playlist vollständig wiedergeben" — dieselben Möglichkeiten wie bei
@@ -457,10 +486,11 @@ function kurzSpeichern() { try { speichereMeister(); } catch { /* egal */ } }
 function kurzSlotLabel(a, i) {
   const d = a.kurztasten && a.kurztasten[i];
   const combo = kurztasten.comboFuer(i + 1);
-  if (!d || !d.pfad) return { label: `Schnelltaste ${i + 1}, ${combo}: frei`, detail: 'Enter: eine Audiodatei auf diese Taste legen.' };
+  if (!kurztasten.istBelegt(d)) return { label: `Schnelltaste ${i + 1}, ${combo}: frei`, detail: 'Enter: eine Audiodatei oder eine Playlist auf diese Taste legen.' };
   const lv = (typeof d.lautstaerke === 'number') ? `${d.lautstaerke} Prozent` : 'Standard';
+  const was = d.typ === 'playlist' ? `Playlist ${d.playlist || d.name}` : d.name;
   return {
-    label: `Schnelltaste ${i + 1}, ${combo}: ${d.name}`,
+    label: `Schnelltaste ${i + 1}, ${combo}: ${was}`,
     detail: `Modus ${kurztasten.modusName(d.modus)}${d.loop ? ', Schleife' : ''}. Lautstärke ${lv}. Enter: ändern.`,
   };
 }
@@ -508,18 +538,23 @@ function kurztastenSlotScreen(i) {
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel(`Schnelltaste ${i + 1}, ${combo}`));
       if (!a) { wrap.appendChild(infoZeile('Kein Meisterabenteuer geladen.', '')); rueckKnopf(wrap); return wrap; }
-      if (!d || !d.pfad) {
-        wrap.appendChild(infoZeile('Diese Taste ist frei.', 'Wähle eine Audiodatei aus der Bibliothek.'));
-        wrap.appendChild(aktionZeile('Datei wählen', () => kurztastenDateiWaehlen(i), 'eine Audiodatei auf diese Taste legen'));
+      if (!kurztasten.istBelegt(d)) {
+        wrap.appendChild(infoZeile('Diese Taste ist frei.', 'Wähle eine Audiodatei oder eine ganze Playlist.'));
+        wrap.appendChild(aktionZeile('Audiodatei wählen', () => kurztastenDateiWaehlen(i), 'eine Audiodatei auf diese Taste legen'));
+        wrap.appendChild(aktionZeile('Playlist wählen', () => kurztastenPlaylistWaehlen(i), 'eine ganze Playlist auf diese Taste legen'));
         verbindeDetail(wrap); rueckKnopf(wrap); return wrap;
       }
+      const istPl = d.typ === 'playlist';
       const lv = (typeof d.lautstaerke === 'number') ? `${d.lautstaerke} Prozent` : 'Standard (Kanal)';
-      wrap.appendChild(infoZeile(`Belegt mit ${d.name}.`, `Modus ${kurztasten.modusName(d.modus)}${d.loop ? ', Schleife' : ''}. Lautstärke ${lv}.`));
-      wrap.appendChild(aktionZeile('Testen', () => kurztasten.spiele(i), 'den Klang wie mit der Taste abspielen'));
-      wrap.appendChild(aktionZeile('Modus wählen', () => kurzModusWaehlen(i), `Einspielen, Abspielen oder Hintergrund. Aktuell ${kurztasten.modusName(d.modus)}.`));
-      wrap.appendChild(aktionZeile(`Schleife: ${d.loop ? 'an' : 'aus'}`, () => kurzSchleifeUmschalten(i), 'wiederholt den Klang (bei Abspielen und Hintergrund)'));
+      const was = istPl ? `Playlist ${d.playlist || d.name}` : d.name;
+      const modusHinweis = istPl ? 'Abspielen oder Hintergrund' : 'Einspielen, Abspielen oder Hintergrund';
+      wrap.appendChild(infoZeile(`Belegt mit ${was}.`, `Modus ${kurztasten.modusName(d.modus)}${d.loop ? ', Schleife' : ''}. Lautstärke ${lv}.`));
+      wrap.appendChild(aktionZeile('Testen', () => kurztasten.spiele(i), istPl ? 'die Playlist wie mit der Taste starten' : 'den Klang wie mit der Taste abspielen'));
+      wrap.appendChild(aktionZeile('Modus wählen', () => kurzModusWaehlen(i), `${modusHinweis}. Aktuell ${kurztasten.modusName(d.modus)}.`));
+      wrap.appendChild(aktionZeile(`Schleife: ${d.loop ? 'an' : 'aus'}`, () => kurzSchleifeUmschalten(i), istPl ? 'wiederholt die ganze Playlist' : 'wiederholt den Klang (bei Abspielen und Hintergrund)'));
       wrap.appendChild(aktionZeile('Individuelle Lautstärke festlegen', () => kurzLautstaerke(i), `eigene Lautstärke für diese Taste. Aktuell ${lv}.`));
-      wrap.appendChild(aktionZeile('Neu belegen', () => kurztastenDateiWaehlen(i), 'eine andere Audiodatei auf diese Taste legen'));
+      wrap.appendChild(aktionZeile('Andere Audiodatei', () => kurztastenDateiWaehlen(i), 'stattdessen eine Audiodatei auf diese Taste legen'));
+      wrap.appendChild(aktionZeile('Andere Playlist', () => kurztastenPlaylistWaehlen(i), 'stattdessen eine Playlist auf diese Taste legen'));
       wrap.appendChild(aktionZeile('Löschen', () => kurzLoeschen(i), 'die Taste wieder frei machen'));
       verbindeDetail(wrap); rueckKnopf(wrap); return wrap;
     },
@@ -530,15 +565,36 @@ function kurztastenSlotScreen(i) {
 
 async function kurzModusWaehlen(i) {
   const a = getMeister(); const d = a && a.kurztasten[i]; if (!d) return;
-  const wahl = await knopfDialog({
-    titel: 'Modus', knoepfe: [
-      { label: 'Einspielen', wert: 'einspielen' },
-      { label: 'Abspielen', wert: 'abspielen' },
-      { label: 'Hintergrund', wert: 'hintergrund' },
-    ],
-  });
+  // Einspielen (Ducking) gibt es nur fuer einzelne Dateien, nicht fuer Playlists.
+  const knoepfe = d.typ === 'playlist'
+    ? [{ label: 'Abspielen', wert: 'abspielen' }, { label: 'Hintergrund', wert: 'hintergrund' }]
+    : [{ label: 'Einspielen', wert: 'einspielen' }, { label: 'Abspielen', wert: 'abspielen' }, { label: 'Hintergrund', wert: 'hintergrund' }];
+  const wahl = await knopfDialog({ titel: 'Modus', knoepfe });
   if (!wahl) return;
   d.modus = wahl; kurzSpeichern(); screen.refresh(); sprache.sage(`Modus ${kurztasten.modusName(wahl)}.`);
+}
+
+// Eine ganze Playlist auf eine Schnelltaste legen.
+async function kurztastenPlaylistWaehlen(i) {
+  await ladePlaylists();
+  const listen = (_playlists && _playlists.listen) || [];
+  if (!listen.length) { sprache.sage('Es gibt noch keine Playlists. Lege zuerst unter Playlists eine an.'); return; }
+  const wahl = await knopfDialog({
+    titel: 'Playlist wählen',
+    knoepfe: listen.map((pl, idx) => ({ label: `${pl.name}, ${pl.sounds.length} Titel`, wert: String(idx) })),
+  });
+  if (wahl === null) return;
+  const pl = listen[parseInt(wahl, 10)]; if (!pl) return;
+  const a = getMeister(); if (!a) return;
+  const alt = a.kurztasten[i];
+  a.kurztasten[i] = {
+    typ: 'playlist', playlist: pl.name, name: pl.name,
+    modus: (alt && alt.modus === 'hintergrund') ? 'hintergrund' : 'abspielen', // Einspielen gibt es fuer Playlists nicht
+    loop: alt ? !!alt.loop : false,
+    lautstaerke: (alt && typeof alt.lautstaerke === 'number') ? alt.lautstaerke : null,
+  };
+  kurzSpeichern(); screen.refresh();
+  sprache.sage(`Playlist ${pl.name} auf Schnelltaste ${i + 1} gelegt.`);
 }
 
 function kurzSchleifeUmschalten(i) {

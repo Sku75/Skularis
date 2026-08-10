@@ -4,6 +4,22 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.83, 9. August 2026
+
+
+Playlists auf Schnelltasten und neue Pause-Bedienung
+
+- Auf eine Schnelltaste lässt sich jetzt auch eine ganze Playlist legen, genau wie
+  eine einzelne Audiodatei. Beim Belegen wählst du zwischen Audiodatei und Playlist
+  und legst wie gewohnt Modus (Abspielen oder Hintergrund) und Schleife fest.
+- Neue Bedienung der Schnelltasten bei Audiodateien: ein Druck spielt, ein zweiter
+  Druck pausiert, ein schneller dritter Druck innerhalb von 0,7 Sekunden stoppt und
+  setzt den Titel an den Anfang zurück. Drückst du nach der Pause etwas später,
+  läuft der Titel an der pausierten Stelle weiter.
+- Playlists und eingespielte Klänge auf Schnelltasten starten mit einem Druck und
+  stoppen mit dem nächsten.
+
+
 Version 0.82, 9. August 2026
 
 
