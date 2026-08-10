@@ -4,6 +4,18 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.85, 10. August 2026
+
+
+Skularis hält den Updater beim Start selbst aktuell
+
+- Beim Start legt Skularis die aktuelle "Skularis Updaten.exe" aus dem
+  Programmordner an die Wurzel, falls sie dort fehlt oder älter ist. So bekommt
+  jeder den neuesten Updater allein durchs Aktualisieren und Starten, ganz ohne
+  ZIP von Hand. Das ist der sichere Weg, weil Skularis bei jedem Start läuft und
+  auch von älteren Updatern zuverlässig ausgetauscht wird.
+
+
 Version 0.84, 9. August 2026
 
 

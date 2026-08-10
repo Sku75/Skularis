@@ -98,6 +98,29 @@ function aktualisierePatchnotesWurzel() {
   } catch (e) { console.error('Patchnotes-Wurzel:', e); }
 }
 
+/**
+ * Den Updater an der Portable-Wurzel aktuell halten. Der eigenstaendige Updater
+ * kann sich (ab einer bestimmten Version) selbst erneuern — aeltere Updater aber
+ * nicht. Deshalb legt Skularis selbst beim Start die mitgelieferte, immer zur
+ * Version passende "Skularis Updaten.exe" aus dem Programmordner an die Wurzel,
+ * wenn sie dort fehlt oder sich (nach Groesse) unterscheidet. So bekommt jeder
+ * Nutzer den neuesten Updater allein durchs Aktualisieren und Starten — ohne die
+ * ZIP von Hand laden zu muessen. Skularis laeuft bei jedem Start und wird selbst
+ * vom aeltesten Updater zuverlaessig ausgetauscht, daher ist das der sichere Ort.
+ */
+function aktualisiereUpdaterWurzel() {
+  if (!app.isPackaged) return;
+  try {
+    const quelle = path.join(getAppPfad(), 'updater', 'Skularis Updaten.exe');
+    const ziel = path.join(getBasisPfad(), 'Skularis Updaten.exe');
+    if (path.resolve(quelle) === path.resolve(ziel)) return;
+    if (!fs.existsSync(quelle)) return;
+    let gleich = false;
+    try { gleich = fs.existsSync(ziel) && fs.statSync(ziel).size === fs.statSync(quelle).size; } catch { gleich = false; }
+    if (!gleich) fs.copyFileSync(quelle, ziel);
+  } catch (e) { console.error('Updater-Wurzel:', e); }
+}
+
 // Bibliothek für gespeicherte Charaktere (Sephrasto-.xml)
 function getCharOrdner() {
   return path.join(getBasisPfad(), 'Charakter-Dateien');
@@ -242,6 +265,7 @@ app.whenReady().then(() => {
   migriereMeisterStruktur();
   ensureMeisterOrdner();
   aktualisierePatchnotesWurzel();
+  aktualisiereUpdaterWurzel();
   createWindow();
   const xmlFile = process.argv.find(a => a.endsWith('.xml'));
   if (xmlFile) {
