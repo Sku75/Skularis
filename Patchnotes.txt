@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.88, 10. August 2026
+
+
+Rüstungssets: mehrere Teile werden summiert
+
+- Enthält ein Rüstungsset mehrere Rüstungsteile, werden Rüstungsschutz und
+  Behinderung jetzt über alle Teile addiert. Die summierte Rüstung geht in die
+  Wundschwelle ein.
+- Der Tooltip von Wundschwelle zeigt die Aufschlüsselung: Grundwert ohne Rüstung,
+  die summierte Rüstung mit ihren Teilen und die modifizierte Wundschwelle. Auch
+  die Zeile Rüstungsschutz und Behinderung listet die Teile auf.
+
+
 Version 0.87, 10. August 2026
 
 

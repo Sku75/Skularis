@@ -8,7 +8,7 @@ import * as sprache from '../sprache.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { wertZeile, infoZeile, abschnittTitel, aktionZeile, verbindeDetail } from '../editor/widgets.js';
 import { zahlDialog, knopfDialog } from '../ui/dialog.js';
-import { abgeleiteteWerte, waffenwerte, waffenwerteText, fertigkeitProbenwert, wundabzug } from '../core/regeln.js';
+import { abgeleiteteWerte, waffenwerte, waffenwerteText, fertigkeitProbenwert, wundabzug, ruestungsSetTeile } from '../core/regeln.js';
 import { getDb } from '../core/db-laden.js';
 import { leseInventar, istFernkampf, SLOTS, SET_WAFFENLOS, ergaenzeSets } from '../core/ausruestung.js';
 import { protokolliere } from '../core/abenteuer.js';
@@ -343,7 +343,23 @@ export function charakterstatusScreen() {
       // Kampfwerte, nur lesbar. Die acht Attribute werden hier bewusst NICHT
       // mehr aufgezählt (Wunsch): sie stehen im Charakterbogen.
       wrap.appendChild(abschnittTitel('Werte zum Lesen'));
-      wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Schaden, der über diesem Wert liegt, verursacht eine Wunde; über dem Doppelten zwei, über dem Dreifachen drei, und so weiter. Grundwert ohne Rüstung: 4 plus Konstitution durch 4.'));
+
+      // Aufschlüsselung für die Tooltips: die Teile des aktiven Rüstungssets mit
+      // Einzelwerten; Rüstungsschutz und Behinderung werden über alle Teile summiert.
+      const rTeile = ruestungsSetTeile(char);
+      const rsSumme = rTeile.reduce((s, t) => s + t.rs, 0);
+      const teilListe = rTeile.map(t => `${t.name} Rüstung ${t.rs}, Behinderung ${t.be}`).join('; ');
+      const wsBasis = w.WS - w.RS; // Grundwert ohne Rüstung (4 plus Konstitution durch 4, plus evtl. Aufschläge)
+      let wsDetail = `Grundwert ohne Rüstung: ${wsBasis}, aus 4 plus Konstitution durch 4. `;
+      if (rTeile.length) {
+        wsDetail += `Rüstung des Sets summiert: ${rsSumme}`;
+        if (w.RS !== rsSumme) wsDetail += ` plus Aufschlag ${w.RS - rsSumme}`;
+        wsDetail += `. Teile: ${teilListe}. `;
+      } else if (w.RS) {
+        wsDetail += `Rüstungsschutz: ${w.RS}. `;
+      }
+      wsDetail += `Modifizierte Wundschwelle: ${w.WS}. Schaden über diesem Wert verursacht eine Wunde, über dem Doppelten zwei, über dem Dreifachen drei, und so weiter.`;
+      wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, wsDetail));
 
       // Rüstungsset wechseln: gibt es im Bogen angelegte Rüstungssets, kann man sie
       // hier durchwählen. Jeder Wechsel berechnet Wundschwelle, Geschwindigkeit,
@@ -374,7 +390,15 @@ export function charakterstatusScreen() {
       wrap.appendChild(infoZeile(`Initiative: ${w.INI}`, 'Gleich dem Attribut Intuition.'));
       wrap.appendChild(infoZeile(`Schadensbonus: ${w.SB}`, 'Körperkraft durch 4.'));
       wrap.appendChild(infoZeile(`Durchhaltevermögen: ${w.DH}`, 'Konstitution minus zweimal Behinderung.'));
-      wrap.appendChild(infoZeile(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, ruestSets.length ? 'Aus dem aktiven Rüstungsset (oben umschaltbar).' : 'Aus der ersten angelegten Rüstung.'));
+      let rsBeDetail;
+      if (rTeile.length) {
+        rsBeDetail = `Aus dem aktiven Rüstungsset (oben umschaltbar), Rüstungsschutz und Behinderung über alle Teile summiert. Teile: ${teilListe}.`;
+      } else if (ruestSets.length) {
+        rsBeDetail = 'Aktives Rüstungsset "Ohne Rüstung" — kein Rüstungsschutz, keine Behinderung. Oben umschaltbar.';
+      } else {
+        rsBeDetail = 'Aus der ersten angelegten Rüstung.';
+      }
+      wrap.appendChild(infoZeile(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, rsBeDetail));
 
       // Ausgerüstete Waffen, nur lesbar
       const waffen = (char.waffen || []).filter(x => x.name);

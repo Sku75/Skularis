@@ -277,31 +277,49 @@ export function waffenwerteText(char, db, waffe) {
 
 // --- Abgeleitete Werte (Ilaris-Formeln) ---
 
+/** Rüstungsschutz einer EINZELNEN Rüstung als Zahl (Zahl, rsGesamt oder Zonen-String). */
+function einzelRs(r) {
+  if (!r) return 0;
+  if (typeof r.rs === 'number') return r.rs;
+  if (typeof r.rsGesamt === 'number') return r.rsGesamt;
+  if (typeof r.rs === 'string') {
+    const zonen = r.rs.split('/').map(n => parseInt(n, 10)).filter(n => !Number.isNaN(n));
+    if (zonen.length) return Math.round(zonen.reduce((s, n) => s + n, 0) / zonen.length);
+  }
+  return 0;
+}
+
+/** Die Rüstungsteile eines Sets (Name des Sets) mit ihren Einzelwerten — für die Aufschlüsselung. */
+export function ruestungsSetTeile(char, setName) {
+  const name = setName || char.aktivRuestungsset;
+  if (!name || name === '__ohne') return [];
+  const set = (leseInventar(char).ruestungsSets || []).find(s => s.name === name);
+  if (!set) return [];
+  const teile = new Set((set.teile || []).map(t => String(t).trim().toLowerCase()));
+  return (char.ruestungen || [])
+    .filter(x => x && teile.has(String(x.name || '').trim().toLowerCase()))
+    .map(r => ({ name: r.name, rs: einzelRs(r), be: r.be || 0 }));
+}
+
 export function getRuestungswerte(char) {
-  // Welche Rüstungen zählen? Standard: erste angelegte Rüstung (Sephrasto:
-  // getRüstung()[0]). Ist am Spieltisch ein Rüstungsset aktiv (char.aktivRuestungsset),
-  // zählt stattdessen die erste Rüstung DIESES Sets; der Sonderwert '__ohne' steht
-  // für "keine Rüstung angelegt".
-  let liste = char.ruestungen || [];
+  // Standard: erste angelegte Rüstung bestimmt RS/BE (Sephrasto: getRüstung()[0]).
+  // Ist am Spieltisch ein Rüstungsset aktiv (char.aktivRuestungsset), zählen ALLE
+  // Teile DIESES Sets: ihre Rüstungsschutz- und Behinderungswerte werden addiert.
+  // Der Sonderwert '__ohne' steht für "keine Rüstung angelegt".
   const aktiv = char.aktivRuestungsset;
   if (aktiv === '__ohne') return { rs: 0, be: 0 };
   if (aktiv) {
-    const set = (leseInventar(char).ruestungsSets || []).find(s => s.name === aktiv);
-    if (set) {
-      const teile = new Set((set.teile || []).map(t => String(t).trim().toLowerCase()));
-      liste = liste.filter(x => x && teile.has(String(x.name || '').trim().toLowerCase()));
+    const stuecke = ruestungsSetTeile(char, aktiv);
+    if (stuecke.length) {
+      let rs = 0, be = 0;
+      for (const s of stuecke) { rs += s.rs; be += s.be; }
+      return { rs, be };
     }
+    // Set nicht gefunden oder ohne passende Teile -> unten wie Standard weiter.
   }
-  const r = liste.find(x => x && (x.rs || x.be)) || null;
+  const r = (char.ruestungen || []).find(x => x && (x.rs || x.be)) || null;
   if (!r) return { rs: 0, be: 0 };
-  let rs = 0;
-  if (typeof r.rs === 'number') rs = r.rs;
-  else if (typeof r.rsGesamt === 'number') rs = r.rsGesamt;
-  else if (typeof r.rs === 'string') {
-    const zonen = r.rs.split('/').map(n => parseInt(n, 10)).filter(n => !Number.isNaN(n));
-    if (zonen.length) rs = Math.round(zonen.reduce((s, n) => s + n, 0) / zonen.length);
-  }
-  return { rs, be: r.be || 0 };
+  return { rs: einzelRs(r), be: r.be || 0 };
 }
 
 function finanzenIndex(char) {
