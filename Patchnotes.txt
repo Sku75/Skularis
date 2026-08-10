@@ -4,6 +4,12 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.86, 10. August 2026
+
+
+Test des Updater-Wechsel
+
+
 Version 0.85, 10. August 2026
 
 
