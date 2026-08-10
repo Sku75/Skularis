@@ -4,6 +4,16 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.84, 9. August 2026
+
+
+Updater kommt ganz ohne erneuten Download auf den neuesten Stand
+
+- "Skularis Starten.bat" bringt beim Start automatisch die aktuelle Fassung von
+  "Skularis Updaten.exe" aus dem Programmordner an die Wurzel. So bekommt man den
+  neuesten Updater, ohne je wieder eine ZIP von Hand herunterladen zu müssen.
+
+
 Version 0.83, 9. August 2026
 
 
