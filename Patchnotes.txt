@@ -4,6 +4,20 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.87, 10. August 2026
+
+
+Rüstungssets am Spieltisch wechseln
+
+- Auf der F2-Seite (Charakterstatus) steht unter Wundschwelle jetzt der Punkt
+  "Rüstungsset". Ein Druck wechselt zum nächsten im Editor angelegten Rüstungsset,
+  ganz am Ende steht "Ohne Rüstung".
+- Nach jedem Wechsel werden Wundschwelle, Geschwindigkeit, Durchhaltevermögen,
+  Rüstungsschutz und Behinderung sofort neu berechnet. Ist ein Meister verbunden,
+  sieht er die neuen Werte gleich mit.
+- Der Punkt erscheint nur, wenn der Charakter überhaupt Rüstungssets hat.
+
+
 Version 0.86, 10. August 2026
 
 

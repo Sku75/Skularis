@@ -6,6 +6,7 @@
 
 import { waffenErklaerung, waffenGattungstext } from '../daten/ausruestung-texte.js';
 import { bauInfo } from './infotext.js';
+import { leseInventar } from './ausruestung.js';
 
 // --- EP-Kosten-Grundformeln ---
 // Steigerung eines Werts von 0 auf W kostet die Summe SF·v für v = 1..W.
@@ -277,8 +278,21 @@ export function waffenwerteText(char, db, waffe) {
 // --- Abgeleitete Werte (Ilaris-Formeln) ---
 
 export function getRuestungswerte(char) {
-  // Erste angelegte Rüstung bestimmt RS/BE (Sephrasto: getRüstung()[0]).
-  const r = (char.ruestungen || []).find(x => x && (x.rs || x.be)) || null;
+  // Welche Rüstungen zählen? Standard: erste angelegte Rüstung (Sephrasto:
+  // getRüstung()[0]). Ist am Spieltisch ein Rüstungsset aktiv (char.aktivRuestungsset),
+  // zählt stattdessen die erste Rüstung DIESES Sets; der Sonderwert '__ohne' steht
+  // für "keine Rüstung angelegt".
+  let liste = char.ruestungen || [];
+  const aktiv = char.aktivRuestungsset;
+  if (aktiv === '__ohne') return { rs: 0, be: 0 };
+  if (aktiv) {
+    const set = (leseInventar(char).ruestungsSets || []).find(s => s.name === aktiv);
+    if (set) {
+      const teile = new Set((set.teile || []).map(t => String(t).trim().toLowerCase()));
+      liste = liste.filter(x => x && teile.has(String(x.name || '').trim().toLowerCase()));
+    }
+  }
+  const r = liste.find(x => x && (x.rs || x.be)) || null;
   if (!r) return { rs: 0, be: 0 };
   let rs = 0;
   if (typeof r.rs === 'number') rs = r.rs;

@@ -6,7 +6,7 @@
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
 import { menuScreen } from '../ui/menu-screen.js';
-import { wertZeile, infoZeile, abschnittTitel, verbindeDetail } from '../editor/widgets.js';
+import { wertZeile, infoZeile, abschnittTitel, aktionZeile, verbindeDetail } from '../editor/widgets.js';
 import { zahlDialog, knopfDialog } from '../ui/dialog.js';
 import { abgeleiteteWerte, waffenwerte, waffenwerteText, fertigkeitProbenwert, wundabzug } from '../core/regeln.js';
 import { getDb } from '../core/db-laden.js';
@@ -264,6 +264,13 @@ export function charakterstatusScreen() {
     build() {
       const a = getAbenteuer();
       const char = a.charakter;
+      // Gibt es Rüstungssets und ist noch keins aktiv, das erste voreinstellen —
+      // so passen angezeigtes Set und berechnete Werte von Anfang an zusammen.
+      // Bögen ohne Sets bleiben unberührt (weiterhin erste angelegte Rüstung).
+      if (char.aktivRuestungsset === undefined) {
+        const s0 = (leseInventar(char).ruestungsSets || [])[0];
+        if (s0) char.aktivRuestungsset = s0.name;
+      }
       const w = abgeleiteteWerte(char);
 
       const wrap = document.createElement('div');
@@ -337,12 +344,37 @@ export function charakterstatusScreen() {
       // mehr aufgezählt (Wunsch): sie stehen im Charakterbogen.
       wrap.appendChild(abschnittTitel('Werte zum Lesen'));
       wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Schaden, der über diesem Wert liegt, verursacht eine Wunde; über dem Doppelten zwei, über dem Dreifachen drei, und so weiter. Grundwert ohne Rüstung: 4 plus Konstitution durch 4.'));
+
+      // Rüstungsset wechseln: gibt es im Bogen angelegte Rüstungssets, kann man sie
+      // hier durchwählen. Jeder Wechsel berechnet Wundschwelle, Geschwindigkeit,
+      // Durchhaltevermögen, Rüstungsschutz und Behinderung neu.
+      const OHNE_RUEST = 'Ohne Rüstung';
+      const ruestSets = leseInventar(char).ruestungsSets || [];
+      if (ruestSets.length) {
+        const namen = [...ruestSets.map(s => s.name), OHNE_RUEST];
+        const aktName = char.aktivRuestungsset === '__ohne'
+          ? OHNE_RUEST
+          : (char.aktivRuestungsset && namen.includes(char.aktivRuestungsset) ? char.aktivRuestungsset : namen[0]);
+        const zeile = aktionZeile(`Rüstungsset: ${aktName}`, () => {
+          const i = namen.indexOf(aktName);
+          const naechste = namen[(i + 1) % namen.length];
+          char.aktivRuestungsset = (naechste === OHNE_RUEST) ? '__ohne' : naechste;
+          speichere();
+          sendeStatusWennVerbunden(); // Meister bekommt die neuen Werte (F2-Live)
+          screen.refresh('[data-ruest-set]'); // Werte neu bauen, Fokus bleibt auf dieser Zeile
+          const w2 = abgeleiteteWerte(char);
+          sprache.sage(`Rüstungsset ${naechste}. Wundschwelle ${w2.WS}, Rüstungsschutz ${w2.RS}, Behinderung ${w2.BE}, Geschwindigkeit ${w2.GS}.`);
+        }, 'Enter wechselt zum nächsten Rüstungsset. Wundschwelle, Geschwindigkeit, Durchhaltevermögen, Rüstungsschutz und Behinderung werden neu berechnet.');
+        zeile.setAttribute('data-ruest-set', '1');
+        wrap.appendChild(zeile);
+      }
+
       wrap.appendChild(infoZeile(`Magieresistenz: ${w.MR}`, '4 plus Mut durch 4.'));
       wrap.appendChild(infoZeile(`Geschwindigkeit: ${w.GS}`, '4 plus Gewandtheit durch 4, minus Behinderung.'));
       wrap.appendChild(infoZeile(`Initiative: ${w.INI}`, 'Gleich dem Attribut Intuition.'));
       wrap.appendChild(infoZeile(`Schadensbonus: ${w.SB}`, 'Körperkraft durch 4.'));
       wrap.appendChild(infoZeile(`Durchhaltevermögen: ${w.DH}`, 'Konstitution minus zweimal Behinderung.'));
-      wrap.appendChild(infoZeile(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, 'Aus der ersten angelegten Rüstung.'));
+      wrap.appendChild(infoZeile(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, ruestSets.length ? 'Aus dem aktiven Rüstungsset (oben umschaltbar).' : 'Aus der ersten angelegten Rüstung.'));
 
       // Ausgerüstete Waffen, nur lesbar
       const waffen = (char.waffen || []).filter(x => x.name);
