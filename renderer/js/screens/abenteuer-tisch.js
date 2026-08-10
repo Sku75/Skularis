@@ -244,7 +244,7 @@ function oeffneHub() {
     { label: 'Charakterstatus', hint: 'Wunden, Energien, Werte zum Lesen', factory: () => charakterstatusScreen() },
     { label: 'Charakterbogen', hint: 'Werte ansehen, Schnellauskunft', factory: () => charakterbogenScreen() },
     { label: 'Inventar', hint: 'Geldbörse und Gegenstände (am Mann, Rucksack)', factory: () => inventarScreen() },
-    { label: 'Notizen und Tagebuch', factory: () => notizenScreen() },
+    { label: 'Post, Tagebuch und Notizen', factory: () => notizenScreen() },
     { label: 'Mitspieler', factory: () => mitspielerScreen() },
     { label: 'Protokoll', hint: 'Was im Abenteuer passiert ist', factory: () => protokollScreenSpieler() },
     {

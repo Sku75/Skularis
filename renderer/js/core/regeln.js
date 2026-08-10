@@ -302,11 +302,17 @@ export function ruestungsSetTeile(char, setName) {
 }
 
 export function getRuestungswerte(char) {
-  // Standard: erste angelegte Rüstung bestimmt RS/BE (Sephrasto: getRüstung()[0]).
-  // Ist am Spieltisch ein Rüstungsset aktiv (char.aktivRuestungsset), zählen ALLE
-  // Teile DIESES Sets: ihre Rüstungsschutz- und Behinderungswerte werden addiert.
-  // Der Sonderwert '__ohne' steht für "keine Rüstung angelegt".
-  const aktiv = char.aktivRuestungsset;
+  // Ist ein Rüstungsset aktiv (char.aktivRuestungsset), zählen ALLE Teile DIESES
+  // Sets: ihre Rüstungsschutz- und Behinderungswerte werden addiert. Der Sonderwert
+  // '__ohne' steht für "keine Rüstung angelegt". Ist noch kein Set gewählt, aber
+  // der Bogen HAT Rüstungssets, gilt automatisch das erste — so zeigen ALLE
+  // Ansichten (Spieltisch, Charakterbogen, Meister, Export) dieselben Echtwerte.
+  // Ohne jedes Rüstungsset bleibt es beim Sephrasto-Verhalten: erste Rüstung.
+  let aktiv = char.aktivRuestungsset;
+  if (aktiv === undefined) {
+    const sets = leseInventar(char).ruestungsSets || [];
+    if (sets.length) aktiv = sets[0].name;
+  }
   if (aktiv === '__ohne') return { rs: 0, be: 0 };
   if (aktiv) {
     const stuecke = ruestungsSetTeile(char, aktiv);

@@ -4,6 +4,24 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.89, 10. August 2026
+
+
+Testrunde: mehrere Verbesserungen am Spielertisch
+
+- F5 heisst jetzt "Post, Tagebuch und Notizen".
+- Der Ton bei eingehender Post ist deutlich lauter.
+- Kämpfen: ein Waffenset zeigt jetzt alle Waffen an, auch die Nebenhand. Bei
+  mehreren Waffen im Set fragt Attacke, Parade und Schaden, mit welcher Waffe
+  gewürfelt wird; jede Waffe nutzt ihre eigenen, korrekten Werte (Modifikatoren
+  und Kampfstil-Vorteile getrennt für Attacke und Parade).
+- Wundschwelle und Behinderung stammen jetzt überall aus dem aktiven Rüstungsset:
+  Rüstungsschutz und Behinderung werden über alle Teile summiert. Der Wundschwelle-
+  Tooltip zeigt zuerst die Rechenformel, dann deine tatsächlichen Werte mit den
+  einzelnen Rüstungsteilen.
+- Die Erfahrungspunkte-Anzeige sitzt jetzt kleiner unten rechts in der Ecke.
+
+
 Version 0.88, 10. August 2026
 
 

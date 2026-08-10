@@ -102,7 +102,7 @@ const VOLUME_MAP = {
   schliessen: 0.30,   // Bildschirmwechsel zurueck (Alt-Satz)
   click:      0.30,   // Menuepunkt auswaehlen (Alt-Satz)
   grenze:     0.30,   // Anschlag am Listenrand
-  post:       0.65,   // Nachrichteneingang: bewusst auffaellig
+  post:       0.85,   // Nachrichteneingang: bewusst auffaellig (30 Prozent lauter als zuvor)
   popup:      0.7,    // Pop-up: noch etwas praesenter
 };
 const DEFAULT_VOLUME_FACTOR = 0.55;  // Ereignistoene (Wuerfeln, Speichern, Fehler, ...)

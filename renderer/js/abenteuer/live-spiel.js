@@ -100,17 +100,30 @@ export function kampfwerteScreen() {
       // (Position) schon an, sonst doppelt. Eigene Namen (z. B. Waffenlos) bleiben.
       const setLabel = (set) => (set.name && !/^Set \d+$/.test(set.name)) ? `${set.name}, ` : '';
 
-      // Werte eines Sets zusammenstellen (mit Waffe oder waffenlos/Raufen).
+      // Alle vorhandenen Waffen eines Sets (Haupthand, Nebenhand, Fernkampf).
+      const setWaffen = (set) => {
+        const liste = [];
+        for (const [slot, name] of [['Haupthand', set.haupthand], ['Nebenhand', set.nebenhand], ['Fernkampf', set.fernkampf]]) {
+          const wa = findW(name);
+          if (wa) liste.push({ slot, waffe: wa });
+        }
+        return liste;
+      };
+
+      // Werte eines Sets zusammenstellen. voll = alle Waffen des Sets (auch Nebenhand),
+      // primaer = die erste Waffe (Standard für Anzeige/kurzes Ergebnis).
       const setInfo = (i) => {
         const set = sets[i];
         const key = `set${i}`;
-        const primaer = findW(set.haupthand) || findW(set.fernkampf) || findW(set.nebenhand);
-        if (primaer && db) {
+        const waffen = setWaffen(set);
+        if (waffen.length && db) {
+          const voll = waffen.map(x => `${x.slot} ${x.waffe.name}`).join(', ');
+          const primaer = waffen[0].waffe;
           const k = waffenwerte(char, db, primaer);
           const tp = k.tp || 0;
           return {
-            set, key, primaer, waffenlos: false, k, tp, schadenBonus: tp + w.SB,
-            kurz: `${setLabel(set)}${primaer.name}`,
+            set, key, waffen, primaer, waffenlos: false, k, tp, schadenBonus: tp + w.SB,
+            kurz: `${setLabel(set)}${voll}`, voll,
             werte: `Attacke ${k.at === null ? 'nicht möglich' : k.at}, Parade ${k.vt === null ? 'nicht möglich' : k.vt}, Schaden ${primaer.wuerfel || 0} W ${primaer.wuerfelSeiten || 6}`,
             tooltip: waffenwerteText(char, db, primaer),
           };
@@ -119,11 +132,20 @@ export function kampfwerteScreen() {
         const rw = raufen ? (char.fertigkeiten?.['Raufen']?.wert || 0) : 0;
         const at = raufen ? fertigkeitProbenwert(char, raufen, rw, true) : 0;
         return {
-          set, key, primaer: null, waffenlos: true, raufen, at,
-          kurz: `${setLabel(set)}waffenlos`,
+          set, key, waffen: [], primaer: null, waffenlos: true, raufen, at,
+          kurz: `${setLabel(set)}waffenlos`, voll: 'waffenlos',
           werte: raufen ? `Raufen ${at}, Schaden 1 W 6` : 'keine Werte',
           tooltip: 'Kampf ohne Waffe (Raufen). Schaden ein W6 plus Schadensbonus.',
         };
+      };
+
+      // Bei mehreren Waffen im Set vor dem Wurf fragen, welche Waffe (sonst die eine).
+      const waehleWaffe = async (info) => {
+        if (!info.waffen || info.waffen.length <= 1) return info.primaer;
+        const wl = await knopfDialog({ titel: 'Welche Waffe?', knoepfe: info.waffen.map(x => ({ label: `${x.slot}: ${x.waffe.name}`, wert: x.waffe.name })) });
+        if (wl === null) return null;
+        const t = info.waffen.find(x => x.waffe.name === wl);
+        return t ? t.waffe : info.primaer;
       };
 
       // Einen der beiden Würfel-Schalter (Attacke/Parade oder Schaden) neu befüllen.
@@ -181,7 +203,9 @@ export function kampfwerteScreen() {
                 kampfProbe({ id: `${info.key}-probe`, titel: `Raufen ${info.set.name}`, vokabel: 'Raufen', probenwert: info.at });
                 return;
               }
-              const k = info.k;
+              const waffe = await waehleWaffe(info);
+              if (!waffe) return;
+              const k = waffenwerte(char, db, waffe); // je Waffe eigene Attacke/Parade (Modifikatoren + Vorteile/Kampfstil)
               const knoepfe = [];
               if (k.at !== null) knoepfe.push({ label: 'Attacke würfeln', wert: 'at' });
               if (k.vt !== null) knoepfe.push({ label: 'Parade würfeln', wert: 'vt' });
@@ -190,7 +214,7 @@ export function kampfwerteScreen() {
               if (knoepfe.length > 1) { wahl = await knopfDialog({ titel: 'Angriff oder Parade', knoepfe }); if (wahl === null) return; }
               const vok = wahl === 'vt' ? 'Verteidigung' : 'Attacke';
               const pw = wahl === 'vt' ? k.vt : k.at;
-              kampfProbe({ id: `${info.key}-probe`, titel: `${vok} ${info.set.name}, ${info.primaer.name}`, vokabel: vok, probenwert: pw });
+              kampfProbe({ id: `${info.key}-probe`, titel: `${vok} ${info.set.name}, ${waffe.name}`, vokabel: vok, probenwert: pw });
             },
           });
           befuelle(schadenBtn, {
@@ -198,9 +222,11 @@ export function kampfwerteScreen() {
             label: 'Schaden würfeln',
             hint: info.waffenlos ? `${info.kurz}. 1 W 6 plus Schadensbonus ${w.SB}` : `${info.kurz}. ${info.primaer.wuerfel || 0} W ${info.primaer.wuerfelSeiten || 6} plus Waffenbonus ${info.tp} und Schadensbonus ${w.SB}`,
             detail: mitLetztemWurf(`${info.key}-schaden`, info.waffenlos ? `Waffenloser Schaden ein W6 plus Schadensbonus ${w.SB}.` : `Schaden ${info.primaer.wuerfel || 0} W ${info.primaer.wuerfelSeiten || 6}, dazu Waffenbonus ${info.tp} und Schadensbonus ${w.SB}.`),
-            onSelect: () => {
+            onSelect: async () => {
               if (info.waffenlos) { schadenWurf({ id: `${info.key}-schaden`, name: `${info.set.name}, Raufen`, wuerfel: 1, seiten: 6, bonus: w.SB, bonusText: `Schadensbonus ${w.SB}` }); return; }
-              schadenWurf({ id: `${info.key}-schaden`, name: `${info.set.name}, ${info.primaer.name}`, wuerfel: info.primaer.wuerfel || 0, seiten: info.primaer.wuerfelSeiten || 6, bonus: info.schadenBonus, bonusText: `Waffenbonus ${info.tp}, Schadensbonus ${w.SB}` });
+              const waffe = await waehleWaffe(info); if (!waffe) return;
+              const tp = (waffenwerte(char, db, waffe).tp) || 0; // Waffenbonus der gewählten Waffe (inkl. Kampfstil)
+              schadenWurf({ id: `${info.key}-schaden`, name: `${info.set.name}, ${waffe.name}`, wuerfel: waffe.wuerfel || 0, seiten: waffe.wuerfelSeiten || 6, bonus: tp + w.SB, bonusText: `Waffenbonus ${tp}, Schadensbonus ${w.SB}` });
             },
           });
         };
@@ -231,7 +257,7 @@ export function kampfwerteScreen() {
       info2(`Geschwindigkeit: ${w.GS}`, `So viele Schritt kannst du dich mit einer einfachen Aktion Bewegung fortbewegen, hier also ${w.GS} Schritt. Geradeaus vorwärts das Doppelte, ganz ohne Gepäck und Rüstung das Vierfache; auf unsicherem Boden die Hälfte, kniend ein Viertel. Wert: 4 plus Gewandtheit durch 4, minus Behinderung.`);
       info2(`Durchhaltevermögen: ${w.DH}`, 'Deine Reserve gegen Erschöpfung durch Anstrengung, Hitze oder Kälte. Wert: Konstitution minus zweimal Behinderung.');
       info2(`Schadensbonus: ${w.SB}`, 'Kommt zu jedem Waffenschaden hinzu. Wert: Körperkraft durch 4.');
-      info2(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, 'Rüstungsschutz senkt eingehenden Schaden und hebt die Wundschwelle. Behinderung verringert Geschwindigkeit und Durchhaltevermögen. Beides stammt aus der ersten angelegten Rüstung.');
+      info2(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, 'Rüstungsschutz senkt eingehenden Schaden und hebt die Wundschwelle. Behinderung verringert Geschwindigkeit und Durchhaltevermögen. Beides ist die Summe aller angelegten Rüstungsteile (des aktiven Rüstungssets), plus Aufschläge aus Vorteilen. Das Rüstungsset stellst du im Charakterstatus (F2) um.');
 
       verbindeDetail(wrap);
       return wrap;
@@ -350,15 +376,17 @@ export function charakterstatusScreen() {
       const rsSumme = rTeile.reduce((s, t) => s + t.rs, 0);
       const teilListe = rTeile.map(t => `${t.name} Rüstung ${t.rs}, Behinderung ${t.be}`).join('; ');
       const wsBasis = w.WS - w.RS; // Grundwert ohne Rüstung (4 plus Konstitution durch 4, plus evtl. Aufschläge)
-      let wsDetail = `Grundwert ohne Rüstung: ${wsBasis}, aus 4 plus Konstitution durch 4. `;
+      // Erst die Rechenformel, dann die tatsächlich angelegten Werte.
+      let wsDetail = 'So wird gerechnet: Wundschwelle gleich 4 plus Konstitution durch 4, plus dem summierten Rüstungsschutz aller angelegten Rüstungsteile. ';
+      wsDetail += `Deine Werte: Grundwert ohne Rüstung ${wsBasis}`;
       if (rTeile.length) {
-        wsDetail += `Rüstung des Sets summiert: ${rsSumme}`;
+        wsDetail += `, Rüstung summiert ${rsSumme}`;
         if (w.RS !== rsSumme) wsDetail += ` plus Aufschlag ${w.RS - rsSumme}`;
-        wsDetail += `. Teile: ${teilListe}. `;
+        wsDetail += ` (Teile: ${teilListe})`;
       } else if (w.RS) {
-        wsDetail += `Rüstungsschutz: ${w.RS}. `;
+        wsDetail += `, Rüstungsschutz ${w.RS}`;
       }
-      wsDetail += `Modifizierte Wundschwelle: ${w.WS}. Schaden über diesem Wert verursacht eine Wunde, über dem Doppelten zwei, über dem Dreifachen drei, und so weiter.`;
+      wsDetail += `, modifizierte Wundschwelle ${w.WS}. Schaden über der Wundschwelle verursacht eine Wunde, über dem Doppelten zwei, über dem Dreifachen drei, und so weiter.`;
       wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, wsDetail));
 
       // Rüstungsset wechseln: gibt es im Bogen angelegte Rüstungssets, kann man sie
