@@ -237,6 +237,25 @@
 
 /* Gut sichtbare EP-Anzeige unten mittig; nur eingeblendet, wenn ein Charakter
    geladen ist. Rein optisch (aria-hidden im HTML). */
+/* Navigations-Schalter oben links: H (Hauptmenü) und Pfeil links (zurück). */
+.db-header__left { display: flex; align-items: center; gap: 0.4rem; }
+.db-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--db-border, #3a3f4a);
+  border-radius: 0.4rem;
+  background: var(--db-panel, #1c1f28);
+  color: var(--db-text, #f2f4f8);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.db-nav-btn:hover { background: var(--db-accent, #2a6df4); color: #fff; }
+
 .ep-anzeige {
   display: none;
 }

@@ -72,6 +72,21 @@ export async function zurueck() {
   return pop();
 }
 
+/**
+ * Sicher zum Hauptmenü zurück: Ebene für Ebene über zurueck(), damit alle Wächter
+ * greifen (z. B. die Abenteuer-Verlassen-Abfrage, die Gold und Inventar auf den
+ * Bogen schreibt). Bricht ab, wenn eine Ebene nicht weitergeht (Abbrechen im
+ * Dialog). Für den H-Schalter oben links.
+ */
+export async function zumHauptmenue() {
+  let guard = 0;
+  while (_stack.length > 1 && guard++ < 40) {
+    const vor = _stack.length;
+    await zurueck();
+    if (_stack.length >= vor) break; // kam nicht weiter (z. B. Abbrechen) -> stehen bleiben
+  }
+}
+
 /** Direkt zum Wurzel-Bildschirm (Hauptmenü) zurück, ein einziges Rendern. */
 export function zuWurzel() {
   if (_stack.length <= 1) return;

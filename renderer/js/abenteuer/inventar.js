@@ -18,6 +18,7 @@ import { aktionZeile, infoZeile, abschnittTitel, wertZeile } from '../editor/wid
 import { textDialog, jaNeinDialog } from '../ui/dialog.js';
 import { protokolliere } from '../core/abenteuer.js';
 import { leseInventar, schreibeInventar, ORT_MANN, ORT_RUCKSACK } from '../core/ausruestung.js';
+import { BESCHREIBUNG_FELDER, AUSSEHEN_ZEILEN, HINTERGRUND_ZEILEN } from '../core/character.js';
 import { getAbenteuer, speichere } from './state.js';
 
 const FACH = { [ORT_MANN]: 'Am Mann', [ORT_RUCKSACK]: 'Rucksack' };
@@ -59,9 +60,68 @@ export function inventarScreen() {
           { label: 'Rucksack', hint: `${imRucksack} Gegenstände`, onSelect: () => screen.push(fachScreen(ORT_RUCKSACK)) },
           { label: 'Waffen', hint: `${(c.waffen || []).length} Waffen`, onSelect: () => screen.push(objektScreen('Waffen', (char().waffen || []))) },
           { label: 'Rüstungen', hint: `${(c.ruestungen || []).length} Rüstungen`, onSelect: () => screen.push(objektScreen('Rüstungen', (char().ruestungen || []))) },
+          { label: 'Spiegel', hint: 'Aussehen, Titel, Status, Hintergrund und Beschreibung', onSelect: () => screen.push(spiegelScreen()) },
         ],
       }).build();
     },
+  };
+}
+
+/**
+ * Spiegel: alles, was den Charakter beschreibt und sonst nirgends steht — Aussehen
+ * (Geschlecht, Größe, Haarfarbe … und die freien Aussehen-Zeilen), dazu Titel,
+ * Sozialstatus, Kurzbeschreibung, Eigenheiten und der Hintergrund. Nur Anzeige.
+ */
+function spiegelScreen() {
+  return {
+    title: 'Spiegel',
+    build() {
+      const c = char();
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel('Spiegel'));
+      let n = 0;
+      const zeile = (label, wert, hint) => {
+        const t = String(wert == null ? '' : wert).trim();
+        if (!t) return;
+        wrap.appendChild(infoZeile(`${label}: ${t}`, hint || 'Vom Charakterbogen. Nur Anzeige.'));
+        n++;
+      };
+
+      zeile('Name', c.name);
+      zeile('Titel', c.titel);
+      zeile('Spezies', c.spezies);
+      zeile('Kultur', c.kultur);
+      zeile('Profession', c.profession);
+      zeile('Heimat', c.heimat);
+      if (typeof c.status === 'number') zeile('Sozialstatus', c.status, 'Gesellschaftlicher Stand, 0 niedrig bis 4 hoch.');
+
+      wrap.appendChild(abschnittTitel('Aussehen'));
+      for (const f of BESCHREIBUNG_FELDER) {
+        if (f.key === 'titel') continue; // Titel steht schon oben
+        zeile(f.label, c[f.key], f.hint ? `Zum Beispiel: ${f.hint}` : undefined);
+      }
+      const aus = Array.isArray(c.aussehen) ? c.aussehen : [];
+      aus.forEach((z, i) => zeile(`Aussehen ${i + 1}`, z, AUSSEHEN_ZEILEN[i] ? `Frei, ${AUSSEHEN_ZEILEN[i]}.` : undefined));
+
+      zeile('Kurzbeschreibung', c.kurzbeschreibung);
+
+      const eig = Array.isArray(c.eigenheiten) ? c.eigenheiten : [];
+      if (eig.length) {
+        wrap.appendChild(abschnittTitel('Eigenheiten'));
+        for (const e of eig) zeile(e.name || 'Eigenheit', [e.positiv, e.negativ].filter(Boolean).join(' / ') || e.name);
+      }
+
+      const hg = Array.isArray(c.hintergrund) ? c.hintergrund : [];
+      if (hg.some(x => String(x || '').trim())) {
+        wrap.appendChild(abschnittTitel('Hintergrund'));
+        hg.forEach((z, i) => zeile(`Hintergrund ${i + 1}`, z, HINTERGRUND_ZEILEN[i] ? `Frei, ${HINTERGRUND_ZEILEN[i]}.` : undefined));
+      }
+
+      if (n === 0) wrap.appendChild(infoZeile('Noch keine Angaben.', 'Aussehen, Titel und Hintergrund trägst du im Charaktereditor unter Beschreibung ein.'));
+      return wrap;
+    },
+    onShow() { sprache.sage('Spiegel.'); },
   };
 }
 

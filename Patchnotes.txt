@@ -4,6 +4,23 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.91, 10. August 2026
+
+
+Navigations-Schalter oben links und neuer Spiegel
+
+- Oben links stehen jetzt zwei Schalter: "H" springt zum Hauptmenü (mit der
+  gewohnten Speichern-Abfrage, damit Gold und Inventar auf den Bogen kommen), der
+  Pfeil nach links geht eine Ebene zurück. Für die Maus; blinde Nutzer nutzen wie
+  gewohnt Escape.
+- Neuer Menüpunkt "Spiegel" im Inventar: zeigt alles, was den Charakter beschreibt
+  und sonst nirgends steht — Aussehen (Geschlecht, Größe, Haarfarbe und die freien
+  Aussehen-Zeilen), Titel, Sozialstatus, Kurzbeschreibung, Eigenheiten und den
+  Hintergrund. Nur zum Ansehen.
+- Beim Betreten eines Menüs mit der Eingabetaste landet der Fokus oben; an die
+  zuletzt verlassene Stelle kommst du weiterhin gezielt über die F-Tasten.
+
+
 Version 0.90, 10. August 2026
 
 

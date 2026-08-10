@@ -433,4 +433,13 @@ function initKopfzeile() {
 
   if (btnFontPlus) btnFontPlus.addEventListener('click', () => schriftAendern(1));
   if (btnFontMinus) btnFontMinus.addEventListener('click', () => schriftAendern(-1));
+
+  // Navigations-Schalter oben links: H zum Hauptmenü (Ebene für Ebene, mit den
+  // Wächtern/Verlassen-Abfragen), Pfeil links eine Ebene zurück. Für die Maus;
+  // Blinde nutzen wie gewohnt Escape. Kein Tastatur-Fokus, damit die Pfeil-Menü-
+  // Navigation nicht gestört wird.
+  const btnHaupt = document.getElementById('btn-hauptmenue');
+  const btnZurueck = document.getElementById('btn-zurueck');
+  if (btnHaupt) btnHaupt.addEventListener('click', () => { sounds.playClick(); screen.zumHauptmenue(); });
+  if (btnZurueck) btnZurueck.addEventListener('click', () => { sounds.playClick(); screen.zurueck(); });
 }
