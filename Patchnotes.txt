@@ -4,6 +4,20 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.90, 10. August 2026
+
+
+Inventar und Geldbörse: zwei Fehler behoben
+
+- Gegenstände am Mann und im Rucksack fehlten im Abenteuer, wenn die Installation
+  verschoben wurde (der Charakterbogen lag nicht mehr am gespeicherten Pfad). Jetzt
+  findet Skularis den Bogen beim Öffnen notfalls über den Namen in deiner Bibliothek,
+  lädt ihn frisch und merkt sich den neuen Pfad. So kommen Gold und Inventar wieder
+  zuverlässig aus dem Charakterbogen ins Abenteuer (der Bogen ist König).
+- Die Geldbörsen-Vorschau im Inventar-Menü zeigt jetzt immer den aktuellen Wert,
+  nicht mehr einen alten Stand.
+
+
 Version 0.89, 10. August 2026
 
 

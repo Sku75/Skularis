@@ -126,6 +126,35 @@ async function erstellen() {
   });
 }
 
+/**
+ * Selbstheilung: Liegt der Charakterbogen nicht mehr am gespeicherten Pfad (etwa
+ * weil die Installation verschoben wurde, z. B. von OneDrive nach C:\Skularis
+ * Portable), wird derselbe Charakter über seinen Namen in der aktuellen Bibliothek
+ * gesucht, frisch geladen und der Pfad dauerhaft korrigiert. So bleibt der Bogen
+ * König und Gold/Inventar kommen wieder korrekt ins Abenteuer.
+ * @returns {Promise<boolean>} true, wenn geheilt und a.charakter frisch gesetzt
+ */
+async function heileBogenPfad(a, db) {
+  try {
+    let liste = [];
+    try { liste = await ipc.bibliothekListe(); } catch { liste = []; }
+    if (!liste.length) return false;
+    const norm = (s) => String(s || '').trim().toLowerCase();
+    const zielName = norm(a.charakterName || (a.charakter && a.charakter.name));
+    const basis = norm(String(a.charakterPfad || '').split(/[\\/]/).pop().replace(/\.xml$/i, ''));
+    const treffer = liste.find(c => norm(c.name) === zielName && zielName)
+      || liste.find(c => norm(c.name) === basis && basis);
+    if (!treffer) return false;
+    const res = await ladeBogenFrisch(treffer.pfad, db);
+    if (!res.ok) return false;
+    a.charakter = res.bogen;
+    a.charakterPfad = treffer.pfad;      // Pfad dauerhaft korrigieren (beim Speichern gesichert)
+    a.charakterName = treffer.name;
+    a.ressourcen = mergeRessourcen(a.ressourcen, res.bogen);
+    return true;
+  } catch (e) { console.error('Bogen-Pfad heilen:', e); return false; }
+}
+
 /** Ein Abenteuer öffnen: Bogen frisch laden (König), Zähler mischen, Hub öffnen. */
 async function oeffneAbenteuer(eintrag) {
   try {
@@ -140,6 +169,10 @@ async function oeffneAbenteuer(eintrag) {
       if (res.ok) {
         a.charakter = res.bogen;                          // Bogen ist König
         a.ressourcen = mergeRessourcen(a.ressourcen, res.bogen); // Maxima neu, aktuell behalten
+      } else if (await heileBogenPfad(a, db)) {
+        // Bogen am gespeicherten Pfad weg (z. B. Installation von OneDrive nach
+        // C:\Skularis Portable verschoben): über den Namen in der aktuellen
+        // Bibliothek gefunden und frisch geladen, Pfad dauerhaft korrigiert.
       } else {
         const w = await knopfDialog({
           titel: 'Charakterbogen fehlt',

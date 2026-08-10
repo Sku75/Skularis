@@ -39,22 +39,30 @@ function speichereGegenstaende(liste) {
 }
 
 export function inventarScreen() {
-  const g = geld();
-  const gg = gegenstaende();
-  const amMann = gg.filter(x => x.ort !== ORT_RUCKSACK).length;
-  const imRucksack = gg.filter(x => x.ort === ORT_RUCKSACK).length;
-  const c = char();
-  return menuScreen({
+  // Als build()-Screen, damit die Vorschau-Hinweise (Dukaten, Anzahl Gegenstände)
+  // bei jedem Aufbau — auch beim Zurückkehren aus Geldbörse/Fach — frisch aus dem
+  // Charakterbogen gerechnet werden und nie einen alten Wert zeigen.
+  return {
     title: 'Inventar',
-    subtitle: 'Vom Charakterbogen. Escape zurück.',
-    items: [
-      { label: 'Geldbörse', hint: `${g.dukaten || 0} Dukaten, ${g.silber || 0} Silber, ${g.kupfer || 0} Kupfer`, onSelect: () => screen.push(geldboerseScreen()) },
-      { label: 'Am Mann', hint: `${amMann} Gegenstände`, onSelect: () => screen.push(fachScreen(ORT_MANN)) },
-      { label: 'Rucksack', hint: `${imRucksack} Gegenstände`, onSelect: () => screen.push(fachScreen(ORT_RUCKSACK)) },
-      { label: 'Waffen', hint: `${(c.waffen || []).length} Waffen`, onSelect: () => screen.push(objektScreen('Waffen', (char().waffen || []))) },
-      { label: 'Rüstungen', hint: `${(c.ruestungen || []).length} Rüstungen`, onSelect: () => screen.push(objektScreen('Rüstungen', (char().ruestungen || []))) },
-    ],
-  });
+    build() {
+      const g = geld();
+      const gg = gegenstaende();
+      const amMann = gg.filter(x => x.ort !== ORT_RUCKSACK).length;
+      const imRucksack = gg.filter(x => x.ort === ORT_RUCKSACK).length;
+      const c = char();
+      return menuScreen({
+        title: 'Inventar',
+        subtitle: 'Vom Charakterbogen. Escape zurück.',
+        items: [
+          { label: 'Geldbörse', hint: `${g.dukaten || 0} Dukaten, ${g.silber || 0} Silber, ${g.kupfer || 0} Kupfer`, onSelect: () => screen.push(geldboerseScreen()) },
+          { label: 'Am Mann', hint: `${amMann} Gegenstände`, onSelect: () => screen.push(fachScreen(ORT_MANN)) },
+          { label: 'Rucksack', hint: `${imRucksack} Gegenstände`, onSelect: () => screen.push(fachScreen(ORT_RUCKSACK)) },
+          { label: 'Waffen', hint: `${(c.waffen || []).length} Waffen`, onSelect: () => screen.push(objektScreen('Waffen', (char().waffen || []))) },
+          { label: 'Rüstungen', hint: `${(c.ruestungen || []).length} Rüstungen`, onSelect: () => screen.push(objektScreen('Rüstungen', (char().ruestungen || []))) },
+        ],
+      }).build();
+    },
+  };
 }
 
 function geldboerseScreen() {
