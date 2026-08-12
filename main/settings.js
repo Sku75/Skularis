@@ -12,6 +12,20 @@ const DEFAULTS = {
   lautstaerke: 80,
 };
 
+// Erzwungene Standard-Lautstaerken: Bei einer NEUEN settings_version werden diese
+// Werte einmalig ueber die gespeicherten Nutzer-Einstellungen geschrieben, damit
+// nach einem Update jeder mit denselben, sinnvollen Lautstaerken frisch startet.
+// Nur diese Keys; Charaktere/Abenteuer liegen anderswo und bleiben unberuehrt.
+// settings_version bei jeder Default-Aenderung erhoehen, um erneut zu erzwingen.
+const SETTINGS_VERSION = 2;
+const VOLUME_DEFAULTS = {
+  lautstaerke: 80,           // Bedienton-Grundlautstaerke
+  app_master_vol: 100,       // Anwendungslautstaerke (Numblock)
+  audio_monitor_vol: 25,     // eigene Abhoer-Lautstaerke
+  audio_hintergrund_vol: 10, // Hintergrund-Kanal (bewusst leise)
+  radio_hoerer_vol: 25,      // Radio-Empfang
+};
+
 let _cache = null;
 
 function configPfad() {
@@ -31,6 +45,12 @@ function laden() {
       }
     }
   } catch (_e) { /* ignore */ }
+  // Einmalige Zwangs-Aktualisierung der Standard-Lautstaerken bei neuer Version.
+  if (_cache.settings_version !== SETTINGS_VERSION) {
+    Object.assign(_cache, VOLUME_DEFAULTS);
+    _cache.settings_version = SETTINGS_VERSION;
+    try { fs.writeFileSync(pfad, JSON.stringify(_cache, null, 2), 'utf-8'); } catch (_e) { /* ignore */ }
+  }
   return _cache;
 }
 

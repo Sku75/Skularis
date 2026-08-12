@@ -34,7 +34,7 @@ let _monitor = null;
 let _radioDest = null;
 let _sendeMono = false; // Sendestrom einkanalig (spart Daten); Standard Stereo
 let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
-let _hintergrundVol = 0.15; // Standard: wie laut der Hintergrund-Kanal in den Mix (und damit in den Stream) geht — bewusst deutlich leiser als Abspielen
+let _hintergrundVol = 0.10; // Standard: wie laut der Hintergrund-Kanal in den Mix (und damit in den Stream) geht — bewusst deutlich leiser als Abspielen
 let _appMaster = 1; // Anwendungslautstaerke (Numblock +/-): skaliert nur den EIGENEN Abhoer-Bus mit, nie den Sendestrom (radioDest haengt VOR dem Monitor)
 
 /** Ziel-Gain des Abhoer-Busses: Abhoer-Lautstaerke × Anwendungslautstaerke.
@@ -183,6 +183,28 @@ export function pauseVerwerfen(pfad) {
   if (!k) return false;
   _pausiert[k] = null;
   return true;
+}
+
+/** Gemerkte Pause-Stelle (Sekunden) fuer einen Pfad, oder null. Fuer die
+ *  Schnelltasten, damit die Stelle mit dem Abenteuer gespeichert werden kann. */
+export function pausePosFuer(pfad) {
+  const k = pausiertKanalFuer(pfad);
+  return (k && _pausiert[k]) ? _pausiert[k].pos : null;
+}
+
+/** Die Lautstaerke eines gerade laufenden Klangs (per Pfad) live setzen (0..1).
+ *  Fuer die individuelle Lautstaerke einer Schnelltaste, die sofort greifen soll. */
+export function setzePegelFuer(pfad, pegel) {
+  const p = Math.max(0, Math.min(1, pegel));
+  for (const k of KANAELE) {
+    const e = _kanaele[k];
+    if (e && e.pfad === pfad) {
+      e.pegel = p;
+      try { rampe(e.gain.gain, Math.max(0.0001, p), 0.2); } catch { /* egal */ }
+      return true;
+    }
+  }
+  return false;
 }
 
 // --- Alt-API (Rueckwaertskompatibilitaet) --------------------------------

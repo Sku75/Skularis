@@ -550,9 +550,8 @@ function kurztastenSlotScreen(i) {
       const modusHinweis = istPl ? 'Abspielen oder Hintergrund' : 'Einspielen, Abspielen oder Hintergrund';
       wrap.appendChild(infoZeile(`Belegt mit ${was}.`, `Modus ${kurztasten.modusName(d.modus)}${d.loop ? ', Schleife' : ''}. Lautstärke ${lv}.`));
       wrap.appendChild(aktionZeile('Testen', () => kurztasten.spiele(i), istPl ? 'die Playlist wie mit der Taste starten' : 'den Klang wie mit der Taste abspielen'));
-      wrap.appendChild(aktionZeile('Modus wählen', () => kurzModusWaehlen(i), `${modusHinweis}. Aktuell ${kurztasten.modusName(d.modus)}.`));
+      wrap.appendChild(aktionZeile('Modus und Lautstärke wählen', () => kurzModusWaehlen(i), `${modusHinweis} oder Individuelle Lautstärke. Aktuell ${kurztasten.modusName(d.modus)}, Lautstärke ${lv}.`));
       wrap.appendChild(aktionZeile(`Schleife: ${d.loop ? 'an' : 'aus'}`, () => kurzSchleifeUmschalten(i), istPl ? 'wiederholt die ganze Playlist' : 'wiederholt den Klang (bei Abspielen und Hintergrund)'));
-      wrap.appendChild(aktionZeile('Individuelle Lautstärke festlegen', () => kurzLautstaerke(i), `eigene Lautstärke für diese Taste. Aktuell ${lv}.`));
       wrap.appendChild(aktionZeile('Andere Audiodatei', () => kurztastenDateiWaehlen(i), 'stattdessen eine Audiodatei auf diese Taste legen'));
       wrap.appendChild(aktionZeile('Andere Playlist', () => kurztastenPlaylistWaehlen(i), 'stattdessen eine Playlist auf diese Taste legen'));
       wrap.appendChild(aktionZeile('Löschen', () => kurzLoeschen(i), 'die Taste wieder frei machen'));
@@ -569,9 +568,15 @@ async function kurzModusWaehlen(i) {
   const knoepfe = d.typ === 'playlist'
     ? [{ label: 'Abspielen', wert: 'abspielen' }, { label: 'Hintergrund', wert: 'hintergrund' }]
     : [{ label: 'Einspielen', wert: 'einspielen' }, { label: 'Abspielen', wert: 'abspielen' }, { label: 'Hintergrund', wert: 'hintergrund' }];
-  const wahl = await knopfDialog({ titel: 'Modus', knoepfe });
+  // Vierter Eintrag: erst hier erscheint das Lautstaerke-Menue, und dann greift es.
+  knoepfe.push({ label: 'Individuelle Lautstärke', wert: 'individuell' });
+  const wahl = await knopfDialog({ titel: 'Modus und Lautstärke', knoepfe });
   if (!wahl) return;
-  d.modus = wahl; kurzSpeichern(); screen.refresh(); sprache.sage(`Modus ${kurztasten.modusName(wahl)}.`);
+  if (wahl === 'individuell') { await kurzLautstaerke(i); return; }
+  // Einen Modus zu waehlen setzt die individuelle Lautstaerke zurueck -> es gilt
+  // wieder der Kanal-Standard (Abspielen/Einspielen voll, Hintergrund leise).
+  d.modus = wahl; d.lautstaerke = null; kurzSpeichern(); screen.refresh();
+  sprache.sage(`Modus ${kurztasten.modusName(wahl)}. Lautstärke auf Standard.`);
 }
 
 // Eine ganze Playlist auf eine Schnelltaste legen.
@@ -605,20 +610,17 @@ function kurzSchleifeUmschalten(i) {
 
 async function kurzLautstaerke(i) {
   const a = getMeister(); const d = a && a.kurztasten[i]; if (!d) return;
-  const wahl = await knopfDialog({
-    titel: 'Lautstärke', frage: 'Eigene Lautstärke für diese Taste?', knoepfe: [
-      { label: 'Wert eingeben', wert: 'wert' },
-      { label: 'Auf Standard (Kanal)', wert: 'std' },
-    ],
-  });
-  if (wahl === 'std') { d.lautstaerke = null; kurzSpeichern(); screen.refresh(); sprache.sage('Lautstärke auf Standard.'); return; }
-  if (wahl !== 'wert') return;
-  const e = await textDialog({ titel: 'Lautstärke', label: 'Zahl von 0 bis 100', wert: (typeof d.lautstaerke === 'number' ? String(d.lautstaerke) : '') });
+  const e = await textDialog({ titel: 'Individuelle Lautstärke', label: 'Zahl von 0 bis 100 (leer lassen für Standard)', wert: (typeof d.lautstaerke === 'number' ? String(d.lautstaerke) : '') });
   if (e === null) return;
-  const n = parseInt(String(e).replace(/[^0-9]/g, ''), 10);
+  const roh = String(e).replace(/[^0-9]/g, '');
+  // Leere Eingabe = zurueck auf Kanal-Standard.
+  if (roh === '') { d.lautstaerke = null; kurzSpeichern(); screen.refresh(); sprache.sage('Lautstärke auf Standard.'); return; }
+  const n = parseInt(roh, 10);
   if (isNaN(n)) { sprache.sage('Keine gültige Zahl.'); return; }
   d.lautstaerke = Math.max(0, Math.min(100, n)); kurzSpeichern(); screen.refresh();
-  sprache.sage(`Lautstärke ${d.lautstaerke} Prozent.`);
+  // Sofort auf einen gerade laufenden Klang dieser Taste anwenden (nicht erst beim nächsten Start).
+  if (d.pfad) player.setzePegelFuer(d.pfad, d.lautstaerke / 100);
+  sprache.sage(`Individuelle Lautstärke ${d.lautstaerke} Prozent.`);
 }
 
 async function kurzLoeschen(i) {

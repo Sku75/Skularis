@@ -15,7 +15,7 @@
  */
 import { comboAusEvent } from '../shortcuts.js';
 import { aktiverBereich } from '../ui/reiter-hub.js';
-import { getMeister } from './state.js';
+import { getMeister, speichere } from './state.js';
 import * as player from './audio-player.js';
 import * as sprache from '../sprache.js';
 
@@ -165,36 +165,51 @@ export async function spiele(index) {
 
   const kanal = d.modus === 'hintergrund' ? 'hintergrund' : 'abspielen';
 
-  // Laeuft gerade -> pausieren, Zeitpunkt merken.
-  if (player.laeuftKanalFuer(d.pfad)) {
-    player.pausiereKanal(kanal);
+  // Laeuft gerade (auf IRGENDEINEM Kanal) -> pausieren. Wichtig: den TATSAECHLICH
+  // laufenden Kanal pausieren (nicht den aus dem Modus abgeleiteten), sonst greift
+  // die Pause nach einem Moduswechsel ins Leere. Stelle merken UND mit dem
+  // Abenteuer speichern, damit sie ein Neuoeffnen ueberlebt.
+  const laufKanal = player.laeuftKanalFuer(d.pfad);
+  if (laufKanal) {
+    player.pausiereKanal(laufKanal);
     _pauseZeit[index] = Date.now();
+    d.pausePos = player.pausePosFuer(d.pfad) || 0;
+    merkePause();
     return true;
   }
 
   // Pausiert -> schneller zweiter Druck stoppt (auf Anfang), sonst weiter.
   if (player.istPfadPausiert(d.pfad)) {
     const seitPause = Date.now() - (_pauseZeit[index] || 0);
-    if (seitPause <= STOPP_FENSTER_MS) player.pauseVerwerfen(d.pfad); // Stop, zurueck auf Anfang
-    else player.fortsetzePfad(d.pfad);                                // an der Stelle weiter
+    if (seitPause <= STOPP_FENSTER_MS) { player.pauseVerwerfen(d.pfad); d.pausePos = 0; merkePause(); } // Stop, zurueck auf Anfang
+    else player.fortsetzePfad(d.pfad);                                                                  // an der Stelle weiter
     return true;
   }
 
-  // Nichts laeuft -> von vorne starten. Eine evtl. laufende Kurztasten-Playlist
-  // vorher beenden, damit sie nicht in denselben Kanal hineinredet.
+  // Nichts laeuft -> starten. Eine evtl. laufende Kurztasten-Playlist vorher
+  // beenden, damit sie nicht in denselben Kanal hineinredet.
   try {
     const mod = await import('./audio-bereich.js');
     if (mod.stopPlaylistWiedergabe) mod.stopPlaylistWiedergabe();
   } catch { /* egal */ }
   try {
     const zielPegel = pegel != null ? pegel : (kanal === 'hintergrund' ? player.getHintergrundPegel() : 1);
-    await player.spieleKanal(kanal, datei, { loop: !!d.loop, pegel: zielPegel });
+    // Gespeicherte Pause-Stelle aus einer frueheren Sitzung EINMAL fortsetzen,
+    // danach gilt wieder "von vorne". So laeuft nach dem Neuoeffnen nicht alles
+    // bei 0 los, sondern an der pausierten Stelle weiter.
+    const startOffset = (typeof d.pausePos === 'number' && d.pausePos > 0.2) ? d.pausePos : 0;
+    if (startOffset) { d.pausePos = 0; merkePause(); }
+    await player.spieleKanal(kanal, datei, { loop: !!d.loop, pegel: zielPegel, offset: startOffset });
   } catch (err) {
     console.error('Kurztaste abspielen:', err);
     sprache.sage('Konnte nicht abgespielt werden.'); // nur der Fehlerfall bleibt hoerbar
   }
   return true;
 }
+
+// Den aktuellen Stand des Meisterabenteuers speichern (Pausepositionen der
+// Schnelltasten). Absichtlich ohne await/Fehleranzeige — es ist ein Nebenspeichern.
+function merkePause() { try { speichere(); } catch { /* egal */ } }
 
 // --- Globaler Tastendruck-Handler ---------------------------------------
 

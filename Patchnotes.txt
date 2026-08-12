@@ -4,6 +4,29 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.93, 12. August 2026
+
+
+Audio-Schnelltasten: Modus, Lautstärke und Pause überarbeitet
+
+- Je Schnelltaste gibt es jetzt "Modus und Lautstärke wählen" mit vier Punkten:
+  Einspielen, Abspielen, Hintergrund und Individuelle Lautstärke. Erst wenn du
+  "Individuelle Lautstärke" wählst, kommt die Zahleneingabe, und der Wert greift
+  dann auch sofort — sogar auf einen gerade laufenden Klang.
+- Einen der drei Modi zu wählen setzt die individuelle Lautstärke zurück auf den
+  Kanal-Standard. So klingt Hintergrund wieder leise und Abspielen laut, statt
+  dass ein alter Lautstärkewert beide gleich laut macht.
+- Pause und Stopp per Schnelltaste greifen jetzt zuverlässig auch im Modus
+  Abspielen (es wird immer der Kanal pausiert, auf dem der Klang wirklich läuft).
+- Der Hintergrund-Standard ist jetzt leiser (10 statt 15 Prozent).
+- Die Pausestelle einer Schnelltaste wird mit dem Meisterabenteuer gespeichert:
+  Nach dem Neuöffnen läuft der Klang an der pausierten Stelle weiter statt von
+  vorne.
+- Beim Update werden die Standard-Lautstärken einmalig frisch gesetzt (Abhören 25,
+  Hintergrund 10, Radio 25, Anwendungslautstärke 100), damit alle mit denselben,
+  sinnvollen Werten starten. Deine Charaktere und Abenteuer bleiben unberührt.
+
+
 Version 0.92, 12. August 2026
 
 
