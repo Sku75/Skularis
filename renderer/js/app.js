@@ -29,6 +29,11 @@ async function init() {
   // Einstellungen + Sound
   await einstellungen.laden();
   await sounds.init();
+  // Anwendungslautstaerke (Numblock +/-) auf Player und Radio uebertragen; sounds
+  // hat sie in init() bereits geladen und skaliert die Bedien-Toene selbst.
+  const _master = sounds.getAnwendungsLautstaerke();
+  audioPlayer.setAnwendungsLautstaerke(_master);
+  radio.setAnwendungsLautstaerke(_master);
   sounds.playStart();
   await new Promise(r => setTimeout(r, 900));
 
@@ -63,7 +68,7 @@ async function init() {
   initKopfzeile();
   registriereEscape();
   registriereAudioTaste();
-  registriereRadioLautstaerke();
+  registriereAnwendungsLautstaerke();
   registriereQuit();
 
   // Keine eigene Fokus-Ansage mehr: NVDA liest fokussierte Elemente selbst einmal
@@ -143,13 +148,16 @@ function registriereAudioTaste() {
   }, true);
 }
 
-// --- Radio-Lautstaerke am Ziffernblock (global) ---
+// --- Anwendungslautstaerke am Ziffernblock (global) ---
 //
-// Plus und Minus am Ziffernblock stellen ueberall die Radio-Lautstaerke lauter
-// und leiser (der eigene Radio-Kanal des Clients). Ohne Klangeffekt, es wird nur
-// die Zahl angesagt. Steht der Fokus auf einer Wert-Zeile (eigener Regler),
-// bleibt deren Plus/Minus unangetastet.
-function registriereRadioLautstaerke() {
+// Plus und Minus am Ziffernblock regeln UEBERALL die Anwendungslautstaerke: einen
+// Master ueber alles, was der Nutzer hoert (Bedien-Toene, Player-Audio, Radio-
+// Empfang). Damit stellt man schnell die eigene Hoerlautstaerke ein und die
+// Balance zu Discord — OHNE das Verhaeltnis der Kanaele (Hintergrund/Abhoer) oder
+// die Sende-Lautstaerke an die Spieler zu veraendern. Ohne Sprachansage; nur am
+// Rand (0 oder 100, oder schon am Anschlag) ein Anschlagklang. Steht der Fokus auf
+// einer Wert-Zeile (eigener Regler), bleibt deren Plus/Minus unangetastet.
+function registriereAnwendungsLautstaerke() {
   document.addEventListener('keydown', (e) => {
     if (e.code !== 'NumpadAdd' && e.code !== 'NumpadSubtract') return;
     if (e.altKey || e.shiftKey) return;
@@ -160,23 +168,13 @@ function registriereRadioLautstaerke() {
     // Ohne Strg: 1er-Schritte. Mit Strg: 5er-Schritte (schneller lauter/leiser).
     const schritt = e.ctrlKey ? 5 : 1;
     const delta = (e.code === 'NumpadAdd' ? 1 : -1) * schritt;
-    // Als Hoerer (Spieler) regelt +/- die Radio-Lautstaerke; sonst (Meister, der
-    // selbst abspielt) die eigene Audio-Lautstaerke — sonst passiert bei ihm nichts.
-    // Keine Sprachansage der neuen Position mehr (Nutzerwunsch). Nur am Rand
-    // (0 oder 100, oder schon am Anschlag) ein Anschlagklang.
-    if (radio.rolle() === 'hoerer') {
-      const alt = radio.getHoererLautstaerke();
-      const v = Math.max(0, Math.min(100, alt + delta));
-      radio.setHoererLautstaerke(v);
-      if (ipc && ipc.configSchreiben) { try { ipc.configSchreiben('radio_hoerer_vol', v); } catch { /* egal */ } }
-      if (v === alt || v === 0 || v === 100) sounds.playGrenze();
-    } else {
-      const alt = audioPlayer.getMonitorLautstaerke();
-      const v = Math.max(0, Math.min(100, alt + delta));
-      audioPlayer.setMonitorLautstaerke(v);
-      if (ipc && ipc.configSchreiben) { try { ipc.configSchreiben('audio_monitor_vol', v); } catch { /* egal */ } }
-      if (v === alt || v === 0 || v === 100) sounds.playGrenze();
-    }
+    const alt = sounds.getAnwendungsLautstaerke();
+    const v = Math.max(0, Math.min(100, alt + delta));
+    sounds.setAnwendungsLautstaerke(v);
+    audioPlayer.setAnwendungsLautstaerke(v);
+    radio.setAnwendungsLautstaerke(v);
+    if (ipc && ipc.configSchreiben) { try { ipc.configSchreiben('app_master_vol', v); } catch { /* egal */ } }
+    if (v === alt || v === 0 || v === 100) sounds.playGrenze();
   }, true);
 }
 

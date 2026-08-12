@@ -113,6 +113,10 @@ const EBENE_VOLUME = 0.16;
 
 let _soundAn = true;
 let _globalVolume = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
+// Anwendungslautstaerke (Numblock +/-): ein Master ueber ALLES, was der Nutzer
+// hoert (Bedien-Toene, Player-Audio, Radio-Empfang). Verschiebt NICHT die Balance
+// der Kanaele (Hintergrund/Abhoer) und NICHT die Sende-Lautstaerke an die Spieler.
+let _appMaster = 1;
 const _audioCache = {};
 let _audioCtx = null;
 
@@ -120,6 +124,8 @@ export async function init() {
   _soundAn = await einstellungen.get('sound_an') !== false;
   const vol = await einstellungen.get('lautstaerke');
   if (vol != null) _globalVolume = Math.max(0, Math.min(1, vol / 100));
+  const master = await einstellungen.get('app_master_vol');
+  if (master != null) _appMaster = Math.max(0, Math.min(1, master / 100));
   _preload();
 }
 
@@ -142,22 +148,36 @@ export function getVolume() {
 }
 
 /**
+ * Anwendungslautstaerke (Numblock +/-): ein Master ueber ALLE hoerbaren Klaenge
+ * (Bedien-Toene, Player-Audio, Radio-Empfang). Verschiebt NICHT die Balance
+ * zwischen den Kanaelen und NICHT die Sende-Lautstaerke an die Spieler. Die
+ * eigentliche Persistenz (app_master_vol) uebernimmt der Numblock-Handler.
+ */
+export function setAnwendungsLautstaerke(prozent) {
+  _appMaster = Math.max(0, Math.min(1, prozent / 100));
+}
+export function getAnwendungsLautstaerke() {
+  return Math.round(_appMaster * 100);
+}
+
+/**
  * Einen Klang abspielen. faktor skaliert diesen EINEN Aufruf zusaetzlich
  * (1 = normal, 0.7 = 30 Prozent leiser), ohne die Grundlautstaerke zu aendern.
  */
-export function play(name, faktor = 1) {
+export function play(name, faktor = 1, ohneMaster = false) {
   if (!_soundAn) return;
   const file = SOUND_MAP[name];
   if (!file) {
-    _playFallbackBeep(name, faktor);
+    _playFallbackBeep(name, faktor, ohneMaster);
     return;
   }
   const audio = _getOrCreate(file);
   if (!audio) {
-    _playFallbackBeep(name, faktor);
+    _playFallbackBeep(name, faktor, ohneMaster);
     return;
   }
-  audio.volume = Math.max(0, Math.min(1, _globalVolume * (VOLUME_MAP[name] || DEFAULT_VOLUME_FACTOR) * faktor));
+  const master = ohneMaster ? 1 : _appMaster;
+  audio.volume = Math.max(0, Math.min(1, _globalVolume * master * (VOLUME_MAP[name] || DEFAULT_VOLUME_FACTOR) * faktor));
   audio.currentTime = 0;
   audio.play().catch(() => _playFallbackBeep(name, faktor));
 }
@@ -180,7 +200,7 @@ function _getOrCreate(file) {
   }
 }
 
-function _playFallbackBeep(name, faktor = 1) {
+function _playFallbackBeep(name, faktor = 1, ohneMaster = false) {
   const b = FALLBACK_BEEPS[name];
   if (!b) return;
   try {
@@ -188,7 +208,7 @@ function _playFallbackBeep(name, faktor = 1) {
     const osc = _audioCtx.createOscillator();
     const gain = _audioCtx.createGain();
     osc.frequency.value = b.freq;
-    gain.gain.value = _globalVolume * (VOLUME_MAP[name] || DEFAULT_VOLUME_FACTOR) * 0.3 * faktor;
+    gain.gain.value = _globalVolume * (ohneMaster ? 1 : _appMaster) * (VOLUME_MAP[name] || DEFAULT_VOLUME_FACTOR) * 0.3 * faktor;
     osc.connect(gain);
     gain.connect(_audioCtx.destination);
     osc.start();
@@ -234,7 +254,7 @@ export function playEbene(tiefe, richtung) {
     const ctx = _audioCtx;
     if (ctx.state === 'suspended') ctx.resume();
     const t0 = ctx.currentTime;
-    const vol = _globalVolume * EBENE_VOLUME;
+    const vol = _globalVolume * _appMaster * EBENE_VOLUME;
     if (tiefe <= 1) {
       // Hauptebene: warme, absteigende Heimkehr (zwei Toene).
       _ton(ctx, 523, t0, 0.12, vol);
@@ -268,7 +288,7 @@ export function playWertHoch()     { play('wert_hoch'); }
 export function playWertRunter()   { play('wert_runter'); }
 export function playApBezahlen()   { play('ap_bezahlen'); }
 export function playApZurueck()    { play('ap_zurueck'); }
-export function playGrenze()       { play('grenze'); } // Anschlag am Rand (0/100, Listenrand)
+export function playGrenze()       { play('grenze', 1, true); } // Anschlag am Rand (0/100, Listenrand) — bleibt auch bei kleiner Anwendungslautstaerke hoerbar
 
 // Rueckwaertskompatibilitaet
 export function playBestaetigen()  { play('bing'); }

@@ -760,6 +760,12 @@ function lautstaerkenScreen() {
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel('Lautstärken'));
       wrap.appendChild(wertZeile({
+        label: 'Anwendungslautstärke', get: () => player.getAnwendungsLautstaerke(),
+        set: (v) => { sounds.setAnwendungsLautstaerke(v); player.setAnwendungsLautstaerke(v); radio.setAnwendungsLautstaerke(v); merke('app_master_vol', v); },
+        min: 0, max: 100, ohneTon: true, nurWert: true, stumm: true,
+        detail: 'Wie laut Skularis insgesamt bei dir klingt — alle Töne zusammen. Damit stellst du schnell deine Hörlautstärke und die Balance zu Discord ein. Am Ziffernblock regeln das Plus und Minus überall. Verschiebt NICHT das Verhältnis von Hintergrund und Abhören und ändert NICHT, wie laut die Spieler hören.',
+      }));
+      wrap.appendChild(wertZeile({
         label: 'Meine Audio-Lautstärke', get: () => player.getMonitorLautstaerke(),
         set: (v) => { player.setMonitorLautstaerke(v); merke('audio_monitor_vol', v); },
         min: 0, max: 100, ohneTon: true, nurWert: true, stumm: true,

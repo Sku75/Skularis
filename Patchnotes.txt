@@ -4,6 +4,24 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.92, 12. August 2026
+
+
+Ziffernblock regelt jetzt die Anwendungslautstärke
+
+- Plus und Minus am Ziffernblock regeln überall eine neue "Anwendungslautstärke":
+  einen Gesamtregler über alles, was du hörst — Bedien-Töne, den Audio-Player und
+  den Radio-Empfang zusammen. Damit stellst du schnell deine Hörlautstärke ein und
+  findest die Balance zu Discord, ohne dass die Mitspieler zu leise werden.
+- Dieser Regler verschiebt NICHT mehr das Verhältnis zwischen Hintergrund und
+  Abhören. Abspielen bleibt laut, Hintergrund bleibt leise — nur die Gesamtsumme
+  wird lauter oder leiser. Früher zog der Ziffernblock heimlich nur die eigene
+  Abhör-Lautstärke herunter, wodurch Abspielen und Einspielen zu leise wirkten.
+- Die Sende-Lautstärke an die Spieler bleibt davon völlig unberührt: jeder regelt
+  seine eigene Hörlautstärke selbst. Mit Strg dazu gehen die Schritte in Fünfern.
+- Neu auch als Menüpunkt "Anwendungslautstärke" ganz oben unter den Lautstärken.
+
+
 Version 0.91, 10. August 2026
 
 

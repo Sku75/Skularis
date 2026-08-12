@@ -30,6 +30,7 @@ let _rolle = null;         // 'sender' | 'hoerer'
 const _calls = new Set();  // Sender: verbundene Hoerer
 let _audioEl = null;       // Hoerer: Wiedergabe-Element
 let _hoererVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
+let _appMaster = 1; // Anwendungslautstaerke (Numblock +/-): skaliert den Radio-EMPFANG mit, nie den eigenen Sendestrom
 
 // Auto-Reconnect (Hoerer): greift, wenn die Verbindung abbricht und der Spieler
 // NICHT selbst getrennt hat. Zeitplan: 3x alle 5 s, dann 3x alle 10 s, dann Aufgabe.
@@ -213,19 +214,28 @@ function spieleEmpfang(remote) {
     _audioEl.autoplay = true;
   }
   _audioEl.srcObject = remote;
-  _audioEl.volume = _hoererVol;
+  _audioEl.volume = Math.max(0, Math.min(1, _hoererVol * _appMaster));
   _audioEl.play().catch(() => { /* Autoplay erst nach Geste — die Geste war der Klick */ });
 }
 
 /** Hoerer-Lautstaerke (0 bis 100), getrennt von allen anderen Toenen. */
 export function setHoererLautstaerke(prozent) {
   _hoererVol = Math.max(0, Math.min(1, prozent / 100));
-  if (_audioEl) _audioEl.volume = _hoererVol;
+  if (_audioEl) _audioEl.volume = Math.max(0, Math.min(1, _hoererVol * _appMaster));
 }
 
 export function getHoererLautstaerke() {
   return Math.round(_hoererVol * 100);
 }
+
+/** Anwendungslautstaerke (Numblock +/-) fuer den Radio-Empfang. Skaliert nur, was
+ *  DU hoerst; der eigene Sendestrom an die Spieler bleibt unberuehrt. Die
+ *  Persistenz (app_master_vol) uebernimmt der Numblock-Handler. */
+export function setAnwendungsLautstaerke(prozent) {
+  _appMaster = Math.max(0, Math.min(1, prozent / 100));
+  if (_audioEl) _audioEl.volume = Math.max(0, Math.min(1, _hoererVol * _appMaster));
+}
+export function getAnwendungsLautstaerke() { return Math.round(_appMaster * 100); }
 
 /** Anzahl aktuell verbundener Hoerer (nur beim Sender sinnvoll). */
 export function hoererAnzahl() {

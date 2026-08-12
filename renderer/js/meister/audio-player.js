@@ -35,6 +35,13 @@ let _radioDest = null;
 let _sendeMono = false; // Sendestrom einkanalig (spart Daten); Standard Stereo
 let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
 let _hintergrundVol = 0.15; // Standard: wie laut der Hintergrund-Kanal in den Mix (und damit in den Stream) geht — bewusst deutlich leiser als Abspielen
+let _appMaster = 1; // Anwendungslautstaerke (Numblock +/-): skaliert nur den EIGENEN Abhoer-Bus mit, nie den Sendestrom (radioDest haengt VOR dem Monitor)
+
+/** Ziel-Gain des Abhoer-Busses: Abhoer-Lautstaerke × Anwendungslautstaerke.
+ *  Der Sendestrom an die Spieler (radioDest) bleibt davon unberuehrt. */
+function monitorZiel() {
+  return Math.max(0.0001, _monitorVol * _appMaster);
+}
 
 // Die drei Kanaele. Je Kanal genau EIN laufender Klang (oder null).
 const _kanaele = { abspielen: null, hintergrund: null, einspielen: null };
@@ -50,7 +57,7 @@ function ctx() {
     _mixBus = _ctx.createGain();
     _mixBus.gain.value = 1;
     _monitor = _ctx.createGain();
-    _monitor.gain.value = _monitorVol;
+    _monitor.gain.value = monitorZiel();
     _radioDest = _ctx.createMediaStreamDestination();
     anwendeMono(); // Mono/Stereo fuer den Sendestrom nach Einstellung
     _mixBus.connect(_monitor);
@@ -313,9 +320,19 @@ export function setMonitorLautstaerke(prozent) {
   _monitorVol = Math.max(0, Math.min(1, prozent / 100));
   // Beim Vorhoeren bleibt der Live-Mix fuer den Meister stumm; die Lautstaerke
   // wirkt dann auf das Vorhoeren. Sonst regelt sie den Live-Mix.
-  if (_preview) rampe(_preview.gain.gain, Math.max(0.0001, _monitorVol), 0.15);
-  else if (_monitor) rampe(_monitor.gain, Math.max(0.0001, _monitorVol), 0.15);
+  if (_preview) rampe(_preview.gain.gain, monitorZiel(), 0.15);
+  else if (_monitor) rampe(_monitor.gain, monitorZiel(), 0.15);
 }
+
+/** Anwendungslautstaerke (Numblock +/-) fuer den eigenen Player-Mix. Skaliert die
+ *  Abhoer-Lautstaerke mit; der Sendestrom an die Spieler bleibt unberuehrt. Die
+ *  Persistenz (app_master_vol) uebernimmt der Numblock-Handler. */
+export function setAnwendungsLautstaerke(prozent) {
+  _appMaster = Math.max(0, Math.min(1, prozent / 100));
+  if (_preview) rampe(_preview.gain.gain, monitorZiel(), 0.15);
+  else if (_monitor) rampe(_monitor.gain, monitorZiel(), 0.15);
+}
+export function getAnwendungsLautstaerke() { return Math.round(_appMaster * 100); }
 
 // --- Vorhoeren (Probehoeren, nur fuer den Meister) -----------------------
 //
@@ -346,14 +363,14 @@ export async function starteVorhoeren(datei) {
   source.connect(gain);
   gain.connect(c.destination); // NUR zu den Boxen, nicht ins Radio
   source.start();
-  rampe(gain.gain, Math.max(0.0001, _monitorVol), 0.4);
+  rampe(gain.gain, monitorZiel(), 0.4);
   _preview = { source, gain, pfad: datei.pfad, name: datei.name };
 }
 
 /** Vorhoeren beenden und den Live-Mix fuer den Meister wieder einblenden. */
 export function beendeVorhoeren() {
   stoppeVorschau();
-  if (_monitor) rampe(_monitor.gain, Math.max(0.0001, _monitorVol), 0.4);
+  if (_monitor) rampe(_monitor.gain, monitorZiel(), 0.4);
 }
 
 export function istVorhoeren() { return Boolean(_preview); }
