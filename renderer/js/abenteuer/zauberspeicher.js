@@ -17,6 +17,7 @@ import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { knopfDialog } from '../ui/dialog.js';
 import { getAbenteuer, speichere } from './state.js';
+import { sendeStatusWennVerbunden } from './status-sync.js';
 import { getDb } from '../core/db-laden.js';
 import { zauberListe } from './kampf-menues.js';
 
@@ -125,6 +126,7 @@ function speichereZauber(i, s) {
     wirkung: s.wirkung || '', kosten: s.kosten || '',
   };
   speichere();
+  sendeStatusWennVerbunden(); // F2-Live: Meister sieht/hört den gefüllten Zauberspeicher
   screen.pop(); // zurueck zum Zauberspeicher-Menue
   screen.refresh();
   sprache.sage(`${s.name} in Zauberspeicher ${i + 1} geladen. Qualitaet ${qualitaet}. Drei W20: ${w.join(', ')}, der mittlere ${mittel} plus Probenwert ${s.pw}.`);
@@ -138,6 +140,7 @@ function wirkeSlot(i) {
     if (w !== 'ja') return;
     a.zauberspeicher[i] = null;
     speichere();
+    sendeStatusWennVerbunden(); // F2-Live: Meister sieht/hört den verbrauchten Zauberspeicher
     screen.refresh();
     sprache.sage(`${s.name} gewirkt. Zauberspeicher ${i + 1} ist wieder leer.`);
   });

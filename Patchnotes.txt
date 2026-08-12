@@ -4,6 +4,24 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.95, 12. August 2026
+
+
+Verbinden nur mit Code, F2-Aktualisieren und Zauberspeicher live
+
+- Verbinden fragt jetzt nur noch den Code (Radio und Post). Dein Name für die Post
+  kommt automatisch vom Charakterbogen — beim Öffnen des Abenteuers und über F12
+  gleich. Kommt derselbe Charakter zurück, ersetzt er sauber seine alte Verbindung.
+- Neu auf dem Meister-Charakterbildschirm ganz oben: "Aktualisieren". Es holt den
+  aktuellen Stand des Spielers und liest ihn vor (Wunden, Erschöpfung, Energien,
+  Zauberspeicher). Bewusst manuell, damit der Fokus nicht wegspringt.
+- Der Meister sieht und hört jetzt auch Zauberspeicher-Änderungen: legt ein Spieler
+  einen Zauber in den Magierstab oder verbraucht ihn, wird das live übertragen und
+  angesagt ("Zauberspeicher Platz 1, Feuerball eingelegt" bzw. "verbraucht").
+- Astralpunkte und die übrigen Energien werden weiterhin live übertragen; nach dem
+  Aktualisieren stehen alle aktuellen Werte zum Nachlesen bereit.
+
+
 Version 0.94, 12. August 2026
 
 

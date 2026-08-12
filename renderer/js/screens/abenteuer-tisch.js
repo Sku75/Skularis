@@ -223,17 +223,16 @@ async function oeffneAbenteuer(eintrag) {
 }
 
 /**
- * Vor dem Öffnen: Code (Radio und Post) und den Namen für die Post erfragen. Leer
- * lassen heißt "offline spielen" — dann wird nicht verbunden, man kann es später
- * über F12 nachholen.
+ * Vor dem Öffnen nur den Code (Radio und Post) erfragen. Der Name für die Post kommt
+ * automatisch vom Charakterbogen — so heißt der Spieler im Postsystem immer gleich,
+ * und ein zurückkehrender Charakter ersetzt sauber seine alte Verbindung. Leer lassen
+ * heißt "offline spielen"; nachholen geht über F12.
  */
 async function frageVerbindung(a) {
   const code = await textDialog({ titel: 'Mit dem Meister verbinden', label: 'Code vom Meister (Radio und Post). Leer lassen, wenn du offline spielst.' });
   if (code === null || !code.trim()) return null;
-  const vorschlag = (a && a.charakter && a.charakter.name) || '';
-  const name = await textDialog({ titel: 'Dein Name für die Post', label: 'Dein Name, wie dein Charakter heißt', wert: vorschlag });
-  if (name === null || !name.trim()) return null;
-  return { code: code.trim(), name: name.trim() };
+  const name = (((a && a.charakter && a.charakter.name) || 'Spieler')).trim() || 'Spieler';
+  return { code: code.trim(), name };
 }
 
 /** Untermenü eines Abenteuers: Öffnen, Löschen. */

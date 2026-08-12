@@ -54,6 +54,19 @@ function statusZeile(werte, key, wort) {
   return infoZeile(`${wort}: ${v.aktuell}${max}`, `${wort} des Spielers, live übertragen. Nur Anzeige.`);
 }
 
+/** Kompakte, vorlesbare Zusammenfassung des Live-Stands (für "Aktualisieren"). */
+function statusZusammenfassung(name, werte) {
+  if (!werte || !Object.keys(werte).length) return `${name}: noch nichts übertragen.`;
+  const teile = [];
+  const paar = (k, wort) => { const v = werte[k]; if (v && typeof v.aktuell === 'number') teile.push(`${wort} ${v.aktuell}${(v.max != null ? ` von ${v.max}` : '')}`); };
+  paar('Wunden', 'Wunden'); paar('Erschoepfung', 'Erschöpfung');
+  paar('AsP', 'Astralpunkte'); paar('KaP', 'Karmapunkte'); paar('GuP', 'Gunstpunkte');
+  paar('SchiP', 'Schicksalspunkte'); paar('AstralspeicherStab', 'Astralspeicher Stab');
+  const zs = Array.isArray(werte.zauberspeicher) ? werte.zauberspeicher.filter(Boolean) : [];
+  if (zs.length) teile.push(`Zauberspeicher ${zs.map(s => s.name).join(', ')}`);
+  return `${name}: ${teile.length ? teile.join(', ') : 'keine Zähler übertragen'}.`;
+}
+
 /** Transienten Ansicht-Kontext setzen (Bogen als Charakter, verdeckt, keine Persistenz). */
 function setzeAnsicht(c) {
   setAbenteuer({
@@ -79,6 +92,14 @@ function charLiveScreen(c) {
       const wrap = document.createElement('div');
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel(this.title));
+
+      // Aktualisieren GANZ OBEN: holt den aktuellen Live-Stand und liest ihn vor.
+      // Bewusst manuell (kein Auto-Neuaufbau), damit der Fokus nicht wegspringt.
+      wrap.appendChild(aktionZeile('Aktualisieren', () => {
+        const frisch = post.getStatus(c.name) || {};
+        sprache.sage('Aktualisiert. ' + statusZusammenfassung(c.name, frisch));
+        screen.refresh();
+      }, 'holt den aktuellen Stand des Spielers (Wunden, Energien, Zauberspeicher) und liest ihn vor'));
 
       wrap.appendChild(abschnittTitel('Werte'));
       if (werte) {

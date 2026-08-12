@@ -59,12 +59,23 @@ const _rate = new Map();          // name -> { count, seit, pause }
 const FELD = { Wunden: 'Wunden', Erschoepfung: 'Erschöpfung', SchiP: 'Schicksalspunkte', AsP: 'Astralpunkte', KaP: 'Karmapunkte', GuP: 'Gunstpunkte', AstralspeicherStab: 'Astralspeicher' };
 function az(werte, k) { return (werte && werte[k] && typeof werte[k].aktuell === 'number') ? werte[k].aktuell : null; }
 
-/** Geaenderte variable Werte als Liste "Feld von X auf Y". */
+/** Geaenderte variable Werte als Liste "Feld von X auf Y" (inkl. Zauberspeicher). */
 function diffTeile(alt, neu) {
   const teile = [];
   for (const k of Object.keys(FELD)) {
     const n = az(neu, k); const a = az(alt, k);
     if (n !== null && n !== a) teile.push(`${FELD[k]} von ${a === null ? '—' : a} auf ${n}`);
+  }
+  // Zauberspeicher: ein Zauber wurde eingelegt oder verbraucht.
+  const za = Array.isArray(alt && alt.zauberspeicher) ? alt.zauberspeicher : [];
+  const zn = Array.isArray(neu && neu.zauberspeicher) ? neu.zauberspeicher : [];
+  const zmax = Math.max(za.length, zn.length);
+  for (let i = 0; i < zmax; i++) {
+    const an = za[i] && za[i].name; const bn = zn[i] && zn[i].name;
+    if (an === bn) continue;
+    if (bn && !an) teile.push(`Zauberspeicher Platz ${i + 1}, ${bn} eingelegt`);
+    else if (!bn && an) teile.push(`Zauberspeicher Platz ${i + 1}, ${an} verbraucht`);
+    else teile.push(`Zauberspeicher Platz ${i + 1}, jetzt ${bn}`);
   }
   return teile;
 }
