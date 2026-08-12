@@ -45,6 +45,8 @@ contextBridge.exposeInMainWorld('skularis', {
     audioMeineWaehlen:    ()        => ipcRenderer.invoke('skularis:audio-meine-waehlen'),
     playlistsLaden:       ()        => ipcRenderer.invoke('skularis:playlists-laden'),
     playlistsSpeichern:   (inhalt)  => ipcRenderer.invoke('skularis:playlists-speichern', { inhalt }),
+    boxHochladen:         (code, inhalt) => ipcRenderer.invoke('skularis:box-hochladen', { code, inhalt }),
+    boxAbholen:           (code)    => ipcRenderer.invoke('skularis:box-abholen', { code }),
 
     onMenuAktion:       (cb) => ipcRenderer.on('skularis:menu-aktion', (_e, d) => cb(d)),
     onDateiVonCli:      (cb) => ipcRenderer.on('skularis:datei-von-cli', (_e, d) => cb(d)),

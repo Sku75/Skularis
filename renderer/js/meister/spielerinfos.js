@@ -83,7 +83,9 @@ function charLiveScreen(c) {
   return {
     title: '',
     build() {
-      const werte = post.getStatus(c.name);
+      // Zuordnung bevorzugt über die stabile Charakter-ID (auch nach Umbenennung),
+      // sonst über den Namen wie bisher.
+      const werte = (c.bogen && post.getStatusById(c.bogen.id)) || post.getStatus(c.name);
       const online = post.verbundeneSpieler().includes(c.name);
       const status = online ? 'verbunden' : (werte ? 'offline' : 'nicht übertragen');
       this.title = `${c.name} — ${status}`;

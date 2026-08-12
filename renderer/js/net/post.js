@@ -45,6 +45,12 @@ let _verbundenGewesen = false; // Reconnect erst, wenn die Verbindung einmal STA
 
 /** Meister: letzter empfangener F2-Stand eines Spielers (oder null). */
 export function getStatus(name) { const s = _status.get(name); return s ? s.werte : null; }
+/** Meister: Live-Stand nach stabiler Charakter-ID (ordnet auch nach Umbenennung korrekt zu). */
+export function getStatusById(id) {
+  if (!id) return null;
+  for (const s of _status.values()) if (s.werte && s.werte.id === id) return s.werte;
+  return null;
+}
 /** Meister: alle Namen mit einem Live-Status. */
 export function statusNamen() { return [..._status.keys()]; }
 

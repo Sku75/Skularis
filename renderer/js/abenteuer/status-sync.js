@@ -7,12 +7,14 @@
  * verstellt. Der Meister zeigt den Stand nur an (read-only) und hört auf Änderungen.
  */
 import { abgeleiteteWerte } from '../core/regeln.js';
+import { ensureCharakterId } from '../core/character.js';
 import { getAbenteuer } from './state.js';
 import * as post from '../net/post.js';
 
 /** F2-Schnappschuss aus dem aktuellen Abenteuer bauen. */
 export function sammleStatus(a) {
   if (!a || !a.charakter) return {};
+  ensureCharakterId(a.charakter); // stabile ID für die Zuordnung beim Meister sicherstellen
   const w = abgeleiteteWerte(a.charakter);
   const res = a.ressourcen || {};
   const paar = (k) => (res[k] ? { aktuell: res[k].aktuell || 0, max: (res[k].max !== undefined ? res[k].max : null) } : null);
@@ -23,6 +25,7 @@ export function sammleStatus(a) {
     ? a.zauberspeicher.map(s => (s ? { name: s.name, qualitaet: s.qualitaet } : null))
     : [];
   return {
+    id: a.charakter.id, // stabile Charakter-ID für die Zuordnung beim Meister
     einschraenkungen: wu + er,
     Wunden: paar('Wunden'), Erschoepfung: paar('Erschoepfung'),
     SchiP: paar('SchiP'), AsP: paar('AsP'), KaP: paar('KaP'), GuP: paar('GuP'),

@@ -1,0 +1,86 @@
+/**
+ * Skularis — Charakterbogen-Transfer über ntfy.sh (accountlos, Code = Zimmer).
+ *
+ * Ein Spieler lädt seinen Bogen unter einem 4-stelligen Code hoch (als Anhang, da
+ * meist größer als 4 KB), der Meister holt ihn unter demselben Code wieder ab. KEIN
+ * Konto nötig. Die Daten verfallen automatisch nach ~3 Stunden (ein aktives Löschen
+ * bietet der öffentliche Dienst nicht). Bewusst GETRENNT vom Radio/Post (PeerJS).
+ *
+ * Läuft im Hauptprozess (Node https), damit keine CSP/CORS-Grenzen des Renderers
+ * greifen. Verifizierter Ablauf: PUT mit Filename-Header -> Anhang; GET
+ * /<topic>/json?poll=1&since=all -> Nachricht mit attachment.url; diese URL laden.
+ */
+const https = require('https');
+
+const HOST = 'ntfy.sh';
+
+/** Topic (Zimmer) aus dem Code ableiten. Nur der Code entscheidet über den Zugang. */
+function topicVon(code) {
+  const rein = String(code || '').replace(/[^0-9a-zA-Z]/g, '').toLowerCase();
+  return rein ? ('skularis-transfer-' + rein) : null;
+}
+
+/** Eine HTTPS-Anfrage als Promise (mit Timeout). Rückgabe { status, body:Buffer }. */
+function anfrage(optionen, body) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(optionen, (res) => {
+      const teile = [];
+      res.on('data', (d) => teile.push(d));
+      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(teile) }));
+    });
+    req.on('error', reject);
+    req.setTimeout(20000, () => { req.destroy(new Error('Zeitüberschreitung')); });
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+/** Bogen (XML-String) unter dem Code hochladen. */
+async function uploadBogen(code, inhalt) {
+  const topic = topicVon(code);
+  if (!topic) return { ok: false, fehler: 'Kein gültiger Code.' };
+  const body = Buffer.from(String(inhalt || ''), 'utf-8');
+  if (!body.length) return { ok: false, fehler: 'Leerer Bogen.' };
+  try {
+    const r = await anfrage({
+      host: HOST, path: '/' + topic, method: 'PUT',
+      headers: {
+        'Filename': 'bogen.xml',
+        'Title': 'Skularis Charakterbogen',
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': body.length,
+      },
+    }, body);
+    if (r.status >= 200 && r.status < 300) return { ok: true };
+    return { ok: false, fehler: 'Server-Status ' + r.status };
+  } catch (e) {
+    return { ok: false, fehler: String((e && e.message) || e) };
+  }
+}
+
+/** Bogen unter dem Code abholen (neuester Anhang). Rückgabe { ok, inhalt } oder { ok:false, fehler }. */
+async function downloadBogen(code) {
+  const topic = topicVon(code);
+  if (!topic) return { ok: false, fehler: 'Kein gültiger Code.' };
+  try {
+    // 1) Gecachte Nachrichten des Topics einmalig abfragen.
+    const r = await anfrage({ host: HOST, path: '/' + topic + '/json?poll=1&since=all', method: 'GET', headers: {} });
+    if (r.status < 200 || r.status >= 300) return { ok: false, fehler: 'Server-Status ' + r.status };
+    const zeilen = r.body.toString('utf-8').trim().split('\n').filter(Boolean);
+    let attUrl = null; // die neueste Anhang-URL gewinnt
+    for (const z of zeilen) {
+      try { const m = JSON.parse(z); if (m.event === 'message' && m.attachment && m.attachment.url) attUrl = m.attachment.url; }
+      catch { /* defekte Zeile überspringen */ }
+    }
+    if (!attUrl) return { ok: false, fehler: 'Kein Charakter unter diesem Code.' };
+    // 2) Anhang herunterladen.
+    const u = new URL(attUrl);
+    const a = await anfrage({ host: u.host, path: u.pathname + (u.search || ''), method: 'GET', headers: {} });
+    if (a.status < 200 || a.status >= 300) return { ok: false, fehler: 'Anhang-Status ' + a.status };
+    return { ok: true, inhalt: a.body.toString('utf-8') };
+  } catch (e) {
+    return { ok: false, fehler: String((e && e.message) || e) };
+  }
+}
+
+module.exports = { uploadBogen, downloadBogen };

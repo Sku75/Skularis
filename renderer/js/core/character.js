@@ -73,8 +73,27 @@ export function eigenheitBuchstabe(i) {
  * Neuen, leeren Charakter erzeugen. Initialisiert alle profanen Fertigkeiten
  * auf 0 (wie Sephrasto) und die Energien AsP/KaP.
  */
+/** Stabile, eindeutige Charakter-ID. Bleibt bei Umbenennung erhalten; dient der
+ *  eindeutigen Zuordnung (F2-Live, Charakter-Transfer), damit ein umbenannter Bogen
+ *  nicht als neuer Charakter gilt. Liegt in den Skularis-Zusatzdaten (Sephrasto
+ *  ignoriert das), der Bogen bleibt Sephrasto-kompatibel. */
+export function neueCharakterId() {
+  try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return 'c-' + crypto.randomUUID(); } catch { /* egal */ }
+  return 'c-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+
+/** Sicherstellen, dass ein Charakter eine ID hat (z. B. alter Skularis- oder frisch
+ *  importierter Sephrasto-Bogen). Gibt true, wenn eine neue ID vergeben wurde (dann
+ *  sollte der Bogen einmal gespeichert werden, damit die ID stabil bleibt). */
+export function ensureCharakterId(c) {
+  if (c && typeof c.id === 'string' && c.id) return false;
+  if (c) c.id = neueCharakterId();
+  return true;
+}
+
 export function createCharakter(db, opts = {}) {
   const c = {
+    id: opts.id || neueCharakterId(),
     // Beschreibung
     name: opts.name || '',
     spezies: '',

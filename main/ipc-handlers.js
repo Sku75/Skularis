@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const fileOps = require('./file-operations');
 const settings = require('./settings');
+const boxTransfer = require('./box-transfer');
 
 ipcMain.handle('skularis:datei-oeffnen', (event) => {
   const { getMainWindow, getCharOrdner } = require('./main');
@@ -48,6 +49,11 @@ ipcMain.handle('skularis:config-lesen', () => {
 ipcMain.handle('skularis:config-schreiben', (_event, data) => {
   settings.setWert(data.key, data.value);
 });
+
+// Charakterbogen-Transfer über die accountlose Box (ntfy). Netzwerk läuft im
+// Hauptprozess, damit keine CSP/CORS-Grenzen des Renderers greifen.
+ipcMain.handle('skularis:box-hochladen', (_event, data) => boxTransfer.uploadBogen(data.code, data.inhalt));
+ipcMain.handle('skularis:box-abholen', (_event, data) => boxTransfer.downloadBogen(data.code));
 
 ipcMain.handle('skularis:letzte-dateien', () => {
   return fileOps.letzteDateienLaden(settings);

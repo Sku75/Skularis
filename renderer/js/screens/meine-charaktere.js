@@ -10,9 +10,10 @@ import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import * as editor from '../editor/editor.js';
 import { aktionZeile, infoZeile, abschnittTitel } from '../editor/widgets.js';
-import { auswahlDialog, zahlDialog, jaNeinDialog, textDialog } from '../ui/dialog.js';
+import { auswahlDialog, zahlDialog, jaNeinDialog, textDialog, knopfDialog } from '../ui/dialog.js';
 import { ladeDb } from '../core/db-laden.js';
 import { parse, serialisiere } from '../core/sephrasto-xml.js';
+import { ensureCharakterId } from '../core/character.js';
 import { exportHtml } from '../core/export-html.js';
 
 const ipc = window.skularis?.ipc;
@@ -43,6 +44,8 @@ function listeScreen() {
       liste.className = 'db-menu__list';
       liste.id = 'mc-liste';
       wrap.appendChild(liste);
+      // Ganz unten: der Meister holt einen vom Spieler hochgeladenen Charakter ab.
+      wrap.appendChild(aktionZeile('Charakterupdate durchführen', () => charakterAbrufen(), 'Den vom Spieler genannten 4-stelligen Code eingeben und seinen Charakter übernehmen oder aktualisieren'));
       return wrap;
     },
     async onShow(el) {
@@ -108,6 +111,7 @@ function charakterMenu(c) {
         sounds.playSpeichern();
         sprache.sage(`${c.name} als HTML im Ordner Charakter-Dateien gespeichert.`);
       } },
+      { label: 'Charakterupdate an den Meister senden', hint: 'Lädt den Bogen in ein Zimmer; du nennst dem Meister den 4-stelligen Code', onSelect: () => sendeAnMeister(c) },
       { label: 'Charakter löschen', hint: 'Entfernt die Datei', onSelect: async () => {
         const ja = await jaNeinDialog({ titel: 'Charakter löschen', frage: `${c.name} wirklich löschen?`, jaLabel: 'Ja, löschen', neinLabel: 'Nein, behalten' });
         if (!ja) return;
@@ -118,6 +122,64 @@ function charakterMenu(c) {
       } },
     ],
   });
+}
+
+// --- Charakter-Transfer über die accountlose Box (Code = Zimmer) ---
+
+/** Spieler: den Charakter unter einem 4-stelligen Code hochladen; den Code nennt er dem Meister. */
+async function sendeAnMeister(c) {
+  const { db, parsed } = await ladeChar(c);
+  const neu = ensureCharakterId(parsed); // alter/importierter Bogen bekommt jetzt eine feste ID
+  const xml = serialisiere(parsed, db);
+  if (neu) { try { await ipc.bibliothekSpeichern({ name: c.name, inhalt: xml }); } catch { /* ID lokal persistieren; egal wenn es klemmt */ } }
+  const code = String(Math.floor(1000 + Math.random() * 9000)); // 4-stellig
+  sprache.sage('Lade hoch, einen Moment.');
+  let r; try { r = await ipc.boxHochladen(code, xml); } catch (e) { r = { ok: false, fehler: String(e) }; }
+  if (r && r.ok) {
+    sounds.playSpeichern();
+    const gesprochen = code.split('').join(' ');
+    await knopfDialog({ titel: 'An den Meister gesendet', frage: `Nenne dem Meister diesen Code: ${gesprochen}. Er gilt etwa 3 Stunden, danach ist der Bogen automatisch weg.`, knoepfe: [{ label: 'OK', wert: 'ok' }] });
+    sprache.sage(`Gesendet. Code ${gesprochen}.`);
+  } else {
+    sounds.playError();
+    sprache.sage('Hochladen fehlgeschlagen. Bist du online?');
+  }
+}
+
+/** Meister: Charakter per Code abholen und über die stabile ID den alten Bogen ersetzen (keine Dubletten). */
+async function charakterAbrufen() {
+  const eingabe = await textDialog({ titel: 'Charakterupdate durchführen', label: 'Vom Spieler genannter 4-stelliger Code' });
+  if (eingabe === null) return;
+  const code = String(eingabe).replace(/[^0-9]/g, '').slice(0, 4);
+  if (code.length < 4) { sprache.sage('Bitte einen 4-stelligen Code eingeben.'); return; }
+  sprache.sage('Hole den Charakter, einen Moment.');
+  let r; try { r = await ipc.boxAbholen(code); } catch (e) { r = { ok: false, fehler: String(e) }; }
+  if (!r || !r.ok || !r.inhalt) { sounds.playError(); sprache.sage('Unter diesem Code liegt kein Charakter. Stimmt der Code, und hat der Spieler schon hochgeladen?'); return; }
+  let db, neuChar;
+  try { db = await ladeDb(); neuChar = parse(r.inhalt, db); } catch { sounds.playError(); sprache.sage('Der abgeholte Bogen ist unlesbar.'); return; }
+  ensureCharakterId(neuChar);
+  const name = (neuChar.name || 'Charakter').trim() || 'Charakter';
+  // Bestehenden Bogen mit DERSELBEN ID suchen (egal, wie er aktuell heißt).
+  let daten = []; try { daten = await ipc.bibliothekListe(); } catch { daten = []; }
+  let alt = null;
+  for (const x of daten) {
+    try { const res = await ipc.dateiDirektLaden(x.pfad); const p = parse(res.inhalt, db); if (p.id && p.id === neuChar.id) { alt = x; break; } }
+    catch { /* diese Datei überspringen */ }
+  }
+  const frage = alt
+    ? `Charakter ${name} gefunden (bisher als „${alt.name}"). Jetzt aktualisieren und den alten Bogen ersetzen?`
+    : `Neuer Charakter ${name}. In Meine Charaktere übernehmen?`;
+  if (!await jaNeinDialog({ titel: 'Charakterupdate', frage, jaLabel: 'Ja', neinLabel: 'Abbrechen' })) return;
+  const xml = serialisiere(neuChar, db);
+  await ipc.bibliothekSpeichern({ name, inhalt: xml }); // schreibt <name>.xml (überschreibt bei gleichem Namen)
+  // Den alten Bogen nur löschen, wenn er einen ANDEREN Namen (andere Datei) hatte —
+  // sonst würde man die gerade geschriebene Datei wieder entfernen.
+  if (alt && (alt.name || '').toLowerCase() !== name.toLowerCase()) {
+    try { await ipc.bibliothekLoeschen(alt.pfad); } catch { /* egal */ }
+  }
+  sounds.playSpeichern();
+  sprache.sage(alt ? `${name} aktualisiert. Der alte Bogen wurde ersetzt.` : `${name} neu übernommen.`);
+  screen.refresh();
 }
 
 // --- Import / Export (aus dem Charakterverwaltungs-Menü) ---

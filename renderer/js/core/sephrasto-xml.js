@@ -138,6 +138,7 @@ export function parse(xml, db) {
   if (sd && sd.textContent && sd.textContent.trim()) {
     try {
       const d = JSON.parse(sd.textContent);
+      if (typeof d.id === 'string' && d.id) c.id = d.id; // stabile Charakter-ID
       if (d.geldboerse) c.geldboerse = d.geldboerse;
       if (d.spielinventar) c.spielinventar = d.spielinventar;
       if (typeof d.startkapital === 'number') c.startkapital = d.startkapital;
@@ -690,6 +691,7 @@ function schreibeBeschreibungDetails(root, c) {
 function schreibeSkularisDaten(root, c) {
   const el = kindOderNeu(root, 'SkularisDaten');
   const daten = {};
+  if (c.id) daten.id = c.id; // stabile Charakter-ID mitschreiben
   if (c.geldboerse) daten.geldboerse = c.geldboerse;
   if (c.spielinventar) daten.spielinventar = c.spielinventar;
   if (typeof c.startkapital === 'number') daten.startkapital = c.startkapital;

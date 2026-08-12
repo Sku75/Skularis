@@ -4,6 +4,29 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.96, 12. August 2026
+
+
+Charakterbogen-Transfer zum Meister und feste Charakter-ID
+
+- Jeder Charakter bekommt eine feste, eindeutige ID. Sie bleibt bei Umbenennung
+  erhalten und liegt in den Skularis-Zusatzdaten der XML — Sephrasto ignoriert das,
+  der Bogen bleibt voll kompatibel. Alte oder frisch importierte Sephrasto-Bögen
+  bekommen die ID beim ersten Speichern automatisch.
+- Der Meister ordnet die F2-Live-Werte jetzt über die ID zu (auch wenn ein Spieler
+  seinen Charakter umbenannt hat); ohne ID wie bisher über den Namen.
+- NEU: Charakterbogen an den Meister senden. In Meine Charaktere hat jeder Charakter
+  den Punkt "Charakterupdate an den Meister senden": es erscheint ein 4-stelliger
+  Code, den du dem Meister nennst.
+- Der Meister hat unter Meine Charaktere ganz unten "Charakterupdate durchführen":
+  Code eingeben, und der Bogen wird abgeholt. Über die feste ID ersetzt er einen
+  vorhandenen Bogen desselben Charakters (auch bei geändertem Namen) — es entstehen
+  keine doppelten Bögen. Ist der Charakter neu, wird er übernommen.
+- Der Transfer läuft accountlos über eine Box (nur der Code zählt) und braucht eine
+  Internetverbindung. Der Bogen liegt dort etwa 3 Stunden und verschwindet dann
+  automatisch. Getrennt vom Radio und der Post.
+
+
 Version 0.95, 12. August 2026
 
 
