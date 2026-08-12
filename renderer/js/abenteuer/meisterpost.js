@@ -15,6 +15,7 @@ import { menuScreen } from '../ui/menu-screen.js';
 import { textDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
 import { getAbenteuer, speichere } from './state.js';
 import * as post from '../net/post.js';
+import * as sitzung from '../net/sitzung.js';
 import { sammleStatus } from './status-sync.js';
 
 let _mitspieler = [];
@@ -48,16 +49,11 @@ function empfangePost(m) {
   sprache.sage(`Neue Post von ${eintrag.von}.`);
 }
 
-async function verbinde() {
-  const a = getAbenteuer();
-  const code = await textDialog({ titel: 'Meisterpost verbinden', label: 'Code vom Meister eingeben' });
-  if (code === null || !code.trim()) return;
-  const vorschlag = (a && a.charakter && a.charakter.name) || '';
-  const name = await textDialog({ titel: 'Dein Name', label: 'Dein Name, wie dein Charakter heißt', wert: vorschlag });
-  if (name === null || !name.trim()) return;
-  _eigenerName = name.trim();
-  post.verbindeSpielerPost(code.trim(), _eigenerName, {
-    onVerbunden: () => { sprache.sage('Mit dem Meister verbunden.'); try { post.spielerStatus(sammleStatus(getAbenteuer())); } catch { /* egal */ } screen.refresh(); },
+/** Post-Callbacks fuer die Spieler-Verbindung (Nachrichten, Mitspieler, Status).
+ *  Werden vom Sitzungs-Koordinator und vom Verbinden-Dialog gleichermassen genutzt. */
+export function postCallbacks() {
+  return {
+    onVerbunden: () => { sprache.sage('Mit dem Meister verbunden.'); try { post.spielerStatus(sammleStatus(getAbenteuer())); } catch { /* egal */ } try { screen.refresh(); } catch { /* egal */ } },
     onGetrennt: () => { sprache.sage('Verbindung zum Meister getrennt.'); },
     onFehler: (t) => { sprache.sage(t); },
     onSpielerListe: (namen) => { _mitspieler = (namen || []).filter(n => n !== _eigenerName); },
@@ -65,7 +61,28 @@ async function verbinde() {
     onReconnectStart: () => { sprache.sage('Verbindung zum Meister verloren. Ich versuche, wieder zu verbinden.'); },
     onReconnectErfolg: () => { try { post.spielerStatus(sammleStatus(getAbenteuer())); } catch { /* egal */ } sprache.sage('Wieder mit dem Meister verbunden.'); },
     onAufgegeben: () => { sprache.sage('Wiederverbinden aufgegeben. Bitte bei Bedarf neu verbinden.'); },
-  });
+  };
+}
+
+/** Vorschlagsname fuer die Post (der Charaktername). */
+export function vorschlagName() { const a = getAbenteuer(); return (a && a.charakter && a.charakter.name) || ''; }
+
+/**
+ * Die Spieler-Sitzung (Post UND Radio) unter EINEM Code aufbauen. Wird sowohl beim
+ * Oeffnen des Abenteuers als auch ueber F12 genutzt. Gibt false, wenn Code/Name fehlen.
+ */
+export function verbindeSitzung(code, name, radioCb) {
+  _eigenerName = String(name || '').trim() || 'Spieler';
+  return sitzung.verbindeSpieler(String(code || '').trim(), _eigenerName, postCallbacks(),
+    radioCb || { onVerbunden: () => { sprache.sage('Ton des Meisters verbunden.'); } });
+}
+
+async function verbinde() {
+  const code = await textDialog({ titel: 'Verbinden', label: 'Code vom Meister eingeben (Radio und Post)' });
+  if (code === null || !code.trim()) return;
+  const name = await textDialog({ titel: 'Dein Name', label: 'Dein Name, wie dein Charakter heißt', wert: vorschlagName() });
+  if (name === null || !name.trim()) return;
+  verbindeSitzung(code.trim(), name.trim());
   sprache.sage('Verbinde …');
 }
 
@@ -211,7 +228,7 @@ export function meisterpostScreen() {
         { label: 'Postausgang', hint: 'was du gesendet hast', onSelect: () => screen.push(postausgangScreen()) },
       ];
       // Verbinden ganz unten (braucht man nur einmal).
-      if (verbunden) items.push({ label: 'Verbindung trennen', hint: 'die Post-Verbindung zum Meister beenden', onSelect: () => { post.stopp(); sprache.sage('Verbindung getrennt.'); screen.refresh(); } });
+      if (verbunden) items.push({ label: 'Verbindung trennen', hint: 'Post und Radio zum Meister beenden', onSelect: () => { sitzung.trenne(); sprache.sage('Verbindung getrennt.'); screen.refresh(); } });
       else items.push({ label: 'Mit dem Meister verbinden', hint: 'Code und Namen eingeben', onSelect: () => verbinde() });
       return menuScreen({
         title: 'Meisterpost',

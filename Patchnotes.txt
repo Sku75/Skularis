@@ -4,6 +4,23 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.94, 12. August 2026
+
+
+Radio und Post über eine Verbindung und einen Code
+
+- Beim Öffnen eines Abenteuers am Spielertisch kommt jetzt zuerst ein Fenster für
+  den Code des Meisters (Radio UND Post zusammen), dann die Frage nach deinem Namen
+  für die Post, dann landest du am Tisch. Erst danach wird verbunden — so springt
+  das Wiederverbinden nicht mehr zu früh an.
+- Lässt du den Code leer, spielst du offline; die Verbindung kannst du jederzeit
+  über F12 (Audio) nachholen. Dort wird die Post gleich mitverbunden.
+- Ein einziger Code steht jetzt für beides. Wer im Meister-Radio ist, hat auch die
+  Post, und umgekehrt. Auf der Meisterseite bringt "Senden starten" die Post gleich
+  mit hoch, falls sie noch nicht läuft.
+- Verbindung trennen beendet sauber beide Kanäle (Radio und Post).
+
+
 Version 0.93, 12. August 2026
 
 

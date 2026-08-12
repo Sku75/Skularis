@@ -25,6 +25,8 @@ import { ladeBogenFrisch, waehleCharakterBogen } from '../core/bogen-laden.js';
 import { getAbenteuer, setAbenteuer, setDb, speichere, speichereMitBogen } from '../abenteuer/state.js';
 import * as reiterHub from '../ui/reiter-hub.js';
 import * as post from '../net/post.js';
+import * as sitzung from '../net/sitzung.js';
+import * as meisterpost from '../abenteuer/meisterpost.js';
 import { liveSpielScreen, charakterstatusScreen } from '../abenteuer/live-spiel.js';
 import { charakterbogenScreen } from '../abenteuer/charakterbogen.js';
 import { inventarScreen } from '../abenteuer/inventar.js';
@@ -206,11 +208,32 @@ async function oeffneAbenteuer(eintrag) {
 
     setAbenteuer(a);
     sounds.play('oeffnen', 0.7);     // 30 Prozent leiser beim Oeffnen eines Abenteuers
+    // Verbindung (Radio UND Post) unter EINEM Code: erst Code und Name fragen, dann den
+    // Tisch öffnen, und ERST danach verbinden — so springt der Reconnect nicht schon
+    // während des Bildschirmwechsels an.
+    const verb = await frageVerbindung(a);
     oeffneHub();
+    if (verb) {
+      setTimeout(() => { try { meisterpost.verbindeSitzung(verb.code, verb.name); } catch (e) { console.error('Verbinden:', e); } }, 400);
+    }
   } catch (e) {
     console.error('Abenteuer laden:', e);
     sprache.sage('Abenteuer konnte nicht geladen werden.');
   }
+}
+
+/**
+ * Vor dem Öffnen: Code (Radio und Post) und den Namen für die Post erfragen. Leer
+ * lassen heißt "offline spielen" — dann wird nicht verbunden, man kann es später
+ * über F12 nachholen.
+ */
+async function frageVerbindung(a) {
+  const code = await textDialog({ titel: 'Mit dem Meister verbinden', label: 'Code vom Meister (Radio und Post). Leer lassen, wenn du offline spielst.' });
+  if (code === null || !code.trim()) return null;
+  const vorschlag = (a && a.charakter && a.charakter.name) || '';
+  const name = await textDialog({ titel: 'Dein Name für die Post', label: 'Dein Name, wie dein Charakter heißt', wert: vorschlag });
+  if (name === null || !name.trim()) return null;
+  return { code: code.trim(), name: name.trim() };
 }
 
 /** Untermenü eines Abenteuers: Öffnen, Löschen. */
@@ -307,7 +330,7 @@ function oeffneHub() {
         ],
       });
       if (w === 'ja') { await speichereMitBogen(); sounds.playSpeichern(); }
-      if (w === 'ja' || w === 'nein') { versteckeEP(); setAbenteuer(null); if (_einstieg) _einstieg._liste = null; post.stopp(); }
+      if (w === 'ja' || w === 'nein') { versteckeEP(); setAbenteuer(null); if (_einstieg) _einstieg._liste = null; sitzung.trenne(); }
       return w || 'abbrechen';
     },
   });
@@ -340,6 +363,6 @@ async function speichernUndZurueck(hub) {
   sprache.sage('Abenteuer gespeichert.');
   versteckeEP();
   setAbenteuer(null);
-  post.stopp();
+  sitzung.trenne();
   if (hub) hub.verlasse(); else screen.pop();
 }

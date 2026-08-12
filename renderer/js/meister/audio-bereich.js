@@ -18,6 +18,8 @@ import { textDialog, knopfDialog, jaNeinDialog } from '../ui/dialog.js';
 import { abschnittTitel, aktionZeile, infoZeile, wertZeile, verbindeDetail } from '../editor/widgets.js';
 import * as player from './audio-player.js';
 import * as radio from '../net/radio.js';
+import * as sitzung from '../net/sitzung.js';
+import * as postkasten from './postkasten.js';
 import * as kurztasten from './kurztasten.js';
 import * as einstellungen from '../daten/einstellungen.js';
 import { getMeister, speichere as speichereMeister } from './state.js';
@@ -40,7 +42,7 @@ async function ladeGrunddaten() {
     if (_config.audio_monitor_vol != null) player.setMonitorLautstaerke(_config.audio_monitor_vol);
     if (_config.audio_hintergrund_vol != null) player.setHintergrundLautstaerke(_config.audio_hintergrund_vol);
     if (_config.radio_hoerer_vol != null) radio.setHoererLautstaerke(_config.radio_hoerer_vol);
-    if (_config.radio_letzter_schluessel) _schluessel = _config.radio_letzter_schluessel;
+    if (_config.radio_letzter_schluessel) { _schluessel = _config.radio_letzter_schluessel; sitzung.setMeisterCode(_schluessel); }
   }
   try { _wurzeln = await ipc.audioWurzeln(); } catch { _wurzeln = null; }
 }
@@ -970,10 +972,10 @@ async function oeffnePlaylistDialog(pl, plIndex, sIndex) {
 }
 
 async function sendenStarten() {
-  if (!_schluessel) {
-    _schluessel = radio.generiereSchluessel();
-    merke('radio_letzter_schluessel', _schluessel);
-  }
+  // Ein gemeinsamer Sitzungscode fuer Radio UND Post. Das Starten des Radios bringt
+  // auch die Post hoch (wer im Radio ist, hat auch Post), falls sie noch nicht laeuft.
+  _schluessel = sitzung.meisterCode();
+  merke('radio_letzter_schluessel', _schluessel);
   // Übertragungseinstellungen aus den Optionen: Bitrate-Deckel + Mono/Stereo.
   let bitrate = 128;
   let mono = false;
@@ -985,17 +987,17 @@ async function sendenStarten() {
   } catch { /* Standard 128/Stereo */ }
   player.setSendeMono(mono);
   const strom = player.getSendeStrom();
-  radio.starteSenden(_schluessel, strom, {
+  sitzung.starteMeisterRadio(strom, {
     onBereit: () => { setzeStatus('Sende. 0 Hörer verbunden.'); sprache.sage(`Radio sendet. Schlüssel ${_schluessel.split('').join(' ')}.`); },
     onHoererNeu: (n) => { sounds.playBing(); setzeStatus(`Sende. ${n} Hörer verbunden.`); sprache.sage(`Ein Hörer verbunden. Insgesamt ${n}.`); },
     onHoererWeg: (n) => { setzeStatus(`Sende. ${n} Hörer verbunden.`); sprache.sage(`Ein Hörer getrennt. Noch ${n}.`); },
     onFehler: (t) => { setzeStatus('Radio-Fehler.'); sprache.sage(t); },
-  }, { maxBitrate: bitrate });
+  }, { maxBitrate: bitrate }, postkasten.postCallbacks());
   screen.refresh();
 }
 
 function sendenBeenden() {
-  radio.stopp();
+  sitzung.stoppeMeisterRadio(); // nur das Radio; die Post bleibt bestehen
   setzeStatus('Radio aus.');
   screen.refresh();
   sprache.sage('Senden beendet.');
@@ -1010,6 +1012,10 @@ function spielerScreen() {
     build() {
       const wrap = document.createElement('div');
       wrap.className = 'db-menu ed-bereich';
+
+      // Verbunden-Zustand aus der Sitzung ableiten, damit F12 auch dann "verbunden"
+      // zeigt, wenn schon beim Öffnen des Abenteuers verbunden wurde.
+      _verbunden = sitzung.radioAn();
 
       // NICHT verbunden: das Menü schrumpft auf Schlüssel-Eingabe und Verbinden.
       if (!_verbunden) {
@@ -1057,8 +1063,8 @@ function spielerScreen() {
       }));
 
       wrap.appendChild(aktionZeile('Verbindung trennen', () => {
-        radio.stopp(); _verbunden = false; screen.refresh(); sprache.sage('Verbindung getrennt.');
-      }));
+        sitzung.trenne(); _verbunden = false; screen.refresh(); sprache.sage('Verbindung getrennt.');
+      }, 'beendet Radio und Post zum Tisch'));
 
       verbindeDetail(wrap);
       return wrap;
@@ -1072,20 +1078,28 @@ function spielerScreen() {
   return scr;
 }
 
-function starteVerbinden(rohKey) {
+async function starteVerbinden(rohKey) {
   const key = String(rohKey || '').trim().toLowerCase();
   if (!key) { sprache.sage('Bitte zuerst den Schlüssel eingeben.'); return; }
   merke('radio_letzter_schluessel', key);
   sprache.sage('Verbinde mit dem Tisch, einen Moment.');
-  radio.starteHoeren(key, {
-    onVerbunden: () => { _verbunden = true; screen.refresh(); sprache.sage('Verbunden. Du hörst jetzt den Tisch.'); },
-    onGetrennt: () => { _verbunden = false; screen.refresh(); sprache.sage('Verbindung getrennt.'); },
-    onFehler: (t) => { _verbunden = false; screen.refresh(); sprache.sage(t); },
-    // Auto-Reconnect (sparsame Ansagen): einmal beim Verlust, bei Erfolg, bei Aufgabe.
-    onReconnectStart: () => { _verbunden = false; sprache.sage('Verbindung verloren. Ich versuche, wieder zu verbinden.'); },
-    onReconnectErfolg: () => { _verbunden = true; screen.refresh(); sprache.sage('Wieder verbunden.'); },
-    onAufgegeben: () => { _verbunden = false; screen.refresh(); sprache.sage('Wiederverbinden aufgegeben. Bitte bei Bedarf neu verbinden.'); },
-  });
+  const radioCb = {
+    onVerbunden: () => { _verbunden = true; try { screen.refresh(); } catch { /* egal */ } sprache.sage('Verbunden. Du hörst jetzt den Tisch.'); },
+    onGetrennt: () => { _verbunden = false; try { screen.refresh(); } catch { /* egal */ } },
+    onFehler: (t) => { _verbunden = false; try { screen.refresh(); } catch { /* egal */ } sprache.sage(t); },
+  };
+  // Ist ein Abenteuer offen (Spielertisch), wird die Post gleich mitverbunden — ein
+  // Code für beides. Ohne Abenteuer (globales F12) nur das Radio zum Zuhören.
+  try {
+    const st = await import('../abenteuer/state.js');
+    if (st.getAbenteuer && st.getAbenteuer()) {
+      const mp = await import('../abenteuer/meisterpost.js');
+      const name = (mp.vorschlagName && mp.vorschlagName()) || 'Spieler';
+      mp.verbindeSitzung(key, name, radioCb);
+      return;
+    }
+  } catch { /* fällt unten auf reines Radio zurück */ }
+  sitzung.verbindeNurRadio(key, radioCb);
 }
 
 // --- Einstieg ------------------------------------------------------------

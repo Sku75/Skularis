@@ -17,8 +17,8 @@ import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { textDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
 import { getMeister, speichere } from './state.js';
-import { generiereSchluessel } from '../net/radio.js';
 import * as post from '../net/post.js';
+import * as sitzung from '../net/sitzung.js';
 
 let _code = '';
 let _popupOffen = false;
@@ -98,16 +98,24 @@ function statusAenderung(name, werte) {
 
 // --- Verbindung ----------------------------------------------------------
 
-function starteVerbindung() {
-  _code = generiereSchluessel();
-  post.starteMeisterPost(_code, {
-    onBereit: () => { sprache.sage(`Post-Verbindung bereit. Code ${_code.split('').join(' ')}.`); screen.refresh(); },
+/** Meister-Post-Callbacks (Nachrichten, Spieler-An/-Abmeldung, F2-Status). Werden vom
+ *  Verbinden-Knopf UND vom Radio-Start (audio-bereich) genutzt, damit die Post mit
+ *  denselben Callbacks laeuft, egal was zuerst gestartet wird. */
+export function postCallbacks() {
+  return {
+    onBereit: () => { _code = sitzung.code() || _code; sprache.sage(`Verbindung bereit. Code ${String(_code || '').split('').join(' ')}.`); try { screen.refresh(); } catch { /* egal */ } },
     onFehler: (t) => { sprache.sage(t); },
-    onSpielerNeu: (name) => { sounds.playPost(); sprache.sage(`${name} ist mit der Post verbunden.`); },
-    onSpielerWeg: (name) => { sprache.sage(`${name} hat die Post-Verbindung verlassen.`); },
+    onSpielerNeu: (name) => { sounds.playPost(); sprache.sage(`${name} ist verbunden.`); },
+    onSpielerWeg: (name) => { sprache.sage(`${name} hat die Verbindung verlassen.`); },
     onNachricht: (m) => empfangePost(m),
     onStatus: (name, werte) => statusAenderung(name, werte),
-  });
+  };
+}
+
+function starteVerbindung() {
+  // Ein gemeinsamer Sitzungscode fuer Post UND Radio (sitzung.meisterCode). So hat,
+  // wer den Code hat, Zugang zu beidem.
+  _code = sitzung.starteMeisterPost(postCallbacks());
 }
 
 /** Code fuer den Tooltip aufbereiten: die vier Ziffern in einer Zeile, wie beim Radio. */
