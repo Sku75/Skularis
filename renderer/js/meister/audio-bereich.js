@@ -804,7 +804,7 @@ function verbindungScreen() {
       const schluesselText = _schluessel ? `Schlüssel: ${_schluessel}` : 'Noch kein Schlüssel';
       wrap.appendChild(infoZeile(schluesselText, schluesselDetail(_schluessel)));
       wrap.appendChild(aktionZeile('Schlüssel erzeugen', () => {
-        _schluessel = radio.generiereSchluessel();
+        _schluessel = sitzung.neuerMeisterCode(); // EIN Code für Anzeige, Radio UND Post
         merke('radio_letzter_schluessel', _schluessel);
         screen.refresh();
         sprache.sage(`Neuer Schlüssel erzeugt: ${_schluessel}. Zum Nachlesen steht er im Tooltip der Schlüssel-Zeile, drei Zeichen je Zeile.`);

@@ -53,8 +53,9 @@ function empfangePost(m) {
 // --- F2-Live-Notifikation + Ueberlaufschutz ------------------------------
 
 const _letzterStatus = new Map(); // name -> zuletzt empfangene Werte (fuer Diff)
-const _angesagt = new Map();      // name -> zuletzt ANGESAGTE Werte (fuer Resync)
-const _rate = new Map();          // name -> { count, seit, pause }
+const _angesagt = new Map();      // name -> zuletzt ANGESAGTE Werte
+const _statusTimer = new Map();   // name -> Timer: buendelt F2-Aenderungen zum Endstand
+const _flap = new Map();          // name -> { count, seit }: An-/Abmelde-Zaehler gegen Spam
 
 const FELD = { Wunden: 'Wunden', Erschoepfung: 'Erschöpfung', SchiP: 'Schicksalspunkte', AsP: 'Astralpunkte', KaP: 'Karmapunkte', GuP: 'Gunstpunkte', AstralspeicherStab: 'Astralspeicher' };
 function az(werte, k) { return (werte && werte[k] && typeof werte[k].aktuell === 'number') ? werte[k].aktuell : null; }
@@ -80,31 +81,42 @@ function diffTeile(alt, neu) {
   return teile;
 }
 
+// F2-Änderungen werden GEBÜNDELT: Statt jeder Zwischenänderung wird erst nach einer
+// kurzen Ruhe (1,8 s ohne weitere Änderung) EINMAL der Endstand angesagt — also nur
+// das, was die Person am Ende wirklich eingestellt hat. Mit einem weichen Ton.
+const STATUS_RUHE_MS = 1800;
 function statusAenderung(name, werte) {
-  const alt = _letzterStatus.get(name) || {};
   _letzterStatus.set(name, werte);
-  const r = _rate.get(name) || { count: 0, seit: Date.now(), pause: false };
-  if (r.pause) return; // in der Pause: keine Einzel-Ansagen, der Resync meldet spaeter
+  if (_statusTimer.has(name)) clearTimeout(_statusTimer.get(name));
+  _statusTimer.set(name, setTimeout(() => {
+    _statusTimer.delete(name);
+    const aktuell = _letzterStatus.get(name) || {};
+    const teile = diffTeile(_angesagt.get(name) || {}, aktuell); // Diff seit der letzten Ansage
+    _angesagt.set(name, aktuell);
+    if (teile.length) { sounds.play('click', 0.4); sprache.sage(`${name}, ${teile.join(', ')}.`); }
+  }, STATUS_RUHE_MS));
+}
+
+// --- An-/Abmelde-Meldungen entspammt ------------------------------------
+// Reconnect nur mit kurzem, weichem Piep (kein lautes Post-Geräusch). Nach mehrfachem
+// Hin-und-Her (Flattern) wird ganz geschwiegen; Trennen macht keinen Ton.
+function flapZaehle(name) {
   const jetzt = Date.now();
-  if (jetzt - r.seit > 10000) { r.count = 0; r.seit = jetzt; } // gleitendes 10-Sekunden-Fenster
-  r.count += 1;
-  _rate.set(name, r);
-  if (r.count > 10) {
-    // Dauerfeuer: aussetzen, nach 20 Sekunden EINMAL den Endstand melden.
-    r.pause = true; _rate.set(name, r);
-    sprache.sage(`${name} ändert sehr schnell. Ich melde in 20 Sekunden den Stand.`);
-    setTimeout(() => {
-      const rr = _rate.get(name) || r; rr.pause = false; rr.count = 0; rr.seit = Date.now(); _rate.set(name, rr);
-      const aktuell = _letzterStatus.get(name) || {};
-      const teile = diffTeile(_angesagt.get(name) || {}, aktuell);
-      _angesagt.set(name, aktuell);
-      if (teile.length) { sounds.playBing(); sprache.sage(`${name}: ${teile.join(', ')}.`); }
-    }, 20000);
-    return;
-  }
-  const teile = diffTeile(alt, werte);
-  _angesagt.set(name, werte);
-  if (teile.length) { sounds.playBing(); sprache.sage(`${name}, ${teile.join(', ')}.`); }
+  const f = _flap.get(name) || { count: 0, seit: jetzt };
+  if (jetzt - f.seit > 60000) { f.count = 0; f.seit = jetzt; } // gleitendes 60-Sekunden-Fenster
+  f.count += 1; _flap.set(name, f);
+  return f.count;
+}
+function meldeConnect(name) {
+  const n = flapZaehle(name);
+  if (n > 3) return;                                  // Dauer-Flattern: ganz still
+  sounds.play('click', 0.4);                          // kurzer, weicher Piep
+  if (n === 1) sprache.sage(`${name} verbunden.`);    // nur beim ERSTEN Verbinden ansagen
+}
+function meldeDisconnect(name) {
+  const f = _flap.get(name);
+  if (f && f.count > 3) return;                       // Flattern: still
+  if (!f || f.count <= 1) sprache.sage(`${name} getrennt.`); // nur einmal, ohne Post-Ton
 }
 
 // --- Verbindung ----------------------------------------------------------
@@ -116,8 +128,8 @@ export function postCallbacks() {
   return {
     onBereit: () => { _code = sitzung.code() || _code; sprache.sage(`Verbindung bereit. Code ${String(_code || '').split('').join(' ')}.`); try { screen.refresh(); } catch { /* egal */ } },
     onFehler: (t) => { sprache.sage(t); },
-    onSpielerNeu: (name) => { sounds.playPost(); sprache.sage(`${name} ist verbunden.`); },
-    onSpielerWeg: (name) => { sprache.sage(`${name} hat die Verbindung verlassen.`); },
+    onSpielerNeu: (name) => meldeConnect(name),
+    onSpielerWeg: (name) => meldeDisconnect(name),
     onNachricht: (m) => empfangePost(m),
     onStatus: (name, werte) => statusAenderung(name, werte),
   };

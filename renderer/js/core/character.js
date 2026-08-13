@@ -102,7 +102,7 @@ export function createCharakter(db, opts = {}) {
     heimat: 'Mittelreich',
     finanzen: 2,           // 0 Sehr Reich .. 2 Normal .. 4 Sehr Arm
     startkapital: 32,      // Dukaten der Finanz-Stufe "Normal"; steuert die Münzbörse
-    geldboerse: { dukaten: 32, silber: 0, kupfer: 0 }, // Bargeld, anfangs = Startkapital
+    geldboerse: { dukaten: 32, silber: 0, heller: 0, kupfer: 0 }, // Bargeld (kupfer = Kreuzer), anfangs = Startkapital
     status: 2,
     kurzbeschreibung: '',
     schipBonus: 0,         // durch Vorteile (Glück) modifiziert

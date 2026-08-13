@@ -24,9 +24,9 @@
 
 const ipc = window.skularis?.ipc;
 
-const FADE_EIN = 1.4;      // Sekunden: Schleife/Klang einblenden
-const FADE_EIN_KURZ = 0.3; // Sekunden: einmalige Klaenge zuegig einblenden
-const FADE_AUS = 1.2;      // Sekunden: ausblenden beim Stoppen/Wechseln
+const FADE_EIN = 2.6;      // Sekunden: Schleife/Klang einblenden (weich)
+const FADE_EIN_KURZ = 0.8; // Sekunden: einmalige Klaenge sanft einblenden
+const FADE_AUS = 2.4;      // Sekunden: ausblenden beim Stoppen/Wechseln (weich)
 
 let _ctx = null;
 let _mixBus = null;

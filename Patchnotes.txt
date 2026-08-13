@@ -4,6 +4,28 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.97, 12. August 2026
+
+
+Radio-Fix, ruhigere Meldungen, Heller, Charakterupdate am Meistertisch
+
+- WICHTIGER FIX: "Schlüssel erzeugen" im Radio vergab einen anderen Code als der,
+  unter dem tatsächlich gesendet wurde — die Spieler hörten dann nichts. Jetzt nutzt
+  "Schlüssel erzeugen" denselben Code für Anzeige, Radio und Post.
+- Audio-Übergänge sind deutlich weicher (längere Ein- und Ausblendungen).
+- Weniger Meldungs-Spam beim Meister: Ein Wiederverbinden gibt nur noch einen kurzen,
+  weichen Piep (kein lautes Post-Geräusch), das Trennen macht keinen Ton, und nach
+  mehrfachem Hin-und-Her (Flattern) wird ganz geschwiegen.
+- F2-Werteänderungen werden gebündelt: Statt jeder Zwischenzahl kommt erst nach einer
+  kurzen Ruhe EINMAL der Endstand, den die Person eingestellt hat — mit einem weichen
+  Ton statt dem harten Signal.
+- Münzbörse: Heller ergänzt. Die vier Münzen sind jetzt Dukaten, Silbertaler, Heller
+  und Kreuzer (ein Silbertaler = zehn Heller, ein Heller = zehn Kreuzer).
+- Meistertisch, Charaktere: neuer Punkt "Neue Charakterupdates suchen" — Code des
+  Spielers eingeben und den Charakter direkt hier aktualisieren, ohne den
+  Meistertisch zu verlassen.
+
+
 Version 0.96, 12. August 2026
 
 

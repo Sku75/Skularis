@@ -146,8 +146,9 @@ async function sendeAnMeister(c) {
   }
 }
 
-/** Meister: Charakter per Code abholen und über die stabile ID den alten Bogen ersetzen (keine Dubletten). */
-async function charakterAbrufen() {
+/** Meister: Charakter per Code abholen und über die stabile ID den alten Bogen ersetzen (keine Dubletten).
+ *  Gibt bei Erfolg { ok:true, id, name } zurück (für den Meistertisch-Aufruf), sonst nichts. */
+export async function charakterAbrufen() {
   const eingabe = await textDialog({ titel: 'Charakterupdate durchführen', label: 'Vom Spieler genannter 4-stelliger Code' });
   if (eingabe === null) return;
   const code = String(eingabe).replace(/[^0-9]/g, '').slice(0, 4);
@@ -180,6 +181,7 @@ async function charakterAbrufen() {
   sounds.playSpeichern();
   sprache.sage(alt ? `${name} aktualisiert. Der alte Bogen wurde ersetzt.` : `${name} neu übernommen.`);
   screen.refresh();
+  return { ok: true, id: neuChar.id, name };
 }
 
 // --- Import / Export (aus dem Charakterverwaltungs-Menü) ---

@@ -21,8 +21,39 @@ import { zauberspeicherVorhanden, zauberspeicherScreen } from '../abenteuer/zaub
 import { setVerdeckt } from '../abenteuer/wuerfel-kern.js';
 import { setAbenteuer, setDb } from '../abenteuer/state.js';
 import { getDb } from '../core/db-laden.js';
-import { getMeister } from './state.js';
+import { parse } from '../core/sephrasto-xml.js';
+import { getMeister, speichere } from './state.js';
 import * as post from '../net/post.js';
+
+const ipc = window.skularis?.ipc;
+
+/**
+ * Meistertisch: ein vom Spieler gesendetes Charakterupdate abholen (Code) und, wenn
+ * der Charakter in der Gruppe ist, dessen Bogen gleich hier live aktualisieren — ohne
+ * den Meistertisch zu verlassen. Die eigentliche Abhol-/Ersetzen-Logik (per stabiler
+ * ID, keine Dubletten) liegt in meine-charaktere.js.
+ */
+async function neueUpdatesSuchen() {
+  let mc; try { mc = await import('../screens/meine-charaktere.js'); } catch (e) { console.error('Update-Modul:', e); return; }
+  const info = await mc.charakterAbrufen(); // fragt Code, lädt, ersetzt in der Bibliothek per ID
+  if (!info || !info.ok) return;            // abgebrochen oder nichts gefunden (bereits angesagt)
+  const a = getMeister();
+  if (!a || !Array.isArray(a.charaktere)) return;
+  const treffer = a.charaktere.find(c => c.bogen && c.bogen.id === info.id);
+  if (!treffer) { sprache.sage(`${info.name} ist noch nicht in deiner Gruppe. Füge ihn über die Gruppenzusammenstellung hinzu.`); return; }
+  try {
+    const db = getDb();
+    const liste = await ipc.bibliothekListe();
+    for (const x of liste) {
+      const res = await ipc.dateiDirektLaden(x.pfad);
+      const p = parse(res.inhalt, db);
+      if (p && p.id === info.id) { treffer.bogen = p; treffer.name = p.name; treffer.pfad = x.pfad; break; }
+    }
+    await speichere();
+    screen.refresh();
+    sprache.sage(`${info.name} in der Gruppe aktualisiert.`);
+  } catch (e) { console.error('Gruppen-Update:', e); }
+}
 
 /** Charakterbögen der Gruppe (nur ansehen). */
 export function charakterboegenScreen() {
@@ -169,6 +200,7 @@ export function charaktereScreen() {
     items: [
       { label: 'Charakteransicht meine Initiativephase', hint: 'Status und Werte der Helden, verdeckt würfeln', onSelect: () => screen.push(charAnsichtInitiativeScreen()) },
       { label: 'Charakterbögen', hint: 'die Bögen der Gruppe zum Nachlesen', onSelect: () => screen.push(charakterboegenScreen()) },
+      { label: 'Neue Charakterupdates suchen', hint: 'einen vom Spieler gesendeten Code eingeben und den Charakter direkt hier aktualisieren', onSelect: () => neueUpdatesSuchen() },
     ],
   });
 }

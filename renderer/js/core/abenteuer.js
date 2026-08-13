@@ -80,7 +80,7 @@ export function inventarAusCharakter(char) {
     else guertel.push(item.text);
   }
   return {
-    geldboerse: { dukaten: g.dukaten || 0, silber: g.silber || 0, kupfer: g.kupfer || 0 },
+    geldboerse: { dukaten: g.dukaten || 0, silber: g.silber || 0, heller: g.heller || 0, kupfer: g.kupfer || 0 },
     rucksack, guertel,
   };
 }
@@ -94,7 +94,7 @@ export function inventarAusCharakter(char) {
  */
 export function uebernehmeAbenteuerdaten(char, a) {
   const inv = (a && a.inventar) || {};
-  char.geldboerse = { ...(inv.geldboerse || { dukaten: 0, silber: 0, kupfer: 0 }) };
+  char.geldboerse = { ...(inv.geldboerse || { dukaten: 0, silber: 0, heller: 0, kupfer: 0 }) };
   // Einträge können Strings (aktuelles Abenteuer-Modell) oder alte {text}-Objekte sein.
   const alsText = (x) => (typeof x === 'string' ? x : (x && x.text) || '');
   const gegenstaende = [];
@@ -134,8 +134,8 @@ export function parseAbenteuer(text) {
   // Weiche Absicherung fehlender Felder (Vorwärtskompatibilität).
   a.spieltag = a.spieltag || 1;
   a.ressourcen = a.ressourcen || {};
-  a.inventar = a.inventar || { geldboerse: { dukaten: 0, silber: 0, kupfer: 0 }, rucksack: [], guertel: [] };
-  a.inventar.geldboerse = a.inventar.geldboerse || { dukaten: 0, silber: 0, kupfer: 0 };
+  a.inventar = a.inventar || { geldboerse: { dukaten: 0, silber: 0, heller: 0, kupfer: 0 }, rucksack: [], guertel: [] };
+  a.inventar.geldboerse = a.inventar.geldboerse || { dukaten: 0, silber: 0, heller: 0, kupfer: 0 };
   a.inventar.rucksack = a.inventar.rucksack || [];
   a.inventar.guertel = a.inventar.guertel || [];
   a.mitspieler = a.mitspieler || [];

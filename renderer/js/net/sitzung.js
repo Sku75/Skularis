@@ -38,6 +38,10 @@ export function meisterCode() { if (!_meisterCode) _meisterCode = generiereSchlu
 /** Gespeicherten Code beim Start uebernehmen (nur wenn noch keiner gesetzt ist, damit
  *  ein bereits laufender Code nicht mitten in der Sitzung wechselt). */
 export function setMeisterCode(c) { const s = String(c || '').trim(); if (s && !_meisterCode) _meisterCode = s; }
+/** Einen NEUEN Meister-Code erzeugen und als aktuellen setzen (fuer "Schluessel
+ *  erzeugen"). Danach gilt dieser Code fuer Post UND Radio, damit Anzeige/Ansage und
+ *  der tatsaechliche Sende-Code identisch sind. */
+export function neuerMeisterCode() { _meisterCode = generiereSchluessel(); return _meisterCode; }
 
 // --- Spieler -------------------------------------------------------------
 

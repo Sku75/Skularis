@@ -27,7 +27,7 @@ function char() { return getAbenteuer().charakter || {}; }
 
 function geld() {
   const c = char();
-  if (!c.geldboerse) c.geldboerse = { dukaten: 0, silber: 0, kupfer: 0 };
+  if (!c.geldboerse) c.geldboerse = { dukaten: 0, silber: 0, heller: 0, kupfer: 0 };
   return c.geldboerse;
 }
 
@@ -55,7 +55,7 @@ export function inventarScreen() {
         title: 'Inventar',
         subtitle: 'Vom Charakterbogen. Escape zurück.',
         items: [
-          { label: 'Geldbörse', hint: `${g.dukaten || 0} Dukaten, ${g.silber || 0} Silber, ${g.kupfer || 0} Kupfer`, onSelect: () => screen.push(geldboerseScreen()) },
+          { label: 'Geldbörse', hint: `${g.dukaten || 0} Dukaten, ${g.silber || 0} Silber, ${g.heller || 0} Heller, ${g.kupfer || 0} Kreuzer`, onSelect: () => screen.push(geldboerseScreen()) },
           { label: 'Am Mann', hint: `${amMann} Gegenstände`, onSelect: () => screen.push(fachScreen(ORT_MANN)) },
           { label: 'Rucksack', hint: `${imRucksack} Gegenstände`, onSelect: () => screen.push(fachScreen(ORT_RUCKSACK)) },
           { label: 'Waffen', hint: `${(c.waffen || []).length} Waffen`, onSelect: () => screen.push(objektScreen('Waffen', (char().waffen || []))) },
@@ -142,7 +142,8 @@ function geldboerseScreen() {
       });
       wrap.appendChild(muenze('dukaten', 'Dukaten'));
       wrap.appendChild(muenze('silber', 'Silber'));
-      wrap.appendChild(muenze('kupfer', 'Kupfer'));
+      wrap.appendChild(muenze('heller', 'Heller'));
+      wrap.appendChild(muenze('kupfer', 'Kreuzer'));
       return wrap;
     },
   };

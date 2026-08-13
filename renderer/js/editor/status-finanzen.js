@@ -63,7 +63,7 @@ export function finanzenInhalt(box, filter = '', danach = null) {
         // Startkapital in die Münzbörse übernehmen: die ÄNDERUNG des
         // Startkapitals wirkt als Delta auf die vorhandenen Dukaten. Beispiel:
         // Start 32, im Spiel 10 ausgegeben (22), dann Startkapital auf 16 → 6.
-        const g = char.geldboerse || (char.geldboerse = { dukaten: 0, silber: 0, kupfer: 0 });
+        const g = char.geldboerse || (char.geldboerse = { dukaten: 0, silber: 0, heller: 0, kupfer: 0 });
         if (typeof char.startkapital === 'number') {
           g.dukaten = Math.max(0, (g.dukaten || 0) + (f.dukaten - char.startkapital));
         } else {
@@ -108,10 +108,10 @@ export function statusFinanzenScreen() {
       // ins Abenteuer übernommen und beim Spieltag-Abschluss zurückgeschrieben.
       wrap.appendChild(abschnittTitel('Münzbörse'));
       wrap.appendChild(infoZeile('Dein Bargeld zum Mitnehmen ins Abenteuer.',
-        'Dukaten, Silbertaler und Kupferstücke. Beim Erstellen eines Abenteuers wird die Münzbörse übernommen, beim Spieltag-Abschluss wieder in den Charakterbogen zurückgeschrieben. Ein Dukat sind zehn Silbertaler, ein Silbertaler sind zehn Kupferstücke.'));
-      const g = char.geldboerse || (char.geldboerse = { dukaten: 0, silber: 0, kupfer: 0 });
+        'Dukaten, Silbertaler, Heller und Kreuzer. Beim Erstellen eines Abenteuers wird die Münzbörse übernommen, beim Speichern wieder in den Charakterbogen zurückgeschrieben. Ein Dukat sind zehn Silbertaler, ein Silbertaler zehn Heller, ein Heller zehn Kreuzer.'));
+      const g = char.geldboerse || (char.geldboerse = { dukaten: 0, silber: 0, heller: 0, kupfer: 0 });
       const muenzen = document.createElement('div');
-      for (const [key, label] of [['dukaten', 'Dukaten'], ['silber', 'Silbertaler'], ['kupfer', 'Kupferstücke']]) {
+      for (const [key, label] of [['dukaten', 'Dukaten'], ['silber', 'Silbertaler'], ['heller', 'Heller'], ['kupfer', 'Kreuzer']]) {
         muenzen.appendChild(wertZeile({
           label,
           get: () => g[key] || 0,
