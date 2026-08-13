@@ -4,6 +4,24 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.98, 13. August 2026
+
+
+Skularis gibt es jetzt auch für den Mac
+
+- NEU: Es gibt eine Mac-Version von Skularis. Sie läuft als Universal-Programm auf
+  neuen Macs mit Apple Silicon (M1 und neuer) und auf älteren Intel-Macs. Der
+  Download steht auf der Homepage direkt unter der Windows-Version.
+- Auf dem Mac liegen deine Charaktere und Abenteuer am dortigen Standard-Ort für
+  Programmdaten (Benutzerordner, Library, Application Support, Skularis), getrennt
+  vom Programm. So bleibt beim Ersetzen des Programms alles erhalten.
+- Erster Start auf dem Mac: Da es ein freies Fan-Projekt ohne bezahltes
+  Apple-Zertifikat ist, muss die Sicherheitsabfrage einmalig bestätigt werden
+  (Anleitung auf der Homepage). Danach startet Skularis ganz normal.
+- Für Windows ändert sich an der Bedienung nichts; unter der Haube nur die
+  Weichen für die Mac-Version.
+
+
 Version 0.97, 12. August 2026
 
 

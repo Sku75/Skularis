@@ -1,0 +1,67 @@
+name: Mac-Build
+
+# Baut die macOS-Version von Skularis auf einem echten Mac-Runner (GitHub Actions),
+# weil electron-builder nicht von Windows aus fuer den Mac bauen kann. Der fertige
+# Universal-Build (Intel + Apple Silicon) wird als Skularis-Mac.dmg und
+# Skularis-Mac.zip an das passende Release gehaengt.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release-Tag, an das der Mac-Build gehaengt wird (z. B. v0.98)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Quellcode auschecken
+        uses: actions/checkout@v4
+
+      - name: Node einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Abhaengigkeiten installieren
+        run: npm ci
+
+      - name: Mac-App bauen (Universal, unsigniert / ad-hoc)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx --no-install electron-builder --mac --universal --publish never
+
+      - name: Ergebnis auflisten
+        run: ls -la dist
+
+      - name: Feste Dateinamen sicherstellen
+        run: |
+          cd dist
+          DMG=$(ls *.dmg 2>/dev/null | grep -vi blockmap | head -1 || true)
+          ZIP=$(ls *.zip 2>/dev/null | grep -vi blockmap | head -1 || true)
+          if [ -n "$DMG" ] && [ "$DMG" != "Skularis-Mac.dmg" ]; then cp "$DMG" "Skularis-Mac.dmg"; fi
+          if [ -n "$ZIP" ] && [ "$ZIP" != "Skularis-Mac.zip" ]; then cp "$ZIP" "Skularis-Mac.zip"; fi
+          ls -la Skularis-Mac.* || true
+
+      - name: Tag bestimmen
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: An das Release haengen
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ steps.tag.outputs.tag }}" \
+            "dist/Skularis-Mac.dmg" "dist/Skularis-Mac.zip" --clobber

@@ -43,6 +43,15 @@ function istBeschreibbar(dir) {
 function getBasisPfad() {
   if (!app.isPackaged) return path.resolve(__dirname, '..');
   if (_basisCache) return _basisCache;
+  // macOS: die .app im Programme-Ordner ist schreibgeschützt und darf keine
+  // Nutzerdaten enthalten. Die Daten gehören an den Standard-Ort für App-Daten:
+  // ~/Library/Application Support/Skularis (app.getPath('userData')). Die
+  // Portable-Logik "Daten neben der Exe" gilt nur unter Windows.
+  if (process.platform === 'darwin') {
+    _basisCache = app.getPath('userData');
+    try { fs.mkdirSync(_basisCache, { recursive: true }); } catch { /* egal */ }
+    return _basisCache;
+  }
   const programm = path.dirname(process.execPath);
   const portable = path.dirname(programm);
   _basisCache = istBeschreibbar(portable) ? portable : programm;
@@ -110,6 +119,7 @@ function aktualisierePatchnotesWurzel() {
  */
 function aktualisiereUpdaterWurzel() {
   if (!app.isPackaged) return;
+  if (process.platform === 'darwin') return; // Windows-Updater gibt es auf dem Mac nicht
   try {
     const quelle = path.join(getAppPfad(), 'updater', 'Skularis Updaten.exe');
     const ziel = path.join(getBasisPfad(), 'Skularis Updaten.exe');

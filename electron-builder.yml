@@ -20,3 +20,23 @@ win:
   # Kein Signieren/exe-Bearbeiten: vermeidet den winCodeSign-Download,
   # der unter Windows an Symlink-Rechten scheitert (nur Testbuild).
   signAndEditExecutable: false
+mac:
+  # Universal-Build (Intel x64 + Apple Silicon arm64) in EINEM Paket, damit ein
+  # Download auf allen Macs laeuft. Zwei Formate: .dmg (Standard-Installer zum
+  # Ziehen in "Programme") und .zip (fuer alle, die lieber entpacken).
+  target:
+    - target: dmg
+      arch: universal
+    - target: zip
+      arch: universal
+  category: public.app-category.role-playing-games
+  # Unsigniert: ohne Apple-Developer-ID wird ad-hoc signiert, nicht notarisiert.
+  # Beim ersten Start muss der Nutzer die Gatekeeper-Sperre einmalig bestaetigen
+  # (Anleitung auf der Homepage). identity:null erzwingt genau diese Ad-hoc-Signatur.
+  identity: null
+  # Feste Dateinamen, damit der Homepage-Link releases/latest/download/... stabil bleibt.
+  artifactName: Skularis-Mac.${ext}
+dmg:
+  # Barrierefreies, schlichtes Fenster: App links, "Programme"-Verknuepfung rechts.
+  title: Skularis
+  artifactName: Skularis-Mac.${ext}
