@@ -199,6 +199,10 @@ export async function spiele(index) {
     // bei 0 los, sondern an der pausierten Stelle weiter.
     const startOffset = (typeof d.pausePos === 'number' && d.pausePos > 0.2) ? d.pausePos : 0;
     if (startOffset) { d.pausePos = 0; merkePause(); }
+    // "Abspielen" beendet einen laufenden Hintergrund-Klang (weiches Ausblenden),
+    // damit beide nicht störend parallel laufen. Der Hintergrund wird dabei sanft
+    // ausgeblendet, während der neue Klang gleichzeitig einblendet (Überblenden).
+    if (kanal === 'abspielen') player.stoppeKanal('hintergrund');
     await player.spieleKanal(kanal, datei, { loop: !!d.loop, pegel: zielPegel, offset: startOffset });
   } catch (err) {
     console.error('Kurztaste abspielen:', err);

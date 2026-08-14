@@ -4,6 +4,21 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.00, 14. August 2026
+
+
+Beta erreicht: weichere Audio-Übergänge, Abspielen beendet Hintergrund
+
+- Meilenstein: Skularis ist jetzt in der Beta (Version 1.00) und wird im Spiel
+  eingesetzt.
+- Audio: Wird über eine Schnelltaste (oder den Knopf) etwas im Modus "Abspielen"
+  gestartet, wird ein laufender "Hintergrund"-Klang jetzt automatisch beendet -
+  weich ausgeblendet, damit beide nicht mehr störend parallel laufen.
+- Audio: Die Übergänge sind deutlich weicher. Das Ausblenden dauert doppelt so
+  lange, und der neue Klang blendet gleichzeitig und gleich lang ein - ein
+  echtes, ruhiges Überblenden statt eines harten Wechsels.
+
+
 Version 0.99, 14. August 2026
 
 

@@ -81,6 +81,7 @@ const HINTERGRUND_PEGEL = 0.25;
 // Abspielen-Kanal (normale Lautstärke). Neues blendet das Alte dieses Kanals über.
 async function tuAbspielen(d, loop = false) {
   try {
+    player.stoppeKanal('hintergrund'); // Abspielen beendet den Hintergrund (kein störendes Parallellaufen), weiches Ausblenden
     await player.spieleKanal('abspielen', d, { loop });
     sprache.sage(loop ? `${d.name} läuft in Schleife.` : `${d.name} abgespielt.`);
   } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
