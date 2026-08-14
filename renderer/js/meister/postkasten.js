@@ -19,6 +19,7 @@ import { textDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
 import { getMeister, speichere } from './state.js';
 import * as post from '../net/post.js';
 import * as sitzung from '../net/sitzung.js';
+import { diag } from '../core/diag.js';
 
 let _code = '';
 let _popupOffen = false;
@@ -38,14 +39,16 @@ function zeigePopup(von, text) {
 }
 
 function empfangePost(m) {
-  if (m && m.typ === 'popup') { zeigePopup(m.von || 'Spieler', String(m.text || '')); return; }
+  diag(`empfangePost: typ=${m && m.typ} id=${m && m.id} von=${m && m.von}`);
+  if (m && m.typ === 'popup') { diag('-> PLAYPOPUP'); zeigePopup(m.von || 'Spieler', String(m.text || '')); return; }
   const a = getMeister();
   if (!a) return;
   const eintrag = { id: m.id, von: m.von || 'Spieler', text: String(m.text || ''), zeit: m.zeit || Date.now(), gelesen: false };
   a.posteingang = a.posteingang || [];
-  if (m.id && a.posteingang.some(x => x.id === m.id)) return;
+  if (m.id && a.posteingang.some(x => x.id === m.id)) { diag('-> Post-Dedup: schon im Eingang, kein Ton'); return; }
   a.posteingang.unshift(eintrag);
   speichere();
+  diag('-> PLAYPOST (langer Post-Ton)');
   sounds.playPost();
   sprache.sage(`Neue Post von ${eintrag.von}.`);
 }
@@ -55,7 +58,9 @@ function empfangePost(m) {
 const _letzterStatus = new Map(); // name -> zuletzt empfangene Werte (fuer Diff)
 const _angesagt = new Map();      // name -> zuletzt ANGESAGTE Werte
 const _statusTimer = new Map();   // name -> Timer: buendelt F2-Aenderungen zum Endstand
-const _flap = new Map();          // name -> { count, seit }: An-/Abmelde-Zaehler gegen Spam
+const _verbunden = new Set();     // aktuell verbundene Namen
+const _warSchonDa = new Set();    // Namen, die in dieser Sitzung mindestens einmal verbunden waren
+const _reconnectTimer = new Map();// name -> Timer der 5-Sekunden-Stabilitaetspruefung nach Reconnect
 
 const FELD = { Wunden: 'Wunden', Erschoepfung: 'Erschöpfung', SchiP: 'Schicksalspunkte', AsP: 'Astralpunkte', KaP: 'Karmapunkte', GuP: 'Gunstpunkte', AstralspeicherStab: 'Astralspeicher' };
 function az(werte, k) { return (werte && werte[k] && typeof werte[k].aktuell === 'number') ? werte[k].aktuell : null; }
@@ -87,6 +92,10 @@ function diffTeile(alt, neu) {
 const STATUS_RUHE_MS = 1800;
 function statusAenderung(name, werte) {
   _letzterStatus.set(name, werte);
+  // Waehrend der 5-Sekunden-Reconnect-Pruefung still bleiben: ein frisch wieder-
+  // verbundener Spieler sendet seinen Stand neu, das soll keinen Ton/keine Ansage
+  // ausloesen. Der Stand wird nur gemerkt, damit spaeter der Diff stimmt.
+  if (_reconnectTimer.has(name)) { _angesagt.set(name, werte); return; }
   if (_statusTimer.has(name)) clearTimeout(_statusTimer.get(name));
   _statusTimer.set(name, setTimeout(() => {
     _statusTimer.delete(name);
@@ -97,26 +106,35 @@ function statusAenderung(name, werte) {
   }, STATUS_RUHE_MS));
 }
 
-// --- An-/Abmelde-Meldungen entspammt ------------------------------------
-// Reconnect nur mit kurzem, weichem Piep (kein lautes Post-Geräusch). Nach mehrfachem
-// Hin-und-Her (Flattern) wird ganz geschwiegen; Trennen macht keinen Ton.
-function flapZaehle(name) {
-  const jetzt = Date.now();
-  const f = _flap.get(name) || { count: 0, seit: jetzt };
-  if (jetzt - f.seit > 60000) { f.count = 0; f.seit = jetzt; } // gleitendes 60-Sekunden-Fenster
-  f.count += 1; _flap.set(name, f);
-  return f.count;
-}
+// --- An-/Abmelde-Meldungen: leise und stabil -----------------------------
+// Wunsch: Reconnects und Trennungen laufen KOMPLETT ohne Ton ab. Ein Reconnect
+// wird erst dann angesagt, wenn die Verbindung 5 Sekunden ununterbrochen wieder
+// steht — und dann NUR gesprochen ("Name wieder verbunden."), ohne Geraeusch.
+// Bricht sie vorher wieder weg, bleibt es still. So gibt es kein Gepiepe mehr,
+// wenn jemand mehrfach kurz die Verbindung verliert.
+const RECONNECT_STABIL_MS = 5000;
 function meldeConnect(name) {
-  const n = flapZaehle(name);
-  if (n > 3) return;                                  // Dauer-Flattern: ganz still
-  sounds.play('click', 0.4);                          // kurzer, weicher Piep
-  if (n === 1) sprache.sage(`${name} verbunden.`);    // nur beim ERSTEN Verbinden ansagen
+  diag(`Connect: ${name} (schon_da=${_warSchonDa.has(name)})`);
+  _verbunden.add(name);
+  if (!_warSchonDa.has(name)) {
+    // Erstes Verbinden in dieser Sitzung: einmal ansagen, ohne Ton.
+    _warSchonDa.add(name);
+    sprache.sage(`${name} verbunden.`);
+    return;
+  }
+  // Reconnect: still abwarten. Nur ansagen, wenn die Verbindung 5 Sekunden haelt.
+  if (_reconnectTimer.has(name)) clearTimeout(_reconnectTimer.get(name));
+  _reconnectTimer.set(name, setTimeout(() => {
+    _reconnectTimer.delete(name);
+    if (_verbunden.has(name)) sprache.sage(`${name} wieder verbunden.`);
+  }, RECONNECT_STABIL_MS));
 }
 function meldeDisconnect(name) {
-  const f = _flap.get(name);
-  if (f && f.count > 3) return;                       // Flattern: still
-  if (!f || f.count <= 1) sprache.sage(`${name} getrennt.`); // nur einmal, ohne Post-Ton
+  diag(`Disconnect: ${name}`);
+  _verbunden.delete(name);
+  // Trennen ist ganz still. Bricht die Verbindung wieder weg, bevor die 5 Sekunden
+  // um sind, wird der Reconnect NICHT angesagt (Stabilitaets-Timer abbrechen).
+  if (_reconnectTimer.has(name)) { clearTimeout(_reconnectTimer.get(name)); _reconnectTimer.delete(name); }
 }
 
 // --- Verbindung ----------------------------------------------------------

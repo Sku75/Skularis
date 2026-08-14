@@ -4,6 +4,36 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 0.99, 14. August 2026
+
+
+Barrierefreie Popups, neuer Bogen-Transfer, ruhige Verbindung
+
+- Popups (Ja/Nein und Auswahlfenster) sind jetzt barrierefrei: Der Fragetext ist
+  selbst anwählbar. Mit Pfeil hoch oder der Tabtaste springst du auf den Text und
+  der Screenreader liest ihn vor - nicht mehr nur Ja und Nein. So weißt du immer,
+  worum es in der Abfrage geht.
+- Gesendeten Charakterbogen übernehmen - neuer, klarer Ablauf an ZWEI Stellen:
+  am Meistertisch unter Gruppenzusammenstellung (F11) der Knopf "Nach
+  Charakterupdate suchen", und in der Charakterverwaltung der neue Punkt
+  "Gesendeten Charakterbogen laden". Nach der Code-Eingabe öffnet sich ein
+  Fenster: oben "Neuer Bogen NAME, X EP gesamt", darunter die Liste der
+  vorhandenen Bögen (jeder mit seinen EP) zum Ersetzen - mit Ja/Nein-Rückfrage -
+  und ganz unten "Bogen annehmen und nichts überschreiben". Der gleiche Charakter
+  (gleiche ID) steht oben und ist als solcher gekennzeichnet.
+- Der Sende-Code (den du dem Meister nennst) steht jetzt groß in einer eigenen,
+  umrahmten Box - nicht mehr mitten im Satz.
+- Hinter jedem Charakternamen steht überall, wo Bögen aufgelistet sind, die
+  Gesamt-EP des Bogens (Meine Charaktere, Gruppenlisten, Übernahme-Fenster).
+- Verbindung am Meistertisch ist ruhiger: Trennen und Wiederverbinden laufen ohne
+  Ton ab. Ein Reconnect wird erst angesagt, wenn die Verbindung 5 Sekunden
+  ununterbrochen wieder steht - dann nur gesprochen "Name wieder verbunden".
+- Löschen ist überall vorhanden (Waffen, Rüstungen, Waffensets, Rüstungssets,
+  Gegenstände), jeweils mit Ja/Nein-Rückfrage, im jeweiligen Untermenü.
+- Technisch: ein stiller Diagnose-Mitschnitt hilft bei der Suche nach einem
+  seltenen Verbindungs-Ton (schreibt nur eine Log-Datei, kein Ton, keine Ansage).
+
+
 Version 0.98, 13. August 2026
 
 

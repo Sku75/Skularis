@@ -28,10 +28,16 @@ export async function charakterHinzufuegen() {
   if (!liste.length) { sprache.sage('Keine Charaktere vorhanden. Erst in der Charakterverwaltung einen Charakter erstellen.'); return; }
 
   const haben = new Set((a.charaktere || []).map(c => c.pfad));
-  const eintraege = liste
-    .filter(c => !haben.has(c.pfad))
-    .map(c => ({ label: c.name, wert: c.pfad, detail: 'Diesen Helden zur Gruppe hinzufuegen.' }));
-  if (!eintraege.length) { sprache.sage('Alle vorhandenen Charaktere sind schon in der Gruppe.'); return; }
+  const kandidaten = liste.filter(c => !haben.has(c.pfad));
+  if (!kandidaten.length) { sprache.sage('Alle vorhandenen Charaktere sind schon in der Gruppe.'); return; }
+  // Hinter jeden Namen die Gesamt-EP (jede Datei kurz einlesen).
+  let db2 = null; try { db2 = await ladeDb(); } catch { db2 = null; }
+  const eintraege = [];
+  for (const c of kandidaten) {
+    let ep2 = 0;
+    if (db2) { try { const res = await ipc.dateiDirektLaden(c.pfad); const p = parse(res.inhalt, db2); ep2 = ep(p); } catch { /* Name ohne EP */ } }
+    eintraege.push({ label: `${c.name}, ${ep2} EP`, wert: c.pfad, detail: 'Diesen Helden zur Gruppe hinzufuegen.' });
+  }
 
   // Nach der Wahl EINE Ebene zurueck in die Gruppenliste (Nutzerwunsch): so sieht
   // man sofort, wer dabei ist. Fuer einen weiteren Helden neu hineingehen. Darum
@@ -61,7 +67,11 @@ export async function charakterHinzufuegen() {
   });
 }
 
-/** Gruppenzusammenstellung: Reiter je Charakter, unten Charakter hinzufuegen. */
+/** Gesamt-EP eines Bogens (0, wenn nicht vorhanden). */
+function ep(bogen) { return (bogen && bogen.erfahrung && bogen.erfahrung.gesamt) || 0; }
+
+/** Gruppenzusammenstellung: Reiter je Charakter (mit EP), unten Charakter hinzufuegen
+ *  und „Nach Charakterupdate suchen" (gesendeten Bogen laden, ersetzen/annehmen). */
 export function gruppenzusammenstellungScreen() {
   return {
     title: '',
@@ -70,7 +80,7 @@ export function gruppenzusammenstellungScreen() {
       this.title = `Gruppenzusammenstellung, ${a.charaktere.length} Helden`;
       const items = a.charaktere.map((c, i) => ({
         id: `held-${i}`,
-        label: c.name,
+        label: `${c.name}, ${ep(c.bogen)} EP`,
         hint: 'oeffnen: Bogen ansehen oder entfernen',
         onSelect: () => screen.push(heldScreen(i)),
       }));
@@ -79,9 +89,16 @@ export function gruppenzusammenstellungScreen() {
         hint: 'Spielerbogen aus der Bibliothek laden',
         onSelect: () => charakterHinzufuegen(),
       });
+      items.push({
+        label: 'Nach Charakterupdate suchen',
+        hint: 'Den vom Spieler genannten 4-stelligen Code eingeben; danach waehlst du, welchen Bogen er ersetzt, oder nimmst ihn neu auf',
+        onSelect: () => import('./spielerinfos.js')
+          .then(m => m.starteGruppenUpdate())
+          .catch((e) => { console.error('Update-Modul:', e); sprache.sage('Konnte nicht geladen werden.'); }),
+      });
       return menuScreen({
         title: this.title,
-        subtitle: 'Enter oeffnet einen Helden. Charakter hinzufuegen laedt einen Bogen. Escape zurueck.',
+        subtitle: 'Enter oeffnet einen Helden. Charakter hinzufuegen laedt einen Bogen, Nach Charakterupdate suchen laedt einen gesendeten Bogen. Escape zurueck.',
         items,
         leer: 'Noch keine Helden in der Gruppe.',
       }).build();
@@ -127,7 +144,7 @@ export function gruppenboegenScreen() {
       const a = getMeister();
       this.title = `Charakterboegen der Gruppe, ${a.charaktere.length}`;
       const items = a.charaktere.map(c => ({
-        label: c.name,
+        label: `${c.name}, ${ep(c.bogen)} EP`,
         hint: 'Bogen ansehen',
         onSelect: () => screen.push(baueCharakterbogen(c.bogen, getDb(), `Charakterbogen ${c.name}`)),
       }));

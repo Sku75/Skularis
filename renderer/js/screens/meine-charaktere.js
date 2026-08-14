@@ -10,7 +10,7 @@ import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import * as editor from '../editor/editor.js';
 import { aktionZeile, infoZeile, abschnittTitel } from '../editor/widgets.js';
-import { auswahlDialog, zahlDialog, jaNeinDialog, textDialog, knopfDialog } from '../ui/dialog.js';
+import { zahlDialog, jaNeinDialog, textDialog, codeAnzeigeDialog } from '../ui/dialog.js';
 import { ladeDb } from '../core/db-laden.js';
 import { parse, serialisiere } from '../core/sephrasto-xml.js';
 import { ensureCharakterId } from '../core/character.js';
@@ -44,8 +44,8 @@ function listeScreen() {
       liste.className = 'db-menu__list';
       liste.id = 'mc-liste';
       wrap.appendChild(liste);
-      // Ganz unten: der Meister holt einen vom Spieler hochgeladenen Charakter ab.
-      wrap.appendChild(aktionZeile('Charakterupdate durchführen', () => charakterAbrufen(), 'Den vom Spieler genannten 4-stelligen Code eingeben und seinen Charakter übernehmen oder aktualisieren'));
+      // Gesendete Bögen lädt man zentral in der Charakterverwaltung
+      // („Gesendeten Charakterbogen laden").
       return wrap;
     },
     async onShow(el) {
@@ -57,8 +57,12 @@ function listeScreen() {
         liste.appendChild(infoZeile('Noch keine Charaktere gespeichert.'));
         return;
       }
+      // Hinter jeden Namen die Gesamt-EP des Bogens (jede Datei kurz einlesen).
+      let db = null; try { db = await ladeDb(); } catch { db = null; }
       for (const c of daten) {
-        liste.appendChild(aktionZeile(c.name, () => screen.push(charakterMenu(c)), 'Öffnen, Umbenennen, Erfahrungspunkte, Löschen'));
+        let label = c.name;
+        if (db) { try { const res = await ipc.dateiDirektLaden(c.pfad); const p = parse(res.inhalt, db); label = `${c.name}, ${(p.erfahrung && p.erfahrung.gesamt) || 0} EP`; } catch { /* Name ohne EP */ } }
+        liste.appendChild(aktionZeile(label, () => screen.push(charakterMenu(c)), 'Öffnen, Umbenennen, Erfahrungspunkte, Löschen'));
       }
     },
   };
@@ -138,7 +142,7 @@ async function sendeAnMeister(c) {
   if (r && r.ok) {
     sounds.playSpeichern();
     const gesprochen = code.split('').join(' ');
-    await knopfDialog({ titel: 'An den Meister gesendet', frage: `Nenne dem Meister diesen Code: ${gesprochen}. Er gilt etwa 3 Stunden, danach ist der Bogen automatisch weg.`, knoepfe: [{ label: 'OK', wert: 'ok' }] });
+    await codeAnzeigeDialog({ titel: 'An den Meister gesendet', code, hinweis: 'Nenne dem Meister diesen Code. Er gilt etwa 3 Stunden, danach ist der Bogen automatisch weg.' });
     sprache.sage(`Gesendet. Code ${gesprochen}.`);
   } else {
     sounds.playError();

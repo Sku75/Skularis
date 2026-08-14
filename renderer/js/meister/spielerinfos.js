@@ -21,39 +21,63 @@ import { zauberspeicherVorhanden, zauberspeicherScreen } from '../abenteuer/zaub
 import { setVerdeckt } from '../abenteuer/wuerfel-kern.js';
 import { setAbenteuer, setDb } from '../abenteuer/state.js';
 import { getDb } from '../core/db-laden.js';
-import { parse } from '../core/sephrasto-xml.js';
+import { parse, serialisiere } from '../core/sephrasto-xml.js';
+import { holeBogenPerCode, uebernahmeScreen, gesamtEP } from '../core/bogen-uebernahme.js';
 import { getMeister, speichere } from './state.js';
 import * as post from '../net/post.js';
 
 const ipc = window.skularis?.ipc;
 
 /**
- * Meistertisch: ein vom Spieler gesendetes Charakterupdate abholen (Code) und, wenn
- * der Charakter in der Gruppe ist, dessen Bogen gleich hier live aktualisieren — ohne
- * den Meistertisch zu verlassen. Die eigentliche Abhol-/Ersetzen-Logik (per stabiler
- * ID, keine Dubletten) liegt in meine-charaktere.js.
+ * Einen (frisch geladenen) Bogen in die Bibliothek schreiben und seinen Pfad
+ * ermitteln — damit der Meistertisch-Eintrag beim nächsten Öffnen frisch vom Bogen
+ * liest ("Bogen ist König"). @returns {Promise<{name, pfad}>}
  */
-async function neueUpdatesSuchen() {
-  let mc; try { mc = await import('../screens/meine-charaktere.js'); } catch (e) { console.error('Update-Modul:', e); return; }
-  const info = await mc.charakterAbrufen(); // fragt Code, lädt, ersetzt in der Bibliothek per ID
-  if (!info || !info.ok) return;            // abgebrochen oder nichts gefunden (bereits angesagt)
-  const a = getMeister();
-  if (!a || !Array.isArray(a.charaktere)) return;
-  const treffer = a.charaktere.find(c => c.bogen && c.bogen.id === info.id);
-  if (!treffer) { sprache.sage(`${info.name} ist noch nicht in deiner Gruppe. Füge ihn über die Gruppenzusammenstellung hinzu.`); return; }
-  try {
-    const db = getDb();
-    const liste = await ipc.bibliothekListe();
-    for (const x of liste) {
-      const res = await ipc.dateiDirektLaden(x.pfad);
-      const p = parse(res.inhalt, db);
-      if (p && p.id === info.id) { treffer.bogen = p; treffer.name = p.name; treffer.pfad = x.pfad; break; }
-    }
-    await speichere();
-    screen.refresh();
-    sprache.sage(`${info.name} in der Gruppe aktualisiert.`);
-  } catch (e) { console.error('Gruppen-Update:', e); }
+async function inBibliothek(neuChar, db) {
+  const name = (neuChar.name || 'Charakter').trim() || 'Charakter';
+  await ipc.bibliothekSpeichern({ name, inhalt: serialisiere(neuChar, db) });
+  let pfad = '';
+  try { const l = await ipc.bibliothekListe(); const t = l.find(x => (x.name || '').toLowerCase() === name.toLowerCase()); if (t) pfad = t.pfad; } catch { /* egal */ }
+  return { name, pfad };
 }
+
+/**
+ * F11 „Charakterupdate": den vom Spieler genannten Code eingeben, dann im
+ * Übernahme-Fenster wählen, welchen Gruppen-Bogen er ersetzt — oder ihn neu in die
+ * Gruppe aufnehmen. Ersetzen/Annehmen schreibt den Bogen in die Bibliothek und
+ * aktualisiert die Gruppe.
+ */
+export async function starteGruppenUpdate() {
+  const r = await holeBogenPerCode();
+  if (!r) return;
+  const { neuChar, db } = r;
+  const a = getMeister();
+  if (!a) return;
+  a.charaktere = a.charaktere || [];
+  const ziele = a.charaktere.map(c => ({ name: c.name, ep: gesamtEP(c.bogen), id: c.bogen && c.bogen.id, _ref: c }));
+  screen.push(uebernahmeScreen({
+    neuChar, ziele,
+    onErsetzen: async (z) => {
+      const { name, pfad } = await inBibliothek(neuChar, db);
+      const alt = z._ref;
+      if (alt.pfad && pfad && alt.pfad !== pfad && (alt.name || '').toLowerCase() !== name.toLowerCase()) {
+        try { await ipc.bibliothekLoeschen(alt.pfad); } catch { /* egal */ }
+      }
+      alt.name = name; alt.pfad = pfad; alt.bogen = neuChar;
+      await speichere();
+      screen.refresh();
+    },
+    onNeuAnnehmen: async () => {
+      const { name, pfad } = await inBibliothek(neuChar, db);
+      const vorhanden = a.charaktere.find(c => (c.name || '').toLowerCase() === name.toLowerCase());
+      if (vorhanden) { vorhanden.name = name; vorhanden.pfad = pfad; vorhanden.bogen = neuChar; }
+      else a.charaktere.push({ name, pfad, bogen: neuChar });
+      await speichere();
+      screen.refresh();
+    },
+  }));
+}
+
 
 /** Charakterbögen der Gruppe (nur ansehen). */
 export function charakterboegenScreen() {
@@ -63,7 +87,7 @@ export function charakterboegenScreen() {
       const a = getMeister();
       this.title = 'Charakterbögen';
       const items = a.charaktere.map(c => ({
-        label: c.name,
+        label: `${c.name}, ${gesamtEP(c.bogen)} EP`,
         hint: 'Bogen ansehen',
         onSelect: () => screen.push(baueCharakterbogen(c.bogen, getDb(), `Charakterbogen ${c.name}`)),
       }));
@@ -179,7 +203,7 @@ export function charAnsichtInitiativeScreen() {
       this.title = `Charakteransicht, ${gruppe.length}`;
       const items = gruppe.map(c => {
         const zus = verbunden.has(c.name) ? ' (verbunden)' : (hatStatus.has(c.name) ? ' (offline)' : '');
-        return { label: `${c.name}${zus}`, hint: 'Status und Initiative-Phase dieses Charakters', onSelect: () => screen.push(charLiveScreen(c)) };
+        return { label: `${c.name}, ${gesamtEP(c.bogen)} EP${zus}`, hint: 'Status und Initiative-Phase dieses Charakters', onSelect: () => screen.push(charLiveScreen(c)) };
       });
       return menuScreen({
         title: this.title,
@@ -200,7 +224,6 @@ export function charaktereScreen() {
     items: [
       { label: 'Charakteransicht meine Initiativephase', hint: 'Status und Werte der Helden, verdeckt würfeln', onSelect: () => screen.push(charAnsichtInitiativeScreen()) },
       { label: 'Charakterbögen', hint: 'die Bögen der Gruppe zum Nachlesen', onSelect: () => screen.push(charakterboegenScreen()) },
-      { label: 'Neue Charakterupdates suchen', hint: 'einen vom Spieler gesendeten Code eingeben und den Charakter direkt hier aktualisieren', onSelect: () => neueUpdatesSuchen() },
     ],
   });
 }

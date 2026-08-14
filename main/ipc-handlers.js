@@ -55,6 +55,19 @@ ipcMain.handle('skularis:config-schreiben', (_event, data) => {
 ipcMain.handle('skularis:box-hochladen', (_event, data) => boxTransfer.uploadBogen(data.code, data.inhalt));
 ipcMain.handle('skularis:box-abholen', (_event, data) => boxTransfer.downloadBogen(data.code));
 
+// Diagnose-Mitschnitt (still): haengt eine Zeile mit Zeitstempel an
+// <basis>/skularis-diagnose.log. Nur zum Aufspueren des Post-Ton-Problems bei
+// Reconnects; stoert das Spiel nicht (kein Ton, keine Ansage, nur Datei).
+ipcMain.handle('skularis:diag-log', (_event, data) => {
+  try {
+    const { getBasisPfad } = require('./main');
+    const zeit = new Date().toLocaleTimeString('de-DE');
+    const zeile = `[${zeit}] ${(data && data.text) ? String(data.text) : ''}\n`;
+    fs.appendFileSync(path.join(getBasisPfad(), 'skularis-diagnose.log'), zeile, 'utf-8');
+  } catch (e) { /* Diagnose darf nie stoeren */ }
+  return true;
+});
+
 ipcMain.handle('skularis:letzte-dateien', () => {
   return fileOps.letzteDateienLaden(settings);
 });

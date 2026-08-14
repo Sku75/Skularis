@@ -25,6 +25,13 @@ export function build() {
           .then(m => m.starteNeu())
           .catch(() => sprache.sage('Das Erstellungs-Tool wird gerade gebaut.')),
       },
+      {
+        label: 'Gesendeten Charakterbogen laden',
+        hint: 'Den vom Spieler genannten 4-stelligen Code eingeben und den Bogen übernehmen oder einen bestehenden ersetzen',
+        onSelect: () => import('../core/bogen-uebernahme.js')
+          .then(m => m.starteBibliotheksUebernahme())
+          .catch((e) => { console.error('Übernahme-Modul:', e); sprache.sage('Konnte nicht geladen werden.'); }),
+      },
     ],
   });
 }

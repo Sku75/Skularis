@@ -15,6 +15,8 @@
  * PeerJS wird als globales window.Peer geladen (renderer/assets/vendor).
  */
 
+import { diag } from '../core/diag.js';
+
 const ICE = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -119,6 +121,7 @@ function sendeSpielerListe() {
 
 function meisterEmpfang(conn, d) {
   if (!d || typeof d !== 'object') return;
+  try { diag(`RX Meister: typ=${d.typ} id=${d.id || '-'} von=${d.name || nameVon(conn) || '?'} an=${d.an || '-'}`); } catch { /* egal */ }
   if (d.typ === 'hello') {
     const name = (String(d.name || 'Spieler').trim()) || 'Spieler';
     const alt = _conns.get(name);
@@ -250,6 +253,7 @@ function dropBehandelnPost(fehlerText) {
 
 function spielerEmpfang(d) {
   if (!d || typeof d !== 'object') return;
+  try { diag(`RX Spieler: typ=${d.typ} id=${d.id || '-'} von=${d.von || '?'}`); } catch { /* egal */ }
   if (d.typ === 'liste') { _cb.onSpielerListe && _cb.onSpielerListe(Array.isArray(d.namen) ? d.namen : []); return; }
   if (d.typ === 'msg' || d.typ === 'popup') {
     if (d.id && _gesehen.has(d.id)) return;

@@ -212,10 +212,12 @@ export function jaNeinDialog({ titel, frage, jaLabel = 'Ja', neinLabel = 'Nein' 
   return new Promise((resolve) => {
     sounds.playClick();
     const dlg = baueDialog(titel);
+    // Der Fragetext ist fokussierbar (tabindex 0), damit man ihn mit Tab und den
+    // Pfeiltasten erreicht und der Screenreader ihn vorliest — nicht nur Ja/Nein.
     dlg.insertAdjacentHTML('beforeend', `
       <div class="db-dialog__header"><span class="db-dialog__title">${titel}</span></div>
       <div class="db-dialog__body">
-        <p class="db-dialog__label">${frage}</p>
+        <p class="db-dialog__label" id="dlg-frage" tabindex="0" role="note">${frage}</p>
       </div>
       <div class="db-dialog__footer">
         <button class="db-btn db-btn--primary" id="dlg-ja">${jaLabel}</button>
@@ -223,16 +225,28 @@ export function jaNeinDialog({ titel, frage, jaLabel = 'Ja', neinLabel = 'Nein' 
       </div>`);
     document.body.appendChild(dlg);
     const fertig = (val) => { dlg.close(); dlg.remove(); resolve(val); };
+    const frageEl = dlg.querySelector('#dlg-frage');
     const ja = dlg.querySelector('#dlg-ja');
+    const nein = dlg.querySelector('#dlg-nein');
     ja.addEventListener('click', () => fertig(true));
-    dlg.querySelector('#dlg-nein').addEventListener('click', () => fertig(false));
+    nein.addEventListener('click', () => fertig(false));
+    // Fokus-Ring: Fragetext, Ja, Nein — mit Pfeil hoch/runter erreichbar.
+    const ring = [frageEl, ja, nein];
+    let idx = 1; // Start auf Ja
+    const fokus = (i) => { idx = (i + ring.length) % ring.length; ring[idx].focus(); };
     dlg.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); fertig(true); }
-      else if (e.key === 'Escape') { e.preventDefault(); fertig(false); }
+      if (e.key === 'Escape') { e.preventDefault(); fertig(false); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); fokus(idx + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); fokus(idx - 1); }
+      else if (e.key === 'Enter') {
+        e.preventDefault();
+        // Enter bestätigt den fokussierten Knopf; auf dem Fragetext gilt Ja als Vorgabe.
+        fertig(document.activeElement === nein ? false : true);
+      }
     });
     dlg.showModal();
     ja.focus();
-    melde(dlg, `${frage}. ${jaLabel} oder ${neinLabel}. Eingabetaste bestätigt, Escape bricht ab.`);
+    melde(dlg, `${frage}. ${jaLabel} oder ${neinLabel}. Pfeil hoch liest die Frage, Eingabetaste bestätigt, Escape bricht ab.`);
   });
 }
 
@@ -255,9 +269,11 @@ export function knopfDialog({ titel, frage, knoepfe }) {
     const knopfHtml = knoepfe
       .map((k, i) => `<button class="db-btn db-btn--primary db-dialog__wahl" data-i="${i}">${k.label}</button>`)
       .join('');
+    // Der Fragetext ist fokussierbar (tabindex 0), damit man ihn mit Pfeil hoch
+    // erreicht und der Screenreader ihn vorliest — nicht nur die Knöpfe.
     dlg.insertAdjacentHTML('beforeend', `
       <div class="db-dialog__header"><span class="db-dialog__title">${titel}</span></div>
-      ${frage ? `<div class="db-dialog__body"><p class="db-dialog__label">${frage}</p></div>` : ''}
+      ${frage ? `<div class="db-dialog__body"><p class="db-dialog__label" id="dlg-frage" tabindex="0" role="note">${frage}</p></div>` : ''}
       <div class="db-dialog__footer db-dialog__footer--spalte">
         ${knopfHtml}
       </div>`);
@@ -265,8 +281,11 @@ export function knopfDialog({ titel, frage, knoepfe }) {
     const fertig = (val) => { dlg.close(); dlg.remove(); resolve(val); };
     const knopfEls = Array.from(dlg.querySelectorAll('.db-dialog__wahl'));
     knopfEls.forEach((b) => b.addEventListener('click', () => fertig(knoepfe[+b.dataset.i].wert)));
-    let idx = 0;
-    const fokus = (i) => { idx = Math.max(0, Math.min(knopfEls.length - 1, i)); knopfEls[idx].focus(); };
+    const frageEl = dlg.querySelector('#dlg-frage');
+    // Fokus-Ring: erst der Fragetext (falls vorhanden), dann die Knöpfe.
+    const ring = frageEl ? [frageEl, ...knopfEls] : knopfEls.slice();
+    let idx = frageEl ? 1 : 0; // Start auf dem ersten Knopf
+    const fokus = (i) => { idx = (i + ring.length) % ring.length; ring[idx].focus(); };
     dlg.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { e.preventDefault(); fertig(null); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); fokus(idx + 1); }
@@ -275,14 +294,58 @@ export function knopfDialog({ titel, frage, knoepfe }) {
         e.preventDefault();
         const b = document.activeElement;
         if (b && b.dataset && b.dataset.i !== undefined) fertig(knoepfe[+b.dataset.i].wert);
-        else fertig(knoepfe[idx].wert);
+        else { const erster = ring.findIndex(el => el.dataset && el.dataset.i !== undefined); if (erster >= 0) fokus(erster); } // vom Fragetext zum ersten Knopf
       }
     });
     dlg.showModal();
-    fokus(0);
+    fokus(idx);
     // Kurze Ansage: nur Titel/Frage — den fokussierten Knopf liest der
     // Screenreader selbst; die Bedienung (Pfeile, Eingabetaste, Escape) ist Standard.
     melde(dlg, `${titel}${frage ? '. ' + frage : ''}.`);
+  });
+}
+
+/**
+ * Einen Code (oder kurzen Wert) GROSS und umrahmt anzeigen — nicht mitten im Satz.
+ * Die Code-Box ist fokussierbar; ihr aria-label spricht die Ziffern einzeln, damit
+ * der Screenreader sie klar vorliest. Darunter ein Hinweis, dann OK.
+ * @returns Promise<void>
+ */
+export function codeAnzeigeDialog({ titel = 'Code', code = '', hinweis = '' }) {
+  return new Promise((resolve) => {
+    sounds.playClick();
+    const dlg = baueDialog(titel);
+    const ziffernGesprochen = String(code).split('').join(' ');
+    const boxStil = 'display:block;margin:0.6rem 0;padding:0.7rem 1rem;border:3px solid currentColor;'
+      + 'border-radius:0.6rem;font-size:2.4rem;font-weight:800;letter-spacing:0.5rem;text-align:center;';
+    dlg.insertAdjacentHTML('beforeend', `
+      <div class="db-dialog__header"><span class="db-dialog__title">${titel}</span></div>
+      <div class="db-dialog__body">
+        <div id="dlg-code" class="db-dialog__code" tabindex="0" role="note" style="${boxStil}"></div>
+        ${hinweis ? `<p class="db-dialog__label" id="dlg-hinweis" tabindex="0" role="note">${hinweis}</p>` : ''}
+      </div>
+      <div class="db-dialog__footer">
+        <button class="db-btn db-btn--primary" id="dlg-ok">OK</button>
+      </div>`);
+    document.body.appendChild(dlg);
+    const codeEl = dlg.querySelector('#dlg-code');
+    codeEl.textContent = String(code);           // sicher setzen
+    codeEl.setAttribute('aria-label', `Code ${ziffernGesprochen}`);
+    const hinweisEl = dlg.querySelector('#dlg-hinweis');
+    const ok = dlg.querySelector('#dlg-ok');
+    const fertig = () => { dlg.close(); dlg.remove(); resolve(); };
+    ok.addEventListener('click', fertig);
+    const ring = [codeEl, hinweisEl, ok].filter(Boolean);
+    let idx = 0;
+    const fokus = (i) => { idx = (i + ring.length) % ring.length; ring[idx].focus(); };
+    dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); fertig(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); fokus(idx + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); fokus(idx - 1); }
+    });
+    dlg.showModal();
+    codeEl.focus();
+    melde(dlg, `${titel}. Code ${ziffernGesprochen}.${hinweis ? ' ' + hinweis : ''} Pfeiltasten lesen die Zeilen, Eingabetaste schließt.`);
   });
 }
 
