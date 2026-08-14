@@ -45,6 +45,19 @@ let _reconnectVersuch = 0;
 let _amReconnect = false;
 let _verbundenGewesen = false; // Reconnect erst, wenn die Verbindung einmal STAND
 
+// --- Heartbeat (Totmann-Erkennung) --------------------------------------
+// PeerJS meldet einen echten Netzabbruch oft NICHT (kein close-Event). Daher ein
+// eigener Herzschlag: beide Seiten senden regelmaessig ping und antworten mit pong.
+// Bleibt die Gegenseite zu lange still, gilt die Leitung als tot -> Meister wirft den
+// Spieler aus der Liste, Spieler baut AKTIV neu auf (statt auf PeerJS zu warten).
+const HEARTBEAT_MS = 12000;   // alle 12 s ein ping
+const TOT_MS = 40000;         // ~3 ausbleibende Antworten -> Leitung tot
+let _hbMeister = null;        // Meister: ein Intervall fuer alle Spieler
+let _hbSpieler = null;        // Spieler: ein Intervall zum Meister
+let _meisterLastSeen = 0;     // Spieler: wann kam zuletzt etwas vom Meister
+function jetzt() { return Date.now(); }
+function istHerzschlag(d) { return d && (d.typ === 'ping' || d.typ === 'pong'); }
+
 /** Meister: letzter empfangener F2-Stand eines Spielers (oder null). */
 export function getStatus(name) { const s = _status.get(name); return s ? s.werte : null; }
 /** Meister: Live-Stand nach stabiler Charakter-ID (ordnet auch nach Umbenennung korrekt zu). */
@@ -94,10 +107,26 @@ export function starteMeisterPost(code, cb) {
     else _cb.onFehler && _cb.onFehler('Post-Fehler: ' + (e && e.message ? e.message : t || 'unbekannt'));
   });
   _peer.on('connection', (conn) => {
+    conn._lastSeen = jetzt();
     conn.on('data', (d) => meisterEmpfang(conn, d));
     conn.on('close', () => meisterConnWeg(conn));
     conn.on('error', () => meisterConnWeg(conn));
   });
+  if (_hbMeister) clearInterval(_hbMeister);
+  _hbMeister = setInterval(meisterHerzschlag, HEARTBEAT_MS);
+}
+
+/** Meister-Herzschlag: jeden Spieler anpingen; wer zu lange still ist, gilt als tot. */
+function meisterHerzschlag() {
+  const t = jetzt();
+  for (const [, conn] of [..._conns]) {
+    if (conn._lastSeen && (t - conn._lastSeen) > TOT_MS) {
+      try { conn.close(); } catch { /* egal */ }
+      meisterConnWeg(conn); // markiert offline + sendet Spielerliste
+      continue;
+    }
+    try { conn.send({ typ: 'ping' }); } catch { /* egal */ }
+  }
 }
 
 function nameVon(conn) {
@@ -121,6 +150,9 @@ function sendeSpielerListe() {
 
 function meisterEmpfang(conn, d) {
   if (!d || typeof d !== 'object') return;
+  conn._lastSeen = jetzt();
+  if (d.typ === 'ping') { try { conn.send({ typ: 'pong' }); } catch { /* egal */ } return; }
+  if (d.typ === 'pong') return; // nur Lebenszeichen, kein Inhalt
   try { diag(`RX Meister: typ=${d.typ} id=${d.id || '-'} von=${d.name || nameVon(conn) || '?'} an=${d.an || '-'}`); } catch { /* egal */ }
   if (d.typ === 'hello') {
     const name = (String(d.name || 'Spieler').trim()) || 'Spieler';
@@ -177,6 +209,22 @@ export function meisterSende(an, text, typ = 'msg') {
   try { c.send(paket(an)); return true; } catch { return false; }
 }
 
+/** Meister: einen einzelnen Spieler bewusst trennen (aus der Connectliste). */
+export function trenneSpieler(name) {
+  const c = _conns.get(name);
+  if (!c) return false;
+  try { c.close(); } catch { /* egal */ }
+  _conns.delete(name);
+  sendeSpielerListe();
+  return true;
+}
+
+/** Meister: alle Spieler bewusst trennen. */
+export function trenneAlleSpieler() {
+  for (const [n, c] of [..._conns]) { try { c.close(); } catch { /* egal */ } _conns.delete(n); }
+  sendeSpielerListe();
+}
+
 // --- Spieler ------------------------------------------------------------
 
 /**
@@ -214,6 +262,9 @@ function spielerVerbindeIntern(erst) {
       _amReconnect = false;
       _reconnectVersuch = 0;
       _verbundenGewesen = true;
+      _meisterLastSeen = jetzt();
+      if (_hbSpieler) clearInterval(_hbSpieler);
+      _hbSpieler = setInterval(spielerHerzschlag, HEARTBEAT_MS);
       if (warReconnect) _cb.onReconnectErfolg && _cb.onReconnectErfolg();
       else _cb.onVerbunden && _cb.onVerbunden();
     });
@@ -251,8 +302,25 @@ function dropBehandelnPost(fehlerText) {
   _reconnectTimer = setTimeout(() => { _reconnectTimer = null; if (_manuell) return; spielerVerbindeIntern(false); }, delay);
 }
 
+/** Spieler-Herzschlag: den Meister anpingen; bleibt er zu lange still, aktiv neu verbinden. */
+function spielerHerzschlag() {
+  if (_manuell) return;
+  const conn = _meisterConn;
+  if (conn && conn.open) { try { conn.send({ typ: 'ping' }); } catch { /* egal */ } }
+  if (_verbundenGewesen && _meisterLastSeen && (jetzt() - _meisterLastSeen) > TOT_MS) {
+    // Leitung tot, obwohl PeerJS nichts meldet -> aktiv neu aufbauen.
+    _meisterLastSeen = jetzt(); // Mehrfach-Ausloesung verhindern
+    if (_hbSpieler) { clearInterval(_hbSpieler); _hbSpieler = null; }
+    try { if (_meisterConn) _meisterConn.close(); } catch { /* egal */ }
+    dropBehandelnPost('Verbindung zum Meister eingeschlafen, ich verbinde neu.');
+  }
+}
+
 function spielerEmpfang(d) {
   if (!d || typeof d !== 'object') return;
+  _meisterLastSeen = jetzt();
+  if (d.typ === 'ping') { try { if (_meisterConn) _meisterConn.send({ typ: 'pong' }); } catch { /* egal */ } return; }
+  if (d.typ === 'pong') return; // nur Lebenszeichen
   try { diag(`RX Spieler: typ=${d.typ} id=${d.id || '-'} von=${d.von || '?'}`); } catch { /* egal */ }
   if (d.typ === 'liste') { _cb.onSpielerListe && _cb.onSpielerListe(Array.isArray(d.namen) ? d.namen : []); return; }
   if (d.typ === 'msg' || d.typ === 'popup') {
@@ -294,6 +362,9 @@ export function reconnectAbbrechen() {
 
 export function stopp() {
   _manuell = true; // bewusstes Trennen -> kein Reconnect
+  if (_hbMeister) { clearInterval(_hbMeister); _hbMeister = null; }
+  if (_hbSpieler) { clearInterval(_hbSpieler); _hbSpieler = null; }
+  _meisterLastSeen = 0;
   if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
   _amReconnect = false;
   _reconnectVersuch = 0;

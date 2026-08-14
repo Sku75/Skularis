@@ -990,8 +990,10 @@ async function sendenStarten() {
   const strom = player.getSendeStrom();
   sitzung.starteMeisterRadio(strom, {
     onBereit: () => { setzeStatus('Sende. 0 Hörer verbunden.'); sprache.sage(`Radio sendet. Schlüssel ${_schluessel.split('').join(' ')}.`); },
-    onHoererNeu: (n) => { sounds.playBing(); setzeStatus(`Sende. ${n} Hörer verbunden.`); sprache.sage(`Ein Hörer verbunden. Insgesamt ${n}.`); },
-    onHoererWeg: (n) => { setzeStatus(`Sende. ${n} Hörer verbunden.`); sprache.sage(`Ein Hörer getrennt. Noch ${n}.`); },
+    // Kein Ton und keine Ansage mehr bei Hörer-Wechsel (spammt). Nur die stille
+    // Statuszeile wird aktualisiert; die Hörerzahl steht dort zum Nachlesen.
+    onHoererNeu: (n) => { setzeStatus(`Sende. ${n} Hörer verbunden.`); },
+    onHoererWeg: (n) => { setzeStatus(`Sende. ${n} Hörer verbunden.`); },
     onFehler: (t) => { setzeStatus('Radio-Fehler.'); sprache.sage(t); },
   }, { maxBitrate: bitrate }, postkasten.postCallbacks());
   screen.refresh();

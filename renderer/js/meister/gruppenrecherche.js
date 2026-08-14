@@ -258,7 +258,8 @@ async function starteGruppenprobe() {
   const ergebnisse = rows.map(r => {
     const res = verdeckteProbeStumm(r, schwierigkeit, anzahl);
     const wtext = res.n === 3 ? `drei W20 ${res.wuerfe.join(', ')}, mittlerer ${res.wert}` : `ein W20 ${res.wert}`;
-    const detail = `${r.name}, ${r.was}. ${wtext}, plus Probenwert ${r.probenwert}. Ergebnis ${res.ew}. Gegen Schwierigkeit ${schwierigkeit}: ${res.gelungen ? 'gelungen' : 'misslungen'}.`;
+    // Reihenfolge (Nutzerwunsch): Name, Probenwert direkt danach, dann Wurfergebnis, dann die Formel.
+    const detail = `${r.name}, Probenwert ${r.probenwert} (${r.was}). Ergebnis ${res.ew}, gegen Schwierigkeit ${schwierigkeit} ${res.gelungen ? 'gelungen' : 'misslungen'}. Formel: ${wtext} plus Probenwert ${r.probenwert}.`;
     return { name: r.name, ew: res.ew, gelungen: res.gelungen, detail };
   });
   ergebnisse.sort((x, y) => y.ew - x.ew);

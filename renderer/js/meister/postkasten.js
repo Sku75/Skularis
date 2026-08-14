@@ -25,6 +25,8 @@ let _code = '';
 let _popupOffen = false;
 
 function kurz(t) { const s = String(t || '').replace(/\s+/g, ' ').trim(); return s.length > 50 ? s.slice(0, 50) + '…' : s; }
+/** Datum und Uhrzeit einer Nachricht lesbar (oder leer). */
+function zeitText(m) { try { return (m && m.zeit) ? new Date(m.zeit).toLocaleString('de-DE') : ''; } catch { return ''; } }
 
 // --- Eingang: Nachricht bzw. Pop-up -------------------------------------
 
@@ -58,9 +60,11 @@ function empfangePost(m) {
 const _letzterStatus = new Map(); // name -> zuletzt empfangene Werte (fuer Diff)
 const _angesagt = new Map();      // name -> zuletzt ANGESAGTE Werte
 const _statusTimer = new Map();   // name -> Timer: buendelt F2-Aenderungen zum Endstand
-const _verbunden = new Set();     // aktuell verbundene Namen
-const _warSchonDa = new Set();    // Namen, die in dieser Sitzung mindestens einmal verbunden waren
-const _reconnectTimer = new Map();// name -> Timer der 5-Sekunden-Stabilitaetspruefung nach Reconnect
+
+// Live-Hook: ein offener "Meine Initiativephase"-Bildschirm meldet sich hier an und
+// wird bei einer echten Werteänderung des Spielers sofort neu gezeichnet (Task 147).
+let _liveHook = null;
+export function setLiveHook(fn) { _liveHook = fn || null; }
 
 const FELD = { Wunden: 'Wunden', Erschoepfung: 'Erschöpfung', SchiP: 'Schicksalspunkte', AsP: 'Astralpunkte', KaP: 'Karmapunkte', GuP: 'Gunstpunkte', AstralspeicherStab: 'Astralspeicher' };
 function az(werte, k) { return (werte && werte[k] && typeof werte[k].aktuell === 'number') ? werte[k].aktuell : null; }
@@ -92,50 +96,27 @@ function diffTeile(alt, neu) {
 const STATUS_RUHE_MS = 1800;
 function statusAenderung(name, werte) {
   _letzterStatus.set(name, werte);
-  // Waehrend der 5-Sekunden-Reconnect-Pruefung still bleiben: ein frisch wieder-
-  // verbundener Spieler sendet seinen Stand neu, das soll keinen Ton/keine Ansage
-  // ausloesen. Der Stand wird nur gemerkt, damit spaeter der Diff stimmt.
-  if (_reconnectTimer.has(name)) { _angesagt.set(name, werte); return; }
+  // Der periodische Voll-Abgleich (alle 25 s) und ein Reconnect senden denselben
+  // Stand erneut — das erzeugt keinen Diff und bleibt daher von selbst still.
   if (_statusTimer.has(name)) clearTimeout(_statusTimer.get(name));
   _statusTimer.set(name, setTimeout(() => {
     _statusTimer.delete(name);
     const aktuell = _letzterStatus.get(name) || {};
     const teile = diffTeile(_angesagt.get(name) || {}, aktuell); // Diff seit der letzten Ansage
     _angesagt.set(name, aktuell);
-    if (teile.length) { sounds.play('click', 0.4); sprache.sage(`${name}, ${teile.join(', ')}.`); }
+    if (teile.length) {
+      sounds.play('click', 0.4); sprache.sage(`${name}, ${teile.join(', ')}.`);
+      if (_liveHook) { try { _liveHook(name); } catch { /* egal */ } } // offenen Live-Bildschirm neu zeichnen
+    }
   }, STATUS_RUHE_MS));
 }
 
-// --- An-/Abmelde-Meldungen: leise und stabil -----------------------------
-// Wunsch: Reconnects und Trennungen laufen KOMPLETT ohne Ton ab. Ein Reconnect
-// wird erst dann angesagt, wenn die Verbindung 5 Sekunden ununterbrochen wieder
-// steht — und dann NUR gesprochen ("Name wieder verbunden."), ohne Geraeusch.
-// Bricht sie vorher wieder weg, bleibt es still. So gibt es kein Gepiepe mehr,
-// wenn jemand mehrfach kurz die Verbindung verliert.
-const RECONNECT_STABIL_MS = 5000;
-function meldeConnect(name) {
-  diag(`Connect: ${name} (schon_da=${_warSchonDa.has(name)})`);
-  _verbunden.add(name);
-  if (!_warSchonDa.has(name)) {
-    // Erstes Verbinden in dieser Sitzung: einmal ansagen, ohne Ton.
-    _warSchonDa.add(name);
-    sprache.sage(`${name} verbunden.`);
-    return;
-  }
-  // Reconnect: still abwarten. Nur ansagen, wenn die Verbindung 5 Sekunden haelt.
-  if (_reconnectTimer.has(name)) clearTimeout(_reconnectTimer.get(name));
-  _reconnectTimer.set(name, setTimeout(() => {
-    _reconnectTimer.delete(name);
-    if (_verbunden.has(name)) sprache.sage(`${name} wieder verbunden.`);
-  }, RECONNECT_STABIL_MS));
-}
-function meldeDisconnect(name) {
-  diag(`Disconnect: ${name}`);
-  _verbunden.delete(name);
-  // Trennen ist ganz still. Bricht die Verbindung wieder weg, bevor die 5 Sekunden
-  // um sind, wird der Reconnect NICHT angesagt (Stabilitaets-Timer abbrechen).
-  if (_reconnectTimer.has(name)) { clearTimeout(_reconnectTimer.get(name)); _reconnectTimer.delete(name); }
-}
+// --- An-/Abmelde-Meldungen: komplett still -------------------------------
+// Wunsch: KEINE Connect-/Disconnect-Ansagen mehr am Meistertisch (sie spammen und
+// tragen keine verlässliche Info). Wer verbunden ist, sieht der Meister auf Abruf im
+// Verbinden-Menü unter "Verbundene Spieler". Hier nur noch der stille Mitschnitt.
+function meldeConnect(name) { diag(`Connect: ${name}`); }
+function meldeDisconnect(name) { diag(`Disconnect: ${name}`); }
 
 // --- Verbindung ----------------------------------------------------------
 
@@ -230,9 +211,12 @@ function nachrichtMenuScreen(index) {
       const m = (a.posteingang || [])[index];
       if (!m) { screen.pop(); return document.createElement('div'); }
       m.gelesen = true;
-      this.title = `Post von ${m.von}`;
+      const z = zeitText(m);
+      this.title = `Post von ${m.von}${z ? ', ' + z : ''}`;
       const items = [
-        { label: 'Vorlesen', onSelect: () => sprache.sage(`Post von ${m.von}. ${m.text || 'Kein Text.'}`) },
+        // Der Nachrichtentext steht als ERSTE, fokussierte Zeile — sofort auffindbar
+        // und vorlesbar (wie die Info-Seite). Enter liest ihn erneut vor.
+        { label: m.text || 'Kein Text.', hint: `Post von ${m.von}${z ? ', ' + z : ''}`, detail: `Post von ${m.von}${z ? ', ' + z : ''}. ${m.text || 'Kein Text.'}`, onSelect: () => sprache.sage(m.text || 'Kein Text.') },
         { label: 'Antworten', hint: `Antwort an ${m.von}`, onSelect: () => schreibeInhalt(m.von, 'msg') },
         {
           label: 'In Ablage verschieben',
@@ -272,12 +256,12 @@ function posteingangScreen() {
     build() {
       const a = getMeister();
       const liste = a.posteingang || [];
-      const items = liste.map((m, i) => ({
-        label: `Post von ${m.von}`,
-        detail: `Post von ${m.von}. ${m.text}`,
-        hint: 'öffnen: vorlesen, antworten, verschieben, löschen',
+      const items = liste.map((m, i) => { const z = zeitText(m); return {
+        label: `Post von ${m.von}${z ? ', ' + z : ''}`,
+        detail: `Post von ${m.von}${z ? ', ' + z : ''}. ${m.text}`,
+        hint: 'öffnen: Text lesen, antworten, verschieben, löschen',
         onSelect: () => screen.push(nachrichtMenuScreen(i)),
-      }));
+      }; });
       return menuScreen({ title: 'Posteingang', subtitle: 'Shift und Pfeil-runter liest die Nachricht, Enter öffnet sie. Escape zurück.', items, leer: 'Noch keine Post.' }).build();
     },
     onShow() { sprache.sage('Posteingang.'); },
@@ -410,6 +394,43 @@ function notizenScreen() {
   };
 }
 
+// --- Verbundene Spieler (Connectliste) -----------------------------------
+
+/** Liste der aktuell verbundenen Spieler; einzeln oder alle trennen. */
+function verbundeneSpielerScreen() {
+  return {
+    title: 'Verbundene Spieler',
+    build() {
+      const namen = post.verbundeneSpieler();
+      const items = namen.map(n => ({
+        label: n,
+        hint: 'Enter: Verbindung zu diesem Spieler trennen',
+        onSelect: async () => {
+          if (!await jaNeinDialog({ titel: 'Trennen', frage: `Verbindung zu ${n} trennen? Der Spieler verbindet sich danach in der Regel automatisch neu.` })) return;
+          post.trenneSpieler(n); sprache.sage(`${n} getrennt.`); screen.refresh();
+        },
+      }));
+      if (namen.length > 1) {
+        items.push({
+          label: 'Alle trennen',
+          hint: 'trennt alle Spieler (sie verbinden sich danach neu)',
+          onSelect: async () => {
+            if (!await jaNeinDialog({ titel: 'Alle trennen', frage: 'Wirklich alle Spieler trennen? Sie verbinden sich danach in der Regel automatisch neu.' })) return;
+            post.trenneAlleSpieler(); sprache.sage('Alle getrennt.'); screen.refresh();
+          },
+        });
+      }
+      return menuScreen({
+        title: `Verbundene Spieler, ${namen.length}`,
+        subtitle: 'Enter trennt die Verbindung. Escape zurück.',
+        items,
+        leer: 'Zurzeit ist kein Spieler verbunden.',
+      }).build();
+    },
+    onShow() { sprache.sage('Verbundene Spieler.'); },
+  };
+}
+
 // --- Hauptbildschirm F5 --------------------------------------------------
 
 export function postkastenScreen() {
@@ -426,6 +447,7 @@ export function postkastenScreen() {
       ];
       // Verbindung ganz unten (Code im Tooltip).
       if (aktiv) {
+        items.push({ label: `Verbundene Spieler, ${post.verbundeneSpieler().length}`, hint: 'wer ist verbunden; einzeln oder alle trennen', onSelect: () => screen.push(verbundeneSpielerScreen()) });
         items.push({ label: 'Post-Verbindung läuft', hint: 'Code im Tooltip; Enter beendet die Verbindung', detail: codeTooltip(), onSelect: () => { post.stopp(); sprache.sage('Post-Verbindung beendet.'); screen.refresh(); } });
       } else {
         items.push({ label: 'Verbinden', hint: 'Post-Verbindung starten und Code erzeugen', onSelect: () => starteVerbindung() });

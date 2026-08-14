@@ -43,3 +43,15 @@ export function sendeStatusWennVerbunden() {
     }
   } catch { /* egal */ }
 }
+
+// Sicherheitsnetz: den vollen Status alle 25 s erneut senden. Geht ein einzelnes
+// Änderungs-Paket im Netz-Zappeln verloren, heilt es sich so von selbst binnen
+// Sekunden. Kein Ton, keine Ansage (der Meister übernimmt nur bei Unterschied).
+let _abgleichTimer = null;
+export function starteStatusAbgleich() {
+  if (_abgleichTimer) return;
+  _abgleichTimer = setInterval(sendeStatusWennVerbunden, 25000);
+}
+export function stoppeStatusAbgleich() {
+  if (_abgleichTimer) { clearInterval(_abgleichTimer); _abgleichTimer = null; }
+}

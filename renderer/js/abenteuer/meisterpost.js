@@ -16,13 +16,15 @@ import { textDialog, jaNeinDialog, knopfDialog } from '../ui/dialog.js';
 import { getAbenteuer, speichere } from './state.js';
 import * as post from '../net/post.js';
 import * as sitzung from '../net/sitzung.js';
-import { sammleStatus } from './status-sync.js';
+import { sammleStatus, starteStatusAbgleich } from './status-sync.js';
 
 let _mitspieler = [];
 let _eigenerName = '';
 let _popupOffen = false; // nur EIN Pop-up-Fenster gleichzeitig (kein Spam-Stapel)
 
 function kurz(t) { const s = String(t || '').replace(/\s+/g, ' ').trim(); return s.length > 50 ? s.slice(0, 50) + '…' : s; }
+/** Datum und Uhrzeit einer Nachricht lesbar (oder leer). */
+function zeitText(m) { try { return (m && m.zeit) ? new Date(m.zeit).toLocaleString('de-DE') : ''; } catch { return ''; } }
 
 /** Ein eingehendes Pop-up: sofort ein Fenster mit dem Text und OK. Nichts speichern. */
 function zeigePopup(von, text) {
@@ -73,6 +75,7 @@ export function vorschlagName() { const a = getAbenteuer(); return (a && a.chara
  */
 export function verbindeSitzung(code, name, radioCb) {
   _eigenerName = String(name || '').trim() || 'Spieler';
+  starteStatusAbgleich(); // Sicherheitsnetz: Status alle 25 s erneut senden (heilt verlorene Pakete)
   return sitzung.verbindeSpieler(String(code || '').trim(), _eigenerName, postCallbacks(),
     radioCb || { onVerbunden: () => { sprache.sage('Ton des Meisters verbunden.'); } });
 }
@@ -144,7 +147,8 @@ function nachrichtMenuScreen(index) {
       const m = (a.posteingang || [])[index];
       if (!m) { screen.pop(); return document.createElement('div'); }
       m.gelesen = true;
-      this.title = `Post von ${m.von}`;
+      const z = zeitText(m);
+      this.title = `Post von ${m.von}${z ? ', ' + z : ''}`;
       const verschiebe = (typ, wort) => async () => {
         a.journal = a.journal || [];
         a.journal.push({ typ, titel: `Post von ${m.von}`, inhalt: m.text, spieltag: a.spieltag || 1 });
@@ -152,7 +156,8 @@ function nachrichtMenuScreen(index) {
         await speichere(); screen.pop(); sprache.sage(`In ${wort} verschoben.`);
       };
       const items = [
-        { label: 'Vorlesen', onSelect: () => sprache.sage(`Post von ${m.von}. ${m.text || 'Kein Text.'}`) },
+        // Nachrichtentext als ERSTE, fokussierte Zeile — sofort auffindbar und vorlesbar.
+        { label: m.text || 'Kein Text.', hint: `Post von ${m.von}${z ? ', ' + z : ''}`, detail: `Post von ${m.von}${z ? ', ' + z : ''}. ${m.text || 'Kein Text.'}`, onSelect: () => sprache.sage(m.text || 'Kein Text.') },
         { label: 'Antworten', hint: `Antwort an ${m.von}`, onSelect: () => schreibeInhalt(m.von, 'msg') },
         { label: 'In Notizbuch verschieben', onSelect: verschiebe('notiz', 'das Notizbuch') },
         { label: 'In Tagebuch verschieben', onSelect: verschiebe('tagebuch', 'das Tagebuch') },
@@ -176,12 +181,12 @@ function posteingangScreen() {
     build() {
       const a = getAbenteuer();
       const liste = a.posteingang || [];
-      const items = liste.map((m, i) => ({
-        label: `Post von ${m.von}`,
-        detail: `Post von ${m.von}. ${m.text}`,
-        hint: 'öffnen: vorlesen, antworten, verschieben, löschen',
+      const items = liste.map((m, i) => { const z = zeitText(m); return {
+        label: `Post von ${m.von}${z ? ', ' + z : ''}`,
+        detail: `Post von ${m.von}${z ? ', ' + z : ''}. ${m.text}`,
+        hint: 'öffnen: Text lesen, antworten, verschieben, löschen',
         onSelect: () => screen.push(nachrichtMenuScreen(i)),
-      }));
+      }; });
       return menuScreen({ title: 'Posteingang', subtitle: 'Shift und Pfeil-runter liest die Nachricht, Enter öffnet sie. Escape zurück.', items, leer: 'Noch keine Post.' }).build();
     },
     onShow() { sprache.sage('Posteingang.'); },

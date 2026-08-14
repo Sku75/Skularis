@@ -4,6 +4,31 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.01, 14. August 2026
+
+
+Stabile Verbindung, Live-Werte, lesbare Post
+
+- WICHTIG: Die Verbindung ist jetzt robust gegen Netz-Aussetzer. Ein eigener
+  Herzschlag erkennt eine tote Leitung (die WebRTC selbst oft verschweigt) und baut
+  aktiv neu auf. Beim (Wieder-)Verbinden schickt der Spieler seinen kompletten Stand,
+  und zusätzlich sendet er ihn alle 25 Sekunden still erneut - so heilt sich ein
+  verlorener Wert von selbst. Damit kommen Wunden, Erschöpfung, Schicksalspunkte und
+  Co. auch nach einem Schluckauf zuverlässig beim Meister an.
+- Der Bildschirm "Meine Initiativephase" am Meistertisch (F4) aktualisiert sich
+  jetzt LIVE, wenn ein Spieler einen Wert ändert - kein Verlassen und Neu-Betreten
+  mehr nötig.
+- Die störenden An-/Abmelde- und Hörer-Meldungen sind weg. Stattdessen gibt es im
+  Verbinden-Menü (Post) den Punkt "Verbundene Spieler": eine Liste, wer verbunden
+  ist, mit der Möglichkeit, einzelne oder alle zu trennen (sie verbinden sich danach
+  automatisch neu).
+- Post ist besser lesbar: Öffnet man eine Nachricht, steht der Text jetzt als
+  erste, direkt anwählbare Zeile (findbar für sehbehinderte Nutzer) und wird
+  vorgelesen. Datum und Uhrzeit stehen am Titel und in der Liste.
+- Meistertisch Gruppenprobe: im Tooltip steht der Probenwert jetzt direkt nach dem
+  Namen, dann das Wurfergebnis, dann die Formel.
+
+
 Version 1.00, 14. August 2026
 
 
