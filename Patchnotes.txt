@@ -4,6 +4,22 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.03, 15. August 2026
+
+
+Würfelprotokoll und verlustfreie Würfe
+
+- NEU am Meistertisch (F4 Charaktere): "Würfelprotokoll". Darin die Meisterwürfe und
+  je Held eine eigene Liste. Der Tooltip auf jedem Eintrag zeigt den letzten Wurf mit
+  Probe und Ergebnis; hineingehen zeigt alle Würfe, neueste oben.
+- Würfe der Spieler werden jetzt an den Meister übertragen und dort im Protokoll
+  gesammelt (Proben, Schaden, Schnellwürfe). Die verdeckten Würfe des Meisters landen
+  unter "Meisterwürfe".
+- Verlustfrei: Jeder Wurf trägt eine laufende Nummer; nach einem Verbindungs-
+  Schluckauf schickt der Spieler sein Wurf-Protokoll erneut, und der Meister erkennt
+  Doppelte an der Nummer. So geht kein Wurf und keine Probe verloren.
+
+
 Version 1.02, 15. August 2026
 
 

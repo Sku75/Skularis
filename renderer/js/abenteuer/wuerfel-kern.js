@@ -16,6 +16,22 @@ import { menuScreen } from '../ui/menu-screen.js';
 import { knopfDialog, erschwernisDialog } from '../ui/dialog.js';
 import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
+import * as post from '../net/post.js';
+
+/**
+ * Einen Wurf ins verlustfreie Würfelprotokoll legen: Als Spieler wird er (mit
+ * Sequenznummer) an den Meister gesendet und beim Reconnect erneut abgeglichen;
+ * als Meister landet er unter "Meister" (verdeckte Würfe). Solo (ohne Sitzung)
+ * passiert nichts.
+ */
+function protokolliereWurf(was, ergebnis, detail) {
+  try {
+    const r = (post.rolle && post.rolle()) || null;
+    const rec = { was: String(was || ''), ergebnis: String(ergebnis || ''), detail: String(detail || '') };
+    if (r === 'meister') post.meisterEigenerWurf(rec);
+    else if (r === 'spieler') post.spielerWurf(rec);
+  } catch { /* egal */ }
+}
 
 // Verdeckt-Modus: am Meistertisch (Charakteransicht Initiative-Phase) sollen die
 // Würfe als verdeckte Meister-Würfe angesagt werden. Der Aufrufer schaltet ihn
@@ -79,7 +95,7 @@ export function wuerfeln(anzahl, seiten, mod, id, stumm) {
   // Auch einfache Wuerfe (Schnellwuerfe, freier Wurf) fuers Tooltip merken.
   if (id) _letzterWurf[id] = ['Letzter Wurf:', `${bez}: ${wuerfe.join(', ')}${summeText}`];
   zeigeErgebnis(id, mod ? `${wuerfe.join(' ')} = ${summe}` : wuerfe.join(' '), ansage);
-  if (!stumm) sprache.sage(ansage);
+  if (!stumm) { sprache.sage(ansage); protokolliereWurf(`Wurf ${bez}`, `${wuerfe.join(', ')}${summeText}`, ansage); }
 }
 
 // --- Erschwernis (gemerkt je Schalter) -----------------------------------
@@ -249,6 +265,7 @@ export async function kampfProbe(o) {
   // Ansage zuverlässig per aria-live. Der Schalter trägt das Ergebnis danach.
   fokusAufZiel(o.id);
   sprache.sage(ansage);
+  protokolliereWurf(o.titel || o.vokabel || 'Probe', `Probenergebnis ${ew}`, ansage);
 }
 
 /**
@@ -275,4 +292,5 @@ export function schadenWurf(o) {
   speichere();
   zeigeErgebnis(o.id, `Schaden ${summe}`, ansage);
   sprache.sage(ansage);
+  protokolliereWurf(`Schaden ${o.name}`, `Schaden ${summe}`, ansage);
 }

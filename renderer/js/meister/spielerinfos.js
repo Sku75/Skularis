@@ -229,14 +229,61 @@ export function charAnsichtInitiativeScreen() {
   };
 }
 
-/** F4: Charaktere — Charakteransicht und Charakterbögen. */
+// --- Würfelprotokoll (Meisterwürfe + je Held) ----------------------------
+
+function wurfZeit(w) { try { return (w && w.zeit) ? new Date(w.zeit).toLocaleTimeString('de-DE') : ''; } catch { return ''; } }
+
+/** Alle Würfe eines Namens, neueste oben. */
+function wurfListeScreen(name) {
+  return {
+    title: '',
+    build() {
+      const liste = post.getWuerfe(name);
+      this.title = name === 'Meister' ? 'Meisterwürfe' : `Würfe: ${name}`;
+      const items = liste.map(w => ({
+        label: `${w.was}: ${w.ergebnis}`,
+        hint: wurfZeit(w),
+        detail: w.detail || `${w.was}. ${w.ergebnis}.`,
+        onSelect: () => sprache.sage(w.detail || `${w.was}, ${w.ergebnis}.`),
+      }));
+      return menuScreen({ title: this.title, subtitle: 'Neueste oben. Shift und Pfeil-runter liest den Wurf vor. Escape zurück.', items, leer: 'Noch keine Würfe.' }).build();
+    },
+    onShow() { sprache.sage(this.title || 'Würfe.'); },
+  };
+}
+
+/** Würfelprotokoll: Meisterwürfe und je Held; Tooltip zeigt den letzten Wurf. */
+export function wurfProtokollScreen() {
+  return {
+    title: 'Würfelprotokoll',
+    build() {
+      const a = getMeister();
+      const namen = ['Meister', ...((a && a.charaktere) || []).map(c => c.name)];
+      const items = namen.map(n => {
+        const lw = post.letzterWurf(n);
+        const anzahl = post.getWuerfe(n).length;
+        return {
+          label: n === 'Meister' ? `Meisterwürfe (${anzahl})` : `${n} (${anzahl})`,
+          hint: lw ? `letzter: ${lw.was}: ${lw.ergebnis}` : 'noch keine Würfe',
+          detail: lw ? (lw.detail || `${lw.was}. ${lw.ergebnis}.`) : 'Noch keine Würfe.',
+          onSelect: () => screen.push(wurfListeScreen(n)),
+        };
+      });
+      return menuScreen({ title: 'Würfelprotokoll', subtitle: 'Meisterwürfe und je Held. Tooltip zeigt den letzten Wurf, Enter öffnet die Liste. Escape zurück.', items }).build();
+    },
+    onShow() { sprache.sage('Würfelprotokoll.'); },
+  };
+}
+
+/** F4: Charaktere — Charakteransicht, Charakterbögen und Würfelprotokoll. */
 export function charaktereScreen() {
   return menuScreen({
     title: 'Charaktere',
-    subtitle: 'Charakteransicht und Charakterbögen. Escape zurück.',
+    subtitle: 'Charakteransicht, Charakterbögen und Würfelprotokoll. Escape zurück.',
     items: [
       { label: 'Charakteransicht meine Initiativephase', hint: 'Status und Werte der Helden, verdeckt würfeln', onSelect: () => screen.push(charAnsichtInitiativeScreen()) },
       { label: 'Charakterbögen', hint: 'die Bögen der Gruppe zum Nachlesen', onSelect: () => screen.push(charakterboegenScreen()) },
+      { label: 'Würfelprotokoll', hint: 'Meisterwürfe und die Würfe jedes Helden, neueste oben', onSelect: () => screen.push(wurfProtokollScreen()) },
     ],
   });
 }

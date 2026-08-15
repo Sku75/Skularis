@@ -35,6 +35,29 @@ const _gesehen = new Set();     // Ids bereits verarbeiteter Nachrichten (Dedup)
 const _status = new Map();      // Meister: name -> { werte, seq, zeit }  (F2-Live)
 let _statusSeq = 0;             // Spieler: laufende Nummer der eigenen Statusmeldung
 
+// Würfelprotokoll (verlustfrei über Sequenznummern):
+const _wuerfe = new Map();      // Meister: name -> [ {seq, was, ergebnis, detail, zeit} ] (neueste vorn)
+let _wurfSeq = 0;              // Spieler: laufende Nummer der eigenen Würfe
+const _wurfLog = [];          // Spieler: eigenes Wurf-Protokoll (für erneutes Senden nach Reconnect)
+
+/** Meister: alle Namen mit Würfen (inkl. "Meister"). */
+export function wurfNamen() { return [..._wuerfe.keys()]; }
+/** Meister: Wurf-Liste eines Namens (neueste zuerst) oder []. */
+export function getWuerfe(name) { return _wuerfe.get(name) || []; }
+/** Meister: letzter Wurf eines Namens oder null. */
+export function letzterWurf(name) { const l = _wuerfe.get(name); return (l && l[0]) || null; }
+/** Einen Wurf in das Meister-Protokoll legen (dedup über seq je Name). */
+function wurfSpeichern(name, rec) {
+  if (!name || !rec) return;
+  let liste = _wuerfe.get(name);
+  if (!liste) { liste = []; _wuerfe.set(name, liste); }
+  if (typeof rec.seq === 'number' && liste.some(x => x.seq === rec.seq)) return; // schon da
+  liste.unshift({ seq: rec.seq, was: rec.was || '', ergebnis: rec.ergebnis || '', detail: rec.detail || '', zeit: rec.zeit || jetzt() });
+  if (liste.length > 200) liste.length = 200; // Deckel
+}
+/** Meister: einen EIGENEN (verdeckten) Wurf ins Protokoll unter "Meister" legen. */
+export function meisterEigenerWurf(rec) { wurfSpeichern('Meister', { ...rec, seq: ++_wurfSeq }); }
+
 // Auto-Reconnect (Spieler): greift bei Abbruch, wenn nicht bewusst getrennt.
 // Zeitplan: 3x alle 5 s, dann 3x alle 10 s, dann Aufgabe. Name und Dedup-Ids
 // bleiben erhalten (kein stopp() beim Reconnect), damit nichts verfaellt.
@@ -172,6 +195,13 @@ function meisterEmpfang(conn, d) {
     _cb.onStatus && _cb.onStatus(name, d.werte || {});
     return;
   }
+  if (d.typ === 'wurf') {
+    const name = nameVon(conn) || d.von;
+    if (!name) return;
+    wurfSpeichern(name, d); // verlustfrei: dedup über seq; Reconnect schickt das ganze Log erneut
+    _cb.onWurf && _cb.onWurf(name);
+    return;
+  }
   if (d.typ === 'msg' || d.typ === 'popup') {
     if (d.id && _gesehen.has(d.id)) return;
     if (d.id) _gesehen.add(d.id);
@@ -265,6 +295,7 @@ function spielerVerbindeIntern(erst) {
       _meisterLastSeen = jetzt();
       if (_hbSpieler) clearInterval(_hbSpieler);
       _hbSpieler = setInterval(spielerHerzschlag, HEARTBEAT_MS);
+      sendeWurfLogErneut(); // Wurf-Protokoll abgleichen (verlustfrei über seq)
       if (warReconnect) _cb.onReconnectErfolg && _cb.onReconnectErfolg();
       else _cb.onVerbunden && _cb.onVerbunden();
     });
@@ -345,6 +376,25 @@ export function spielerStatus(werte) {
   if (!_meisterConn || !_meisterConn.open) return false;
   try { _meisterConn.send({ typ: 'status', name: _selbstName, seq: ++_statusSeq, werte: werte || {}, zeit: Date.now() }); return true; }
   catch { return false; }
+}
+
+/**
+ * Spieler protokolliert einen Wurf und sendet ihn (mit Sequenznummer) an den
+ * Meister. Der Wurf bleibt im lokalen Log; nach einem Reconnect wird das ganze Log
+ * erneut geschickt (der Meister dedupt über die seq) — so geht kein Wurf verloren.
+ */
+export function spielerWurf(rec) {
+  const eintrag = { seq: ++_wurfSeq, was: rec.was || '', ergebnis: rec.ergebnis || '', detail: rec.detail || '', zeit: rec.zeit || Date.now() };
+  _wurfLog.push(eintrag);
+  if (_wurfLog.length > 300) _wurfLog.shift();
+  if (_meisterConn && _meisterConn.open) { try { _meisterConn.send({ typ: 'wurf', name: _selbstName, ...eintrag }); } catch { /* egal */ } }
+  return true;
+}
+
+/** Spieler: das ganze Wurf-Log erneut senden (Abgleich nach Reconnect). */
+function sendeWurfLogErneut() {
+  if (!_meisterConn || !_meisterConn.open) return;
+  for (const e of _wurfLog) { try { _meisterConn.send({ typ: 'wurf', name: _selbstName, ...e }); } catch { /* egal */ } }
 }
 
 /** Laeuft gerade ein automatischer Wiederverbindungs-Versuch (Spieler)? */

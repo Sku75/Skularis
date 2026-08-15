@@ -131,6 +131,7 @@ export function postCallbacks() {
     onSpielerWeg: (name) => meldeDisconnect(name),
     onNachricht: (m) => empfangePost(m),
     onStatus: (name, werte) => statusAenderung(name, werte),
+    onWurf: (name) => { if (_liveHook) { try { _liveHook(name); } catch { /* egal */ } } }, // offenes Protokoll neu zeichnen
   };
 }
 
