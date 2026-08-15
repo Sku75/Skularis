@@ -10,7 +10,7 @@ import * as sprache from '../sprache.js';
 import * as screen from '../ui/screen.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { getDb } from '../core/db-laden.js';
-import { fertigkeitProbenwert, waffenwerte, abgeleiteteWerte } from '../core/regeln.js';
+import { fertigkeitProbenwert, fertigkeitBasiswert, attributProbenwert, waffenwerte, abgeleiteteWerte } from '../core/regeln.js';
 import { leseInventar, SET_WAFFENLOS } from '../core/ausruestung.js';
 import { talentGruppen } from '../editor/talente.js';
 import { bauInfo } from '../core/infotext.js';
@@ -143,6 +143,90 @@ export function manoeverScreen() {
       }).build();
     },
   };
+}
+
+// --- Attributsproben (filterbare Liste, würfelbar) -----------------------
+
+const ATTR_NAME = { MU: 'Mut', KL: 'Klugheit', IN: 'Intuition', CH: 'Charisma', FF: 'Fingerfertigkeit', GE: 'Gewandtheit', KO: 'Konstitution', KK: 'Körperkraft' };
+const ATTR_REIHENFOLGE = ['MU', 'KL', 'IN', 'CH', 'FF', 'GE', 'KO', 'KK'];
+
+/** Attributsproben: je Attribut ein Wurf gegen den Probenwert (Attribut mal zwei). */
+export function attributsprobenScreen() {
+  const char = getAbenteuer().charakter;
+  let idx = 0;
+  const items = ATTR_REIHENFOLGE.map((abk) => {
+    const av = (char.attribute && char.attribute[abk]) || 0;
+    const pw = attributProbenwert(char, abk); // Attribut mal zwei
+    const name = ATTR_NAME[abk] || abk;
+    const id = `attr-${idx++}`;
+    const info = `${name}. Attributwert ${av}, Probenwert ${pw} (Attribut mal zwei).`;
+    return {
+      label: `${name}: Probe ${pw}`,
+      hint: `Attributwert ${av}, Probenwert ${pw}. Enter würfelt`,
+      detail: mitLetztemWurf(id, info),
+      ergebnisId: id,
+      onSelect: () => kampfProbe({ id, titel: `${name}-Probe`, vokabel: name, probenwert: pw }),
+    };
+  });
+  return menuScreen({
+    title: 'Attributsproben',
+    subtitle: 'Filtern, Enter würfelt die Attributsprobe. Escape zurück.',
+    items, filter: true,
+  });
+}
+
+// --- Profane Fertigkeiten und Talente (filterbare Liste, würfelbar) -------
+
+/**
+ * Alle profanen Fertigkeiten UND ihre Talente in EINER filterbaren Liste — auch
+ * NICHT gelernte Talente (als "nicht gelernt" gekennzeichnet), damit man sie über
+ * den Filter findet und trotzdem darauf würfeln kann. Ilaris-Regel: mit passendem
+ * Talent zählt der volle Fertigkeitswert (Basiswert + Fertigkeitswert), ohne Talent
+ * nur der halbe (Basiswert + halber Fertigkeitswert, ab 0,5 aufgerundet).
+ */
+export function profanScreen() {
+  const char = getAbenteuer().charakter;
+  const db = getDb();
+  const hatTalent = (name) => (char.talente || []).includes(name);
+  let idx = 0;
+  const items = [];
+  for (const f of (db.fertigkeiten || [])) {
+    const eintrag = (char.fertigkeiten && char.fertigkeiten[f.name]) || { wert: 0 };
+    const fw = eintrag.wert || 0;
+    const basis = fertigkeitBasiswert(char, f);
+    const pwMit = fertigkeitProbenwert(char, f, fw, true);
+    const pwOhne = fertigkeitProbenwert(char, f, fw, false);
+    // Die Fertigkeit selbst (Basisprobe ohne spezielles Talent).
+    const idF = `prof-${idx++}`;
+    items.push({
+      label: `${f.name}: Probe ${pwOhne}`,
+      hint: `Fertigkeit, ohne spezielles Talent. Basiswert ${basis}, Fertigkeitswert ${fw}. Enter würfelt`,
+      detail: mitLetztemWurf(idF, `${f.name}. Basiswert ${basis}, Fertigkeitswert ${fw}. Probenwert mit Talent ${pwMit}, ohne Talent ${pwOhne}.`),
+      ergebnisId: idF,
+      onSelect: () => kampfProbe({ id: idF, titel: `${f.name}`, vokabel: f.name, probenwert: pwOhne }),
+    });
+    // Alle Talente der Fertigkeit — auch nicht gelernte.
+    for (const t of (db.talenteByFertigkeit && db.talenteByFertigkeit[f.name]) || []) {
+      const hat = hatTalent(t.name);
+      const pw = hat ? pwMit : pwOhne;
+      const id = `prof-${idx++}`;
+      const vorn = hat ? '' : 'Nicht gelernt: ';
+      const info = `${t.name}, Fertigkeit ${f.name}. ${hat ? 'Gelernt, voller Fertigkeitswert' : 'Nicht gelernt, halber Fertigkeitswert'}. Probenwert ${pw} (Basiswert ${basis} plus ${hat ? `Fertigkeitswert ${fw}` : `halber Fertigkeitswert ${Math.round(fw / 2)}`}).`;
+      items.push({
+        label: `${vorn}${t.name} (${f.name}): Probe ${pw}`,
+        hint: hat ? 'gelernt, voller Fertigkeitswert. Enter würfelt' : 'nicht gelernt, halber Fertigkeitswert. Enter würfelt',
+        detail: mitLetztemWurf(id, info),
+        ergebnisId: id,
+        klasse: hat ? undefined : 'ed-gesperrt',
+        onSelect: () => kampfProbe({ id, titel: `${t.name} (${f.name})`, vokabel: t.name, probenwert: pw }),
+      });
+    }
+  }
+  return menuScreen({
+    title: 'Profane Fertigkeiten und Talente',
+    subtitle: 'Filtern findet auch nicht gelernte Talente. Enter würfelt. Escape zurück.',
+    items, filter: true, leer: 'Keine Fertigkeiten vorhanden.',
+  });
 }
 
 // --- Zauber (eine filterbare Liste, würfelbar) ---------------------------

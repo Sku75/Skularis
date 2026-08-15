@@ -16,7 +16,7 @@ import { menuScreen } from '../ui/menu-screen.js';
 import { infoZeile, abschnittTitel, aktionZeile, verbindeDetail } from '../editor/widgets.js';
 import { baueCharakterbogen } from '../abenteuer/charakterbogen.js';
 import { kampfwerteScreen } from '../abenteuer/live-spiel.js';
-import { manoeverScreen, zauberScreen, zauberVorhanden } from '../abenteuer/kampf-menues.js';
+import { manoeverScreen, zauberScreen, zauberVorhanden, attributsprobenScreen, profanScreen } from '../abenteuer/kampf-menues.js';
 import { zauberspeicherVorhanden, zauberspeicherScreen } from '../abenteuer/zauberspeicher.js';
 import { setVerdeckt } from '../abenteuer/wuerfel-kern.js';
 import { setAbenteuer, setDb } from '../abenteuer/state.js';
@@ -181,6 +181,8 @@ function charLiveScreen(c) {
       const db = getDb();
       wrap.appendChild(aktionZeile('Kämpfen', () => screen.push(kampfwerteScreen()), 'Attacke oder Parade und Schaden je Waffenset, verdeckt'));
       wrap.appendChild(aktionZeile('Manöver', () => screen.push(manoeverScreen()), 'Nahkampf-Manöver mit ihrer Wirkung'));
+      wrap.appendChild(aktionZeile('Attributsproben', () => screen.push(attributsprobenScreen()), 'je Attribut eine Probe (Attribut mal zwei), verdeckt'));
+      wrap.appendChild(aktionZeile('Profane Fertigkeiten und Talente', () => screen.push(profanScreen()), 'auf jede Fertigkeit und jedes Talent würfeln, auch nicht gelernte, verdeckt'));
       if (zauberVorhanden(c.bogen, db)) wrap.appendChild(aktionZeile('Zauber und Rituale', () => screen.push(zauberScreen()), 'bekannte Zauber, verdeckt würfeln'));
       if (zauberspeicherVorhanden(c.bogen)) wrap.appendChild(aktionZeile('Zauberspeicher', () => screen.push(zauberspeicherScreen()), 'Magierstab-Zauberspeicher'));
 

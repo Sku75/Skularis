@@ -38,8 +38,13 @@ export function fertigkeitenScreen() {
           min: 0,
           max: Math.max(attrMax, eintrag.wert),
           suffix: () => {
+            // Alle vier Werte direkt sichtbar: Basiswert (im Label), Fertigkeitswert
+            // (die editierte Zahl), dazu hier live die beiden Probenwerte.
+            const fw = eintrag.wert;
+            const pwMit = fertigkeitProbenwert(char, f, fw, true);
+            const pwOhne = fertigkeitProbenwert(char, f, fw, false);
             const n = talentGruppen(char, db, f.name).gewaehlt.length;
-            return n ? `${n} Talente` : '';
+            return `Probenwert mit Talent ${pwMit}, ohne Talent ${pwOhne}${n ? `, ${n} Talente` : ''}`;
           },
           onChange: () => editor.epAnsage(),
           onActivate: () => import('./talente.js').then(m => screen.push(m.talentScreen(f.name, false))),

@@ -14,7 +14,7 @@ import { leseInventar, istFernkampf, SLOTS, SET_WAFFENLOS, ergaenzeSets } from '
 import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
 import { wuerfeln, kampfProbe, schadenWurf, mitLetztemWurf, letztesKurz } from './wuerfel-kern.js';
-import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, GRUNDREGEL_AKTIONEN } from './kampf-menues.js';
+import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, GRUNDREGEL_AKTIONEN, attributsprobenScreen, profanScreen } from './kampf-menues.js';
 import { zauberspeicherVorhanden, zauberspeicherScreen } from './zauberspeicher.js';
 import { sendeStatusWennVerbunden } from './status-sync.js';
 
@@ -32,16 +32,27 @@ const EINSCHR_REGEL = 'Wunden und Erschöpfung zählen zusammen als Einschränku
   + 'drei gleich minus zwei, vier gleich minus vier, fünf gleich minus sechs. '
   + 'Ab fünf Einschränkungen droht nach jeder weiteren die Kampfunfähigkeit. Sehr hohe Werte führen zum Tod.';
 
+/** Schnellwürfe: die schnellen Würfe ohne Werte, gebündelt in einem Untermenü. */
+function schnellwuerfeScreen() {
+  return menuScreen({
+    title: 'Schnellwürfe',
+    subtitle: 'Schnelle Würfe ohne Werte. Escape zurück.',
+    items: [
+      { label: 'Schnellwurf 1 W6', ergebnisId: 'w6', detail: mitLetztemWurf('w6', 'Ein W6, schneller Wurf.'), onSelect: () => wuerfeln(1, 6, 0, 'w6') },
+      { label: 'Schnellwurf 2 W6', ergebnisId: 'w6x2', detail: mitLetztemWurf('w6x2', 'Zwei W6, schneller Wurf.'), onSelect: () => wuerfeln(2, 6, 0, 'w6x2') },
+      { label: 'Schnellwurf 1 W20', ergebnisId: 'w20', detail: mitLetztemWurf('w20', 'Ein W20, schneller Wurf.'), onSelect: () => wuerfeln(1, 20, 0, 'w20') },
+      { label: 'Schnellwurf 3 W20', ergebnisId: 'w20x3', detail: mitLetztemWurf('w20x3', 'Drei W20, schneller Wurf.'), onSelect: () => wuerfeln(3, 20, 0, 'w20x3') },
+      { label: 'Freier Wurf', hint: 'Anzahl, Würfeltyp und Modifikator wählen', ergebnisId: 'frei', detail: mitLetztemWurf('frei', 'Anzahl, Würfeltyp und Modifikator frei wählen.'), onSelect: freierWurf },
+    ],
+  });
+}
+
 export function liveSpielScreen() {
   const a = getAbenteuer();
   const char = a.charakter;
   const db = getDb();
   const items = [
-    { label: 'Schnellwurf 1 W6', ergebnisId: 'w6', detail: mitLetztemWurf('w6', 'Ein W6, schneller Wurf.'), onSelect: () => wuerfeln(1, 6, 0, 'w6') },
-    { label: 'Schnellwurf 2 W6', ergebnisId: 'w6x2', detail: mitLetztemWurf('w6x2', 'Zwei W6, schneller Wurf.'), onSelect: () => wuerfeln(2, 6, 0, 'w6x2') },
-    { label: 'Schnellwurf 1 W20', ergebnisId: 'w20', detail: mitLetztemWurf('w20', 'Ein W20, schneller Wurf.'), onSelect: () => wuerfeln(1, 20, 0, 'w20') },
-    { label: 'Schnellwurf 3 W20', ergebnisId: 'w20x3', detail: mitLetztemWurf('w20x3', 'Drei W20, schneller Wurf.'), onSelect: () => wuerfeln(3, 20, 0, 'w20x3') },
-    { label: 'Freier Wurf', hint: 'Anzahl, Würfeltyp und Modifikator wählen', ergebnisId: 'frei', detail: mitLetztemWurf('frei', 'Anzahl, Würfeltyp und Modifikator frei wählen.'), onSelect: freierWurf },
+    { label: 'Schnellwürfe', hint: '1 W6, 2 W6, 1 W20, 3 W20, freier Wurf', onSelect: () => screen.push(schnellwuerfeScreen()) },
     { label: 'Aktionen', hint: 'Was du in deiner Initiativephase tun kannst', detail: GRUNDREGEL_AKTIONEN, onSelect: () => screen.push(aktionenScreen()) },
     {
       label: 'Kämpfen',
@@ -51,9 +62,11 @@ export function liveSpielScreen() {
       onSelect: () => screen.push(kampfwerteScreen()),
     },
     { label: 'Manöver', hint: 'Nahkampf-Manöver mit ihrer Wirkung', onSelect: () => screen.push(manoeverScreen()) },
+    { label: 'Attributsproben', hint: 'je Attribut eine Probe (Attribut mal zwei)', onSelect: () => screen.push(attributsprobenScreen()) },
+    { label: 'Profane Fertigkeiten und Talente', hint: 'auf jede Fertigkeit und jedes Talent würfeln, auch nicht gelernte', onSelect: () => screen.push(profanScreen()) },
   ];
   if (zauberVorhanden(char, db)) {
-    items.push({ label: zauberKategorieLabel(char, db), hint: 'Deine bekannten Zauber würfeln', onSelect: () => screen.push(zauberScreen()) });
+    items.push({ label: zauberKategorieLabel(char, db), hint: 'Deine bekannten Zauber und Rituale würfeln', onSelect: () => screen.push(zauberScreen()) });
   }
   // Zauberspeicher des Magierstabs (Vorteile "Magierstab Zauberspeicher 1/2") —
   // ganz unten, nach Manöver und Zauber. Zauber laden und spaeter wirken.
@@ -62,7 +75,7 @@ export function liveSpielScreen() {
   }
   return menuScreen({
     title: 'Meine Initiative-Phase',
-    subtitle: 'Würfeln, Aktionen, Kämpfen, Manöver und Zauber. Escape zurück.',
+    subtitle: 'Schnellwürfe, Aktionen, Kämpfen, Manöver, Attributs- und Fertigkeitsproben, Übernatürliches. Escape zurück.',
     items,
   });
 }

@@ -4,6 +4,31 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.02, 15. August 2026
+
+
+Proben würfeln: alles findbar, alles regelkonform
+
+- Die Initiative-Phase (Spielertisch) und die Charakteransicht am Meistertisch (F4)
+  haben eine neue, aufgeräumte Struktur zum Würfeln:
+  Schnellwürfe (als eigenes Untermenü), Aktionen, Kämpfen, Manöver, dann
+  Attributsproben, Profane Fertigkeiten und Talente, und Übernatürliches.
+- NEU: Attributsproben - je Attribut ein Wurf gegen den Probenwert (Attribut mal
+  zwei).
+- NEU: Profane Fertigkeiten und Talente in EINER filterbaren Liste. Auch NICHT
+  gelernte Talente stehen darin (als "nicht gelernt" gekennzeichnet) - so findest du
+  zum Beispiel "Schwimmen" per Filter und kannst trotzdem darauf würfeln. Regel:
+  mit passendem Talent zählt der volle Fertigkeitswert, ohne Talent nur der halbe
+  (ab 0,5 aufgerundet).
+- Übernatürliches (Zauber und Liturgien) bleibt wie gewohnt - es zeigt nur die
+  gelernten Zauber, und wenn ein Zauber über mehrere Wege erlernbar ist, den
+  stärksten (höchsten) Fertigkeitswert.
+- Überall Filterzeilen und direktes Würfeln per Eingabetaste.
+- Im Charaktereditor stehen bei den Fertigkeiten jetzt alle vier Werte direkt:
+  Basiswert, Fertigkeitswert und beide Probenwerte (mit und ohne Talent), ohne
+  dass man den Tooltip öffnen muss.
+
+
 Version 1.01, 14. August 2026
 
 
