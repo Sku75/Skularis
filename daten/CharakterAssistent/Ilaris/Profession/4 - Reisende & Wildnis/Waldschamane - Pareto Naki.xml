@@ -1,0 +1,155 @@
+<Charakter>
+  <Version>
+    <CharakterVersion>6</CharakterVersion>
+    <Plugins></Plugins>
+    <Hausregeln>Keine</Hausregeln>
+  </Version>
+  <Beschreibung>
+    <Name>Pareto Naki</Name>
+    <Spezies>Mensch</Spezies>
+    <Status>4</Status>
+    <Kurzbeschreibung>Waldmensch von den Waldinseln im tiefen Süden Aventuriens und Schamane seines Stammes, Mittler zwischen den Menschen und den Geistern des Regenwaldes</Kurzbeschreibung>
+    <Finanzen>4</Finanzen>
+    <Heimat>Südaventurien</Heimat>
+    <Eigenheiten>
+      <Eigenheit>Aufgewachsen in der Wildnis | Positiv: findet Wasser, Wild und Wege, liest Wetter und Fährten | Negativ: eckt in feiner Gesellschaft an, misstraut Städten und Menschenmengen</Eigenheit>
+      <Eigenheit>Tief im Glauben verwurzelt | Positiv: unerschütterlich in Not, findet Trost und Halt | Negativ: unnachgiebig gegen Andersgläubige, blind für eigene Fehler</Eigenheit>
+      <Eigenheit>Eiskalt und beherrscht | Positiv: bewahrt in Krisen die Ruhe, lässt sich nichts anmerken | Negativ: wirkt gefühllos, findet schwer Zugang zu anderen</Eigenheit>
+    </Eigenheiten>
+  </Beschreibung>
+  <Attribute>
+    <KO>2</KO>
+    <MU>3</MU>
+    <GE>3</GE>
+    <KK>2</KK>
+    <IN>6</IN>
+    <KL>3</KL>
+    <CH>3</CH>
+    <FF>3</FF>
+  </Attribute>
+  <Energien>
+    <AsP wert="0"/>
+  </Energien>
+  <Vorteile>
+    <Vorteil name="Zauberer I"/>
+    <Vorteil name="Zauberer II"/>
+    <Vorteil name="Tradition der Schamanen I"/>
+    <Vorteil name="Angepasst (Wald) I"/>
+    <Vorteil name="Besonderer Besitz" variableKosten="40" kommentar="Knochenkeule"/>
+    <Vorteil name="Tiergeist (Panther)"/>
+  </Vorteile>
+  <Fertigkeiten>
+    <Fertigkeit name="Handgemenge" wert="1"/>
+    <Fertigkeit name="Hiebwaffen" wert="0"/>
+    <Fertigkeit name="Klingenwaffen" wert="0"/>
+    <Fertigkeit name="Stangenwaffen" wert="1"/>
+    <Fertigkeit name="Schusswaffen" wert="0"/>
+    <Fertigkeit name="Wurfwaffen" wert="1"/>
+    <Fertigkeit name="Athletik" wert="2"/>
+    <Fertigkeit name="Heimlichkeit" wert="1"/>
+    <Fertigkeit name="Selbstbeherrschung" wert="3"/>
+    <Fertigkeit name="Wahrnehmung" wert="1"/>
+    <Fertigkeit name="Autorität" wert="0"/>
+    <Fertigkeit name="Beeinflussung" wert="0"/>
+    <Fertigkeit name="Gebräuche" wert="0"/>
+    <Fertigkeit name="Derekunde" wert="0"/>
+    <Fertigkeit name="Mythenkunde" wert="1"/>
+    <Fertigkeit name="Magiekunde" wert="0"/>
+    <Fertigkeit name="Überleben" wert="1"/>
+    <Fertigkeit name="Verschlagenheit" wert="0"/>
+    <Fertigkeit name="Alchemie" wert="1"/>
+    <Fertigkeit name="Heilkunde" wert="1"/>
+    <Fertigkeit name="Handwerk" wert="0"/>
+    <FreieFertigkeit name="Sprache: Garethi" wert="3"/>
+  </Fertigkeiten>
+  <Talente>
+    <Talent name="Gebräuche: Südaventurien"/>
+    <Talent name="Weihe der Keule"/>
+    <Talent name="Eins mit der Natur (Tiergeist)"/>
+    <Talent name="Katzenaugen (Tiergeist)"/>
+    <Talent name="Krötensprung (Tiergeist)"/>
+    <Talent name="Spurlos Trittlos (Tiergeist)"/>
+    <Talent name="Standfest Katzengleich (Tiergeist)"/>
+    <Talent name="Wipfellauf (Tiergeist)"/>
+    <Talent name="Unbewaffnet"/>
+    <Talent name="Infanteriewaffen und Speere"/>
+    <Talent name="Klettern"/>
+    <Talent name="Pirschen"/>
+    <Talent name="Willenskraft"/>
+    <Talent name="Menschenkenntnis"/>
+    <Talent name="Wurfspeere"/>
+    <Talent name="Pflanzenkunde"/>
+    <Talent name="Geschichten und Legenden"/>
+    <Talent name="Elementarkunde"/>
+    <Talent name="Überleben: Tiefer Süden"/>
+    <Talent name="Überleben: Meer"/>
+    <Talent name="Profane Alchemika"/>
+    <Talent name="Gifte und Krankheiten"/>
+    <Talent name="Wundheilung"/>
+    <Talent name="Große Geistheilung"/>
+    <Talent name="Stimme des Nipakau"/>
+  </Talente>
+  <Objekte>
+    <Zonensystem>0</Zonensystem>
+    <Rüstungen/>
+    <Waffen>
+      <Waffe name="Hand" id="Hand" würfel="1" würfelSeiten="6" plus="0" eigenschaften="" härte="1" rw="0" kampfstil="Kein Kampfstil" wm="0" beSlot="1"/>
+      <Waffe name="Holzspeer (Infanteriewaffen und Speere)" id="Holzspeer (Infanteriewaffen und Speere)" würfel="2" würfelSeiten="6" plus="-1" eigenschaften="" härte="4" rw="2" kampfstil="Kein Kampfstil" wm="-1" beSlot="1"/>
+      <Waffe name="Wurfspeer" id="Wurfspeer" würfel="2" würfelSeiten="6" plus="3" eigenschaften="" härte="5" rw="8" kampfstil="Kein Kampfstil" wm="0" beSlot="1"/>
+    </Waffen>
+    <Ausrüstung>
+      <Ausrüstungsstück>Waffenset: Waffenlos; Haupthand: Hand</Ausrüstungsstück>
+      <Ausrüstungsstück>Waffenset: Set 1; Haupthand: Holzspeer (Infanteriewaffen und Speere); Fernkampf: Wurfspeer</Ausrüstungsstück>
+    </Ausrüstung>
+  </Objekte>
+  <ÜbernatürlicheFertigkeiten>
+    <ÜbernatürlicheFertigkeit name="Geister der Stärkung" wert="0" exportieren="0"/>
+    <ÜbernatürlicheFertigkeit name="Geister des Zorns" wert="0" exportieren="0"/>
+    <ÜbernatürlicheFertigkeit name="Geister rufen" wert="0" exportieren="0"/>
+    <ÜbernatürlicheFertigkeit name="Geister vertreiben" wert="1" exportieren="0"/>
+    <ÜbernatürlicheFertigkeit name="Keulenrituale" wert="0" exportieren="0"/>
+  </ÜbernatürlicheFertigkeiten>
+  <Erfahrung>
+    <Gesamt>2000</Gesamt>
+    <Ausgegeben>1996</Ausgegeben>
+  </Erfahrung>
+  <Notiz/>
+  <Einstellungen>
+    <VoraussetzungenPrüfen>1</VoraussetzungenPrüfen>
+    <Charakterbogen>Standard Charakterbogen</Charakterbogen>
+    <FinanzenAnzeigen>1</FinanzenAnzeigen>
+    <ÜbernatürlichesPDFSpalteAnzeigen>0</ÜbernatürlichesPDFSpalteAnzeigen>
+    <DetailsAnzeigen>0</DetailsAnzeigen>
+    <RegelnAnhängen>1</RegelnAnhängen>
+    <RegelnGrösse>8</RegelnGrösse>
+    <DeaktivierteRegelKategorien></DeaktivierteRegelKategorien>
+    <FormularEditierbarkeit>1</FormularEditierbarkeit>
+  </Einstellungen>
+  <BeschreibungDetails>
+    <Kultur>Südaventurien</Kultur>
+    <Profession>Schamane</Profession>
+    <Geschlecht>männlich</Geschlecht>
+    <Geburtsdatum>23 Jahre</Geburtsdatum>
+    <Grösse>1,32 Schrittt</Grösse>
+    <Gewicht>49 Stein</Gewicht>
+    <Haarfarbe>dunkelbraun</Haarfarbe>
+    <Augenfarbe>blau</Augenfarbe>
+    <Titel>Dorfheiler</Titel>
+    <Aussehen1></Aussehen1>
+    <Aussehen2></Aussehen2>
+    <Aussehen3></Aussehen3>
+    <Aussehen4></Aussehen4>
+    <Aussehen5></Aussehen5>
+    <Aussehen6></Aussehen6>
+    <Hintergrund0>Pareto Naki stammt von den Waldinseln im tiefen Süden Aventuriens, wo sein Stamm seit unzähligen Generationen zwischen dampfendem Regenwald und perlweißen Stränden lebt. Die Waldmenschen siedeln auf den Inseln, auf der Halbinsel Meridiana und in den dichten Dschungeln dazwischen; ihre Dörfer liegen oft an den Küsten, geschützt vom Blätterdach.</Hintergrund0>
+    <Hintergrund1>Kaum ein anderes Volk versteht es so gut, aus dem zu leben, was die Natur bietet. Von den zivilisierten Reichen des Nordens belächelt, ist Pareto dem Dschungel doch so nah verbunden, wie es ein Fremder kaum je begreifen wird.</Hintergrund1>
+    <Hintergrund2>Als Schamane ist er der Mittler zwischen seinem Stamm und den Geistern, die seine Welt durchweben: die Ahnen, die im Wind der Wipfel flüstern, und die Naturgeister der Bäume, Flüsse und Tiere. Nichts geschieht ohne ihren Willen, und um ihre Gunst muss geworben werden.</Hintergrund2>
+    <Hintergrund3>Mit Trommel, Rassel und dem Rauch heiliger Kräuter versetzt Pareto sich in Trance, um die Geister zu hören, Kranke zu heilen, das Wetter zu deuten und die Ahnen um Rat zu bitten. Sein Wissen um Pflanzen, Zeichen und Träume ist der Schatz, der seinen Stamm durch die Gefahren der Dampfenden Dschungel trägt.</Hintergrund3>
+    <Hintergrund4></Hintergrund4>
+    <Hintergrund5></Hintergrund5>
+    <Hintergrund6></Hintergrund6>
+    <Hintergrund7></Hintergrund7>
+    <Hintergrund8></Hintergrund8>
+  </BeschreibungDetails>
+  <SkularisDaten>{"id":"c-cab46e5b-8aa8-46e5-95fc-565951eab075","geldboerse":{"dukaten":4,"silber":0,"heller":0,"kupfer":0},"startkapital":4}</SkularisDaten>
+</Charakter>

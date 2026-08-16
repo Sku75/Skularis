@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.05, 16. August 2026
+
+
+Zweiter Waldmensch als Vorlage
+
+- Neue Heldenvorlage auf der Stufe 2000 Erfahrungspunkte: "Pareto Naki", ein
+  Waldschamane von den Waldinseln. Der Hintergrundtext knüpft an den Waldmenschen
+  an (Waldinseln, Meridiana, Regenwald, Küstendörfer) und beschreibt seine Rolle als
+  Schamane: Mittler zwischen Stamm und den Ahnen- und Naturgeistern, der mit
+  Trommel, Rassel und heiligen Kräutern in Trance geht, um zu heilen, das Wetter zu
+  deuten und die Geister um Rat zu bitten.
+
+
 Version 1.04, 16. August 2026
 
 
