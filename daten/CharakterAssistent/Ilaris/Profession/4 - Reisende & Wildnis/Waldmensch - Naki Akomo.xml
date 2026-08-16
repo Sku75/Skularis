@@ -1,0 +1,136 @@
+<Charakter>
+  <Version>
+    <CharakterVersion>6</CharakterVersion>
+    <Plugins></Plugins>
+    <Hausregeln>Keine</Hausregeln>
+  </Version>
+  <Beschreibung>
+    <Name>Naki Akomo</Name>
+    <Spezies>Mensch</Spezies>
+    <Status>4</Status>
+    <Kurzbeschreibung>Waldmensch von den Waldinseln im tiefen Süden Aventuriens, mit dem Regenwald verwachsen wie kaum ein anderer</Kurzbeschreibung>
+    <Finanzen>4</Finanzen>
+    <Heimat>Südaventurien</Heimat>
+    <Eigenheiten>
+      <Eigenheit>Aufgewachsen in der Wildnis | Positiv: findet Wasser, Wild und Wege, liest Wetter und Fährten | Negativ: eckt in feiner Gesellschaft an, misstraut Städten und Menschenmengen</Eigenheit>
+      <Eigenheit>Klein und unscheinbar | Positiv: wird leicht übersehen, schlüpft durch enge Wege | Negativ: wird nicht ernst genommen, kommt schlecht an hohe Dinge</Eigenheit>
+    </Eigenheiten>
+  </Beschreibung>
+  <Attribute>
+    <KO>3</KO>
+    <MU>3</MU>
+    <GE>5</GE>
+    <KK>3</KK>
+    <IN>4</IN>
+    <KL>3</KL>
+    <CH>2</CH>
+    <FF>4</FF>
+  </Attribute>
+  <Energien>
+    <AsP wert="0"/>
+  </Energien>
+  <Vorteile>
+    <Vorteil name="Kampfreflexe"/>
+    <Vorteil name="Angepasst (Wald) I"/>
+    <Vorteil name="Schneller Kampf I"/>
+    <Vorteil name="Ruhige Hand"/>
+  </Vorteile>
+  <Fertigkeiten>
+    <Fertigkeit name="Handgemenge" wert="4"/>
+    <Fertigkeit name="Hiebwaffen" wert="0"/>
+    <Fertigkeit name="Klingenwaffen" wert="0"/>
+    <Fertigkeit name="Stangenwaffen" wert="0"/>
+    <Fertigkeit name="Schusswaffen" wert="5"/>
+    <Fertigkeit name="Wurfwaffen" wert="0"/>
+    <Fertigkeit name="Athletik" wert="5"/>
+    <Fertigkeit name="Heimlichkeit" wert="3"/>
+    <Fertigkeit name="Selbstbeherrschung" wert="1"/>
+    <Fertigkeit name="Wahrnehmung" wert="3"/>
+    <Fertigkeit name="Autorität" wert="0"/>
+    <Fertigkeit name="Beeinflussung" wert="1"/>
+    <Fertigkeit name="Gebräuche" wert="0"/>
+    <Fertigkeit name="Derekunde" wert="3"/>
+    <Fertigkeit name="Mythenkunde" wert="0"/>
+    <Fertigkeit name="Magiekunde" wert="0"/>
+    <Fertigkeit name="Überleben" wert="3"/>
+    <Fertigkeit name="Verschlagenheit" wert="0"/>
+    <Fertigkeit name="Alchemie" wert="0"/>
+    <Fertigkeit name="Heilkunde" wert="0"/>
+    <Fertigkeit name="Handwerk" wert="3"/>
+    <FreieFertigkeit name="Sprache: Garethi" wert="3"/>
+  </Fertigkeiten>
+  <Talente>
+    <Talent name="Gebräuche: Mittelreich"/>
+    <Talent name="Gebräuche: Südaventurien"/>
+    <Talent name="Unbewaffnet"/>
+    <Talent name="Handgemengewaffen"/>
+    <Talent name="Blasrohre"/>
+    <Talent name="Klettern"/>
+    <Talent name="Schwimmen"/>
+    <Talent name="Pirschen"/>
+    <Talent name="Wachsamkeit"/>
+    <Talent name="Sinnenschärfe"/>
+    <Talent name="Pflanzenkunde"/>
+    <Talent name="Tierkunde"/>
+    <Talent name="Überleben: Tiefer Süden"/>
+    <Talent name="Überleben: Meer"/>
+    <Talent name="Holzbearbeitung"/>
+  </Talente>
+  <Objekte>
+    <Zonensystem>0</Zonensystem>
+    <Rüstungen/>
+    <Waffen>
+      <Waffe name="Hand" id="Hand" würfel="1" würfelSeiten="6" plus="0" eigenschaften="" härte="1" rw="0" kampfstil="Kein Kampfstil" wm="0" beSlot="1"/>
+      <Waffe name="Blasrohr" id="Blasrohr" würfel="1" würfelSeiten="6" plus="-1" eigenschaften="" härte="2" rw="8" kampfstil="Kein Kampfstil" wm="0" beSlot="1"/>
+      <Waffe name="Haumesser" id="Haumesser" würfel="2" würfelSeiten="6" plus="1" eigenschaften="" härte="9" rw="1" kampfstil="Kein Kampfstil" wm="-1" beSlot="1"/>
+    </Waffen>
+    <Ausrüstung>
+      <Ausrüstungsstück>Waffenset: Waffenlos; Haupthand: Hand</Ausrüstungsstück>
+      <Ausrüstungsstück>Waffenset: Set 1; Haupthand: Haumesser; Fernkampf: Blasrohr</Ausrüstungsstück>
+    </Ausrüstung>
+  </Objekte>
+  <ÜbernatürlicheFertigkeiten/>
+  <Erfahrung>
+    <Gesamt>2000</Gesamt>
+    <Ausgegeben>1982</Ausgegeben>
+  </Erfahrung>
+  <Notiz/>
+  <Einstellungen>
+    <VoraussetzungenPrüfen>1</VoraussetzungenPrüfen>
+    <Charakterbogen>Standard Charakterbogen</Charakterbogen>
+    <FinanzenAnzeigen>1</FinanzenAnzeigen>
+    <ÜbernatürlichesPDFSpalteAnzeigen>0</ÜbernatürlichesPDFSpalteAnzeigen>
+    <DetailsAnzeigen>0</DetailsAnzeigen>
+    <RegelnAnhängen>1</RegelnAnhängen>
+    <RegelnGrösse>8</RegelnGrösse>
+    <DeaktivierteRegelKategorien></DeaktivierteRegelKategorien>
+    <FormularEditierbarkeit>1</FormularEditierbarkeit>
+  </Einstellungen>
+  <BeschreibungDetails>
+    <Kultur>Südaventurien</Kultur>
+    <Profession></Profession>
+    <Geschlecht>männlich</Geschlecht>
+    <Geburtsdatum>21 jahre</Geburtsdatum>
+    <Grösse>1,45 Schritt</Grösse>
+    <Gewicht>45 Stein</Gewicht>
+    <Haarfarbe>schwarz</Haarfarbe>
+    <Augenfarbe>grün</Augenfarbe>
+    <Titel></Titel>
+    <Aussehen1></Aussehen1>
+    <Aussehen2></Aussehen2>
+    <Aussehen3></Aussehen3>
+    <Aussehen4></Aussehen4>
+    <Aussehen5></Aussehen5>
+    <Aussehen6></Aussehen6>
+    <Hintergrund0>Naki Akomo stammt von den Waldinseln im tiefen Süden Aventuriens, wo sein Stamm seit unzähligen Generationen zwischen dampfendem Regenwald und perlweißen Stränden lebt.</Hintergrund0>
+    <Hintergrund1>Die Waldmenschen siedeln auf den Inseln, auf der Halbinsel Meridiana und in den dichten Dschungeln dazwischen; ihre Dörfer liegen oft an den Küsten, geschützt vom Blätterdach.</Hintergrund1>
+    <Hintergrund2>Kaum ein anderes Volk versteht es so gut, aus dem zu leben, was die Natur bietet: Naki jagt, sammelt und liest die Zeichen des Waldes, und seine Welt ist von Ahnen- und Naturgeistern durchwoben, deren Gunst die Schamanen erbitten.</Hintergrund2>
+    <Hintergrund3>Von den zivilisierten Reichen des Nordens belächelt, ist er dem Dschungel dennoch so nah verbunden, wie es ein Fremder kaum je begreifen wird.</Hintergrund3>
+    <Hintergrund4></Hintergrund4>
+    <Hintergrund5></Hintergrund5>
+    <Hintergrund6></Hintergrund6>
+    <Hintergrund7></Hintergrund7>
+    <Hintergrund8></Hintergrund8>
+  </BeschreibungDetails>
+  <SkularisDaten>{"id":"c-d7d8c272-8d06-47ff-b25e-4206125afbe8","geldboerse":{"dukaten":4,"silber":0,"heller":0,"kupfer":0},"startkapital":4}</SkularisDaten>
+</Charakter>

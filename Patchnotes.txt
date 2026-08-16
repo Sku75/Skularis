@@ -4,6 +4,23 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.04, 16. August 2026
+
+
+Vorlagen aufgeräumt: neuer Waldmensch, Held-Vorlagen entfernt
+
+- Neue Heldenvorlage auf der Stufe 2000 Erfahrungspunkte: "Naki Akomo", ein
+  Waldmensch von den Waldinseln im tiefen Süden Aventuriens. Mit einem stimmigen
+  Hintergrundtext nach dem Schwarzen Auge (die Waldmenschen leben auf den
+  Waldinseln, der Halbinsel Meridiana und im Regenwald dazwischen, mit Dörfern an
+  den Küsten; Jäger und Sammler, deren Welt von Ahnen- und Naturgeistern durchwoben
+  ist).
+- Drei unfertige Vorlagen ohne Namen (die in der Liste nur als "Held" erschienen)
+  wurden entfernt: der namenlose Dorfheiler, die Feuerelementaristin aus Drakonia
+  und der namenlose Rondrageweihte. Der ausgearbeitete Rondrageweihte-Einsteiger
+  und Bartolomeo Karinor bleiben erhalten.
+
+
 Version 1.03, 15. August 2026
 
 
