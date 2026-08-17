@@ -25,7 +25,6 @@ import { parse, serialisiere } from '../core/sephrasto-xml.js';
 import { holeBogenPerCode, uebernahmeScreen, gesamtEP } from '../core/bogen-uebernahme.js';
 import { getMeister, speichere } from './state.js';
 import * as post from '../net/post.js';
-import { setLiveHook } from './postkasten.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -190,16 +189,14 @@ function charLiveScreen(c) {
       return wrap;
     },
     // Beim Verlassen den transienten Kontext + Verdeckt-Modus wieder löschen (true = normal zurück).
-    onBack() { setLiveHook(null); setVerdeckt(false); setAbenteuer(null); return true; },
+    onBack() { setVerdeckt(false); setAbenteuer(null); return true; },
+    // KEIN automatisches Neuzeichnen bei jeder Spieler-Änderung mehr: das erzeugte
+    // sonst bei jedem Wert/Wurf erneut "Name verbunden, Live-Werte oben" und las die
+    // fokussierte Zeile neu vor. Die eigentliche Änderung wird ohnehin einmal
+    // angesagt ("Name, Wunden von 2 auf 0"). Zum Auffrischen gibt es oben den Punkt
+    // "Aktualisieren".
     onShow() {
-      // Live-Aktualisierung: ändert der Spieler einen Wert (und sendet ihn), wird
-      // dieser Bildschirm neu gezeichnet — aber nur, wenn er auch der oberste ist.
-      setLiveHook((name) => {
-        if (screen.current() === self && (name === c.name || (c.bogen && name === c.bogen.id))) {
-          try { screen.refresh(); } catch { /* egal */ }
-        }
-      });
-      sprache.sage(post.verbundeneSpieler().includes(c.name) ? `${c.name}, verbunden. Live-Werte oben.` : `${c.name}.`);
+      sprache.sage(post.verbundeneSpieler().includes(c.name) ? `${c.name}, verbunden.` : `${c.name}.`);
     },
   };
   return self;

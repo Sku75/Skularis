@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.06, 16. August 2026
+
+
+Meistertisch F4: keine überflüssigen Ansagen mehr
+
+- Am Meistertisch bei der Charakteransicht (F4) wurde der Bildschirm bisher bei
+  JEDER Spieler-Änderung und bei jedem Wurf komplett neu vorgelesen ("Name
+  verbunden, Live-Werte oben" und die gerade fokussierte Zeile). Das ist weg.
+- Jetzt kommt nur noch die eigentliche Änderung als eine Ansage mit Namen, zum
+  Beispiel "Name, Wunden von 2 auf 0". Sonst bleibt es still. Zum Auffrischen der
+  angezeigten Werte gibt es weiterhin oben den Punkt "Aktualisieren".
+
+
 Version 1.05, 16. August 2026
 
 
