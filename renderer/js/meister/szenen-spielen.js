@@ -186,13 +186,17 @@ function tischBoardScreen() {
     if (zustand.reihe === 'wuerfel') {
       zustand.spalte = Math.max(0, Math.min(WUERFEL.length - 1, zustand.spalte));
       const el = scr._wrap && scr._wrap.querySelector(`#wuerfel-${zustand.spalte}`);
-      if (el) { el.focus(); sprache.sage(WUERFEL[zustand.spalte].name); }
+      // NUR fokussieren (NVDA liest das benannte Element selbst) — KEIN
+      // zusaetzliches sprache.sage(), sonst kommt der Name doppelt. benenneFuerFokus
+      // macht die Zeile zu einem sauberen Schalter, den NVDA genau einmal liest.
+      if (el) { sprache.benenneFuerFokus(el); el.focus(); }
       return;
     }
     const k = aktuelleKarte();
     if (!k) { sprache.sage(zustand.reihe === 'gegner' ? 'Gegner: keine Karten.' : 'Spieler und freundliche NPC: keine Karten.'); return; }
     const el = scr._wrap && scr._wrap.querySelector(`#karte-${zustand.reihe}-${k.kid}`);
-    if (el) { el.focus(); sprache.sage(kurzText(k)); }
+    // NUR fokussieren, KEIN zusaetzliches sprache.sage() — sonst doppelt.
+    if (el) { sprache.benenneFuerFokus(el); el.focus(); }
   }
 
   function wechsleReihe(d) {
@@ -278,7 +282,18 @@ function tischBoardScreen() {
       if (wahl === 'at') { const r = verdeckteProbe({ wer: k.name, was: `Angriff ${ang.name}`, probenwert: (ang.at != null ? ang.at : ang.wert || 0), anzahl: 1, stumm: true }); k.letztesErgebnis = `Angriff ${ang.name}, Probe ${r.ew}`; }
       else { const r = verdeckterWurf(ang.wuerfel, ang.seiten, ang.bonus, `Schaden ${ang.name}`, true); k.letztesErgebnis = `Schaden ${ang.name}, ${r.summe}`; }
       speichere(); zeichne();
-      setTimeout(() => { const el = scr._wrap && scr._wrap.querySelector(`#karte-${zustand.reihe}-${k.kid}`); if (el) el.focus(); sprache.sage(`${k.name}, ${k.letztesErgebnis}.`); }, 0);
+      setTimeout(() => {
+        const el = scr._wrap && scr._wrap.querySelector(`#karte-${zustand.reihe}-${k.kid}`);
+        if (el) {
+          // Ergebnis als Fokus-Namen setzen und NUR fokussieren — NVDA liest es
+          // einmal. Kein zusaetzliches sage(), sonst doppelt.
+          el.setAttribute('aria-label', `${k.name}, ${k.letztesErgebnis}.`);
+          el.setAttribute('role', 'button');
+          el.focus();
+        } else {
+          sprache.sage(`${k.name}, ${k.letztesErgebnis}.`);
+        }
+      }, 0);
     });
   }
 

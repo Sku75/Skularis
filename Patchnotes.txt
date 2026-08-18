@@ -4,6 +4,20 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.11, 18. August 2026
+
+
+Doppelte Ansage auf dem Kampf-Spieltisch behoben (Gegner/Wuerfel/Helden-Reihen)
+
+- Auf dem Spieltisch mit den drei Reihen (Gegner oben, Wuerfelebene Mitte, Helden
+  unten, Auswahl mit Pfeil links/rechts) wurde beim Wechseln jede Karte ZWEIMAL
+  vorgelesen: einmal, weil der Name per Sprachausgabe angesagt wurde, und ein
+  zweites Mal, weil der Screenreader das fokussierte Element selbst liest. Die
+  ueberfluessige zweite Ansage ist entfernt; jede Karte wird jetzt genau EINMAL
+  gelesen (als Schalter, wie die Menuepunkte).
+- Auch die Ergebnis-Ansage nach einem Angriffswurf kommt jetzt nur einmal.
+
+
 Version 1.10, 18. August 2026
 
 
