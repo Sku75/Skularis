@@ -15,6 +15,7 @@ import { ladeDb } from '../core/db-laden.js';
 import { parse, serialisiere } from '../core/sephrasto-xml.js';
 import { ensureCharakterId } from '../core/character.js';
 import { exportHtml } from '../core/export-html.js';
+import { starteBibliotheksUebernahme } from '../core/bogen-uebernahme.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -115,7 +116,8 @@ function charakterMenu(c) {
         sounds.playSpeichern();
         sprache.sage(`${c.name} als HTML im Ordner Charakter-Dateien gespeichert.`);
       } },
-      { label: 'Charakterupdate an den Meister senden', hint: 'Lädt den Bogen in ein Zimmer; du nennst dem Meister den 4-stelligen Code', onSelect: () => sendeAnMeister(c) },
+      { label: 'Charakterbogen versenden', hint: 'Lädt den Bogen in ein Zimmer; du nennst dem Meister ODER einem Mitspieler den 4-stelligen Code', onSelect: () => sendeAnMeister(c) },
+      { label: 'Charakterbogen empfangen', hint: 'Einen per Code gesendeten Bogen laden; danach ersetzen oder neu annehmen', onSelect: () => starteBibliotheksUebernahme() },
       { label: 'Charakter löschen', hint: 'Entfernt die Datei', onSelect: async () => {
         const ja = await jaNeinDialog({ titel: 'Charakter löschen', frage: `${c.name} wirklich löschen?`, jaLabel: 'Ja, löschen', neinLabel: 'Nein, behalten' });
         if (!ja) return;
@@ -142,7 +144,7 @@ async function sendeAnMeister(c) {
   if (r && r.ok) {
     sounds.playSpeichern();
     const gesprochen = code.split('').join(' ');
-    await codeAnzeigeDialog({ titel: 'An den Meister gesendet', code, hinweis: 'Nenne dem Meister diesen Code. Er gilt etwa 3 Stunden, danach ist der Bogen automatisch weg.' });
+    await codeAnzeigeDialog({ titel: 'Charakterbogen gesendet', code, hinweis: 'Nenne diesen Code dem Meister oder einem Mitspieler. Er gilt etwa 3 Stunden, danach ist der Bogen automatisch weg.' });
     sprache.sage(`Gesendet. Code ${gesprochen}.`);
   } else {
     sounds.playError();

@@ -40,6 +40,36 @@ async function speichereUserBib() {
   catch (e) { console.error('Gegner-Bibliothek speichern:', e); }
 }
 
+/** Nur die Statblock-Felder eines Gegners, ohne Laufzeit- (id, wunden, zuOrt ...)
+ *  oder Ansichts-Zusätze (quelle, index). */
+function reinerStatblock(g) {
+  return {
+    name: g.name || '',
+    kategorie: g.kategorie || '',
+    ws: g.ws || 0, rs: g.rs || 0, ini: g.ini || 0, ausweichen: g.ausweichen || 0,
+    angriffe: (g.angriffe || []).map(x => ({ ...x })),
+    vorteile: Array.isArray(g.vorteile) ? [...g.vorteile] : [],
+    manoever: Array.isArray(g.manoever) ? [...g.manoever] : [],
+    notizen: g.notizen || '',
+  };
+}
+
+/** Einen Gegner als Vorlage in die eigene Bibliothek legen. Gibt es dort schon
+ *  einen gleichen Namens, werden dessen Werte aktualisiert (so lassen sich beim
+ *  wiederholten Bearbeiten die Vorlagen auffrischen). Liefert 'neu' oder
+ *  'aktualisiert' bzw. null, wenn kein Name da ist. */
+export async function vorlageSpeichern(g) {
+  await ladeUserBib();
+  const key = (g && g.name || '').trim().toLowerCase();
+  if (!key) return null;
+  const rein = reinerStatblock(g);
+  const idx = (_userBib.gegner || []).findIndex(x => (x.name || '').trim().toLowerCase() === key);
+  if (idx >= 0) { _userBib.gegner[idx] = rein; await speichereUserBib(); return 'aktualisiert'; }
+  _userBib.gegner.push(rein);
+  await speichereUserBib();
+  return 'neu';
+}
+
 function vorlageDetail(v) {
   const faeh = [...(v.vorteile || []), ...(v.manoever || [])];
   return [

@@ -38,6 +38,12 @@ export function wertZeile(o) {
 
   const text = document.createElement('span');
   text.className = 'ed-zeile__text';
+  // Nur optisch: der Zeilentext steht sichtbar hier, der Name für den
+  // Screenreader kommt aber allein aus dem aria-label der ganzen Zeile. Ohne
+  // dieses aria-hidden trägt das Span-Kind denselben Namen wie die Zeile — eine
+  // benannte Zeile MIT benanntem Kind-Element wird von NVDA zur „Abschnitt"-Gruppe
+  // und der Name doppelt vorgelesen (einmal die Zeile, einmal „... Abschnitt").
+  text.setAttribute('aria-hidden', 'true');
 
   const btnPlus = document.createElement('button');
   btnPlus.type = 'button';

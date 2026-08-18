@@ -15,6 +15,7 @@ import { leererStatblock, baueStatblockKarte, protokolliere, angriffText } from 
 import { getMeister, speichere } from './state.js';
 import { verdeckteProbe, verdeckterWurf } from './wuerfel.js';
 import { setAusGegnern } from './sets.js';
+import { vorlageSpeichern } from './gegner-bibliothek.js';
 
 /** @param {'gegner'|'freund'} art */
 function liste(a, art) { return art === 'freund' ? a.freundlicheNsc : a.nsc; }
@@ -171,6 +172,16 @@ export function statblockScreen(art, index) {
           await speichere();
           sounds.playOeffnen();
           sprache.sage(`${sb.name} liegt jetzt auf dem Spieltisch.`);
+          // Nur Gegner: jedes Mal anbieten, den (evtl. gerade bearbeiteten) Stand
+          // als Vorlage zu sichern, damit die Karte nicht mit dem Abenteuer
+          // verloren geht. Gleicher Name aktualisiert die vorhandene Vorlage.
+          if (art === 'gegner' && (sb.name || '').trim()) {
+            if (await jaNeinDialog({ titel: 'Karte auch speichern?', frage: `${sb.name} in die Vorlagen speichern, damit die Karte nicht verloren geht?` })) {
+              const was = await vorlageSpeichern(sb);
+              sounds.playSpeichern();
+              sprache.sage(was === 'aktualisiert' ? `${sb.name} in den Vorlagen aktualisiert.` : `${sb.name} in die Vorlagen gespeichert.`);
+            }
+          }
         },
       });
       items.push({

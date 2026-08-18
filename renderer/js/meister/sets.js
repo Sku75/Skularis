@@ -250,6 +250,7 @@ export function setsScreen() {
     build() {
       const items = [];
       items.push({ label: 'Neues Set erstellen', hint: 'Name vergeben, dann Karten hinzufuegen', onSelect: () => neuesSet(scr) });
+      items.push({ label: 'Aktuellen Spieltisch als Set speichern', hint: 'alle Karten des Tisches zu einem Set buendeln', onSelect: () => tischAlsSet(scr) });
       const alle = sortiert(scr._sets || []);
       const q = (scr.__filter || '').toLowerCase();
       const treffer = q ? alle.filter(s => (s.name || '').toLowerCase().includes(q)) : alle;
@@ -265,6 +266,26 @@ export function setsScreen() {
     onShow() { if (scr._sets === null) scr.lade(); sprache.sage('Sets.'); },
   };
   return scr;
+}
+
+/**
+ * Den aktuellen Spieltisch als ein Set sichern. So geht eine am Tisch
+ * zusammengestellte Runde nicht verloren und laesst sich spaeter wieder auflegen.
+ */
+async function tischAlsSet(uebersicht) {
+  const a = getMeister();
+  const karten = (a.tisch && a.tisch.karten) || [];
+  if (!karten.length) { sprache.sage('Der Spieltisch ist leer. Lege erst Karten auf den Tisch.'); return; }
+  const name = await textDialog({ titel: 'Spieltisch als Set speichern', label: 'Name des Sets' });
+  if (name === null || !name.trim()) return;
+  await ladeSets();
+  const set = { name: name.trim(), karten: karten.map(k => template(k, k.art)) };
+  _store.sets.push(set);
+  await speichereSets();
+  if (uebersicht) uebersicht._sets = _store.sets;
+  sounds.playSpeichern();
+  screen.refresh();
+  sprache.sage(`Set ${set.name} mit ${set.karten.length} Karten gespeichert.`);
 }
 
 async function neuesSet(uebersicht) {

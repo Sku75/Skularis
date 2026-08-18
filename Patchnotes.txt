@@ -4,6 +4,41 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.07, 18. August 2026
+
+
+Spieltisch: Karten verbinden (wer kaempft gegen wen)
+
+- Auf der Namenszeile einer Karte nimmt die LEERTASTE die Karte auf. Die naechste
+  Leertaste auf einer ANDEREN Karte verbindet beide. Noch einmal Leertaste auf
+  DERSELBEN Karte loest alle ihre Verbindungen. Escape bricht eine Aufnahme ab.
+- ENTER (oder ein Mausklick) oeffnet das Kartenmenue mit "Verbinden mit einer
+  Karte" (fuer die Maus), "Verbindungen loesen" und "Vom Tisch nehmen".
+- Verbindungen sind viele-zu-viele: ein Gegner kann gegen mehrere Helden kaempfen
+  und umgekehrt. Jede Karte zeigt "Kaempft gegen ...". Beim verdeckten Attacke-Wurf
+  eines Gegners wird das verbundene Ziel angesagt. Alte Tische werden automatisch
+  uebernommen.
+
+Doppelte Sprachausgabe behoben
+
+- Wert- und Wundenzeilen wurden vom Screenreader doppelt vorgelesen (das zweite Mal
+  mit "Abschnitt"). Das ist softwareweit behoben.
+
+Gegner und Sets
+
+- In der Set-Verwaltung gibt es "Aktuellen Spieltisch als Set speichern": der ganze
+  Tisch wird als ein Set gebuendelt.
+- Wird ein Gegner aus dem Editor auf den Spieltisch gelegt, fragt Skularis "Karte
+  auch speichern?" und legt ihn auf Wunsch in die Vorlagen (Gegner-Bibliothek).
+  Gleicher Name aktualisiert die vorhandene Vorlage.
+
+Charakterbogen versenden und empfangen
+
+- In "Meine Charaktere" heisst der Sende-Punkt jetzt "Charakterbogen versenden"
+  (er geht an Meister ODER Mitspieler). Darunter neu: "Charakterbogen empfangen",
+  um selbst per Code einen Bogen zu laden und zu ersetzen oder neu anzunehmen.
+
+
 Version 1.06, 16. August 2026
 
 
