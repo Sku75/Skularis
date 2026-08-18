@@ -4,6 +4,17 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.15, 18. August 2026
+
+
+Meistertexte: "Absatz" nach jeder Zeile entfernt
+
+- In den geöffneten Abenteuertexten (Meistertexte-Hub F7/F8, Menü Abenteuertexte)
+  sagte NVDA nach jeder Zeile "Absatz". Das ist weg: jede Textzeile wird jetzt genau
+  einmal als reiner Text vorgelesen, ohne "Absatz", ohne "Abschnitt" und ohne "Schalter".
+  Gleichwertig für NVDA und JAWS.
+
+
 Version 1.14, 18. August 2026
 
 

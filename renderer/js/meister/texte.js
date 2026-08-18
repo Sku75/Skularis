@@ -165,15 +165,19 @@ function dokumentScreen(d, initialPos) {
           const istMarke = m.lesezeichen === i;
           const label = (istMarke ? 'Lesezeichen. ' : '') + zeile;
           // "Nur Text": der Name der Zeile steht im aria-label, der sichtbare Text
-          // steckt in einem aria-hidden-Kind. So gibt es KEIN zweites Text-Objekt
-          // (kein Doppel) und KEINE Rolle (kein "Schalter") — NVDA und JAWS lesen
-          // die Zeile genau einmal als reinen Text.
+          // steckt in einem aria-hidden-Kind (kein zweites Text-Objekt -> kein Doppel).
+          // Die Zeile bekommt eine Widget-Rolle (button), damit NVDA sie NICHT als
+          // Block/"Absatz" ansagt. Das Rollenwort ("Schalter") wird per
+          // aria-roledescription=" " (ein Leerzeichen) unterdrueckt. Ergebnis: NVDA
+          // und JAWS lesen die Zeile genau einmal als reinen Text, ohne Absatz/Schalter.
           const sicht = document.createElement('span');
           sicht.setAttribute('aria-hidden', 'true');
           sicht.textContent = (istMarke ? '▶ ' : '') + zeile;
           row.appendChild(sicht);
           row.setAttribute('data-sr-label', label);
           row.setAttribute('aria-label', label);
+          row.setAttribute('role', 'button');
+          row.setAttribute('aria-roledescription', ' ');
           row.addEventListener('focusin', () => {
             state.letzteZeile = i;
             m.position = i;
