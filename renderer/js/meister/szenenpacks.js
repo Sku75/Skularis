@@ -7,7 +7,7 @@
  * getrennt vom Programm — bleibt bei Updates erhalten und ist transportierbar.
  *
  * Ein Pack-Kartentemplate hat keine Laufzeitfelder (Wunden, Zuordnung, Id); die
- * bekommt es erst beim Laden auf den Spieltisch.
+ * bekommt es erst beim Laden auf den Kampfspieltisch.
  */
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
@@ -62,7 +62,7 @@ function vorlageZuKarte(v, art) {
   };
 }
 
-/** Ein Pack auf den Spieltisch des aktiven Meisterabenteuers laden. */
+/** Ein Pack auf den Kampfspieltisch des aktiven Meisterabenteuers laden. */
 export function ladeAufTisch(pack) {
   const a = getMeister();
   if (!a) return 0;
@@ -154,7 +154,7 @@ function packUntermenueScreen(ab, pack) {
         subtitle: 'Escape zurueck.',
         items: [
           { label: 'Bearbeiten', hint: 'Karten hinzufuegen und aendern', onSelect: () => screen.push(kartenEditorScreen(pack, speichere)) },
-          { label: 'Auf den Spieltisch laden', hint: 'die Karten des Packs auf den Tisch legen', onSelect: () => { const n = ladeAufTisch(pack); sounds.playOeffnen(); sprache.sage(`${n} Karten aus ${pack.name} auf den Spieltisch geladen.`); } },
+          { label: 'Auf den Kampfspieltisch laden', hint: 'die Karten des Packs auf den Tisch legen', onSelect: () => { const n = ladeAufTisch(pack); sounds.playOeffnen(); sprache.sage(`${n} Karten aus ${pack.name} auf den Kampfspieltisch geladen.`); } },
           { label: 'Umbenennen', onSelect: async () => { const v = await textDialog({ titel: 'Umbenennen', label: 'Neuer Name', wert: pack.name }); if (v === null || !v.trim()) return; pack.name = v.trim(); await speichere(); screen.refresh(); sprache.sage(`Umbenannt in ${pack.name}.`); } },
           { label: 'Verschieben', hint: 'in ein anderes Abenteuer', onSelect: () => verschiebePack(ab, pack) },
           {

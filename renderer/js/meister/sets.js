@@ -1,7 +1,7 @@
 /**
- * Skularistool — Meistertisch: Spieltisch bestuecken und Sets.
+ * Skularistool — Meistertisch: Kampfspieltisch bestuecken und Sets.
  *
- * Ein aktiver Spieltisch (a.tisch.karten). Karten kommen entweder einzeln ueber
+ * Ein aktiver Kampfspieltisch (a.tisch.karten). Karten kommen entweder einzeln ueber
  * "Bestuecken" (Spieler, freundliche NPC, Gegner, fertige Sets) oder gebuendelt
  * ueber ein Set. Sets sind vorbereitete Kartenbuendel, global gespeichert (Ordner
  * Meister Daten), flach und alphabetisch, mit Filter. Ein Set kann Karten aller
@@ -99,7 +99,7 @@ async function alsTemplate(art, e) {
 /**
  * Kategorie-Auswahl (Spieler, freundliche NPC, Gegner). Enter auf einer Karte ruft
  * zielFn(template, art) und laesst den Fokus in der Liste (mehrere schnell waehlen).
- * bezeichnung: "zum Spieltisch" oder "zum Set".
+ * bezeichnung: "zum Kampfspieltisch" oder "zum Set".
  */
 function kategorienScreen(titel, zielFn, bezeichnung) {
   const arten = [
@@ -179,7 +179,7 @@ function quelleListeScreen(art, label, zielFn, bezeichnung) {
   return scr;
 }
 
-// --- Spieltisch bestuecken -----------------------------------------------
+// --- Kampfspieltisch bestuecken -----------------------------------------------
 
 /** Ein Template als frische Laufzeit-Karte auf den aktiven Tisch legen. */
 export function templateZuTisch(a, t) {
@@ -190,22 +190,22 @@ export function templateZuTisch(a, t) {
 
 export function bestueckenScreen() {
   return {
-    title: 'Spieltisch bestuecken',
+    title: 'Kampfspieltisch bestuecken',
     build() {
       const a = getMeister();
-      const zumTisch = (t) => { const k = templateZuTisch(a, t); speichere(); sprache.sage(`${k.name} zum Spieltisch, ${a.tisch.karten.length} Karten.`); };
+      const zumTisch = (t) => { const k = templateZuTisch(a, t); speichere(); sprache.sage(`${k.name} zum Kampfspieltisch, ${a.tisch.karten.length} Karten.`); };
       const items = [];
       // Spieler und freundliche NPC flach; Gegner ueber die kategorisierte Ansicht
       // (Bestiarium + eigene Gegner, Erstellen mit Kategorie, Kategorienuebersicht).
       for (const x of [{ art: 'spieler', label: 'Spieler' }, { art: 'freund', label: 'Freundliche NPC' }]) {
         const n = quelleFuer(x.art).length;
-        items.push({ label: `${x.label}, ${n}`, hint: 'Enter fuegt eine Karte zum Spieltisch hinzu', onSelect: () => screen.push(quelleListeScreen(x.art, x.label, zumTisch, 'zum Spieltisch')) });
+        items.push({ label: `${x.label}, ${n}`, hint: 'Enter fuegt eine Karte zum Kampfspieltisch hinzu', onSelect: () => screen.push(quelleListeScreen(x.art, x.label, zumTisch, 'zum Kampfspieltisch')) });
       }
-      items.push({ label: 'Gegner', hint: 'Bestiarium und eigene Gegner nach Kategorien, Enter legt auf den Spieltisch', onSelect: () => screen.push(gegnerBestueckenScreen()) });
-      items.push({ label: 'Fertige Sets', hint: 'ein ganzes Set auf den Spieltisch legen', onSelect: () => screen.push(setsWaehlenScreen()) });
-      return menuScreen({ title: 'Spieltisch bestuecken', subtitle: 'Kategorie waehlen, Enter legt eine Karte auf den Spieltisch. Escape zurueck.', items }).build();
+      items.push({ label: 'Gegner', hint: 'Bestiarium und eigene Gegner nach Kategorien, Enter legt auf den Kampfspieltisch', onSelect: () => screen.push(gegnerBestueckenScreen()) });
+      items.push({ label: 'Fertige Sets', hint: 'ein ganzes Set auf den Kampfspieltisch legen', onSelect: () => screen.push(setsWaehlenScreen()) });
+      return menuScreen({ title: 'Kampfspieltisch bestuecken', subtitle: 'Kategorie waehlen, Enter legt eine Karte auf den Kampfspieltisch. Escape zurueck.', items }).build();
     },
-    onShow() { sprache.sage('Spieltisch bestuecken.'); },
+    onShow() { sprache.sage('Kampfspieltisch bestuecken.'); },
   };
 }
 
@@ -223,16 +223,16 @@ function setsWaehlenScreen() {
       const treffer = q ? alle.filter(s => (s.name || '').toLowerCase().includes(q)) : alle;
       const items = treffer.map(s => ({
         label: `${s.name}, ${(s.karten || []).length} Karten`,
-        hint: 'Enter legt das ganze Set auf den Spieltisch',
+        hint: 'Enter legt das ganze Set auf den Kampfspieltisch',
         onSelect: () => {
           let n = 0;
           for (const t of (s.karten || [])) { templateZuTisch(a, t); n++; }
           speichere();
           sounds.playOeffnen();
-          sprache.sage(`Set ${s.name}, ${n} Karten auf den Spieltisch gelegt.`);
+          sprache.sage(`Set ${s.name}, ${n} Karten auf den Kampfspieltisch gelegt.`);
         },
       }));
-      return menuScreen({ title: 'Fertige Sets', subtitle: 'Enter legt das ganze Set auf den Spieltisch. Escape zurueck.', items, leer: 'Noch keine Sets. Lege eines unter Sets an.', filter: (scr._sets || []).length >= 8 }).build();
+      return menuScreen({ title: 'Fertige Sets', subtitle: 'Enter legt das ganze Set auf den Kampfspieltisch. Escape zurueck.', items, leer: 'Noch keine Sets. Lege eines unter Sets an.', filter: (scr._sets || []).length >= 8 }).build();
     },
     onShow() { if (scr._sets === null) scr.lade(); },
   };
@@ -250,12 +250,12 @@ export function setsScreen() {
     build() {
       const items = [];
       items.push({ label: 'Neues Set erstellen', hint: 'Name vergeben, dann Karten hinzufuegen', onSelect: () => neuesSet(scr) });
-      items.push({ label: 'Aktuellen Spieltisch als Set speichern', hint: 'alle Karten des Tisches zu einem Set buendeln', onSelect: () => tischAlsSet(scr) });
+      items.push({ label: 'Aktuellen Kampfspieltisch als Set speichern', hint: 'alle Karten des Tisches zu einem Set buendeln', onSelect: () => tischAlsSet(scr) });
       const alle = sortiert(scr._sets || []);
       const q = (scr.__filter || '').toLowerCase();
       const treffer = q ? alle.filter(s => (s.name || '').toLowerCase().includes(q)) : alle;
       for (const s of treffer) {
-        items.push({ label: `${s.name}, ${(s.karten || []).length} Karten`, hint: 'Zum Spieltisch, bearbeiten, loeschen', onSelect: () => screen.push(setEintragScreen(scr, s)) });
+        items.push({ label: `${s.name}, ${(s.karten || []).length} Karten`, hint: 'Zum Kampfspieltisch, bearbeiten, loeschen', onSelect: () => screen.push(setEintragScreen(scr, s)) });
       }
       return menuScreen({
         title: 'Sets (vorbereitete Kartenbuendel)',
@@ -269,14 +269,14 @@ export function setsScreen() {
 }
 
 /**
- * Den aktuellen Spieltisch als ein Set sichern. So geht eine am Tisch
+ * Den aktuellen Kampfspieltisch als ein Set sichern. So geht eine am Tisch
  * zusammengestellte Runde nicht verloren und laesst sich spaeter wieder auflegen.
  */
 async function tischAlsSet(uebersicht) {
   const a = getMeister();
   const karten = (a.tisch && a.tisch.karten) || [];
-  if (!karten.length) { sprache.sage('Der Spieltisch ist leer. Lege erst Karten auf den Tisch.'); return; }
-  const name = await textDialog({ titel: 'Spieltisch als Set speichern', label: 'Name des Sets' });
+  if (!karten.length) { sprache.sage('Der Kampfspieltisch ist leer. Lege erst Karten auf den Tisch.'); return; }
+  const name = await textDialog({ titel: 'Kampfspieltisch als Set speichern', label: 'Name des Sets' });
   if (name === null || !name.trim()) return;
   await ladeSets();
   const set = { name: name.trim(), karten: karten.map(k => template(k, k.art)) };
@@ -309,11 +309,11 @@ function setEintragScreen(uebersicht, s) {
         subtitle: 'Escape zurueck.',
         items: [
           {
-            label: 'Zum Spieltisch hinzufuegen', hint: 'das ganze Set auf den aktiven Spieltisch legen',
+            label: 'Zum Kampfspieltisch hinzufuegen', hint: 'das ganze Set auf den aktiven Kampfspieltisch legen',
             onSelect: () => {
               const a = getMeister();
               let n = 0; for (const t of (s.karten || [])) { templateZuTisch(a, t); n++; }
-              speichere(); sounds.playOeffnen(); sprache.sage(`${n} Karten aus ${s.name} auf den Spieltisch gelegt.`);
+              speichere(); sounds.playOeffnen(); sprache.sage(`${n} Karten aus ${s.name} auf den Kampfspieltisch gelegt.`);
             },
           },
           { label: 'Bearbeiten', hint: 'Name und Karten aendern', onSelect: () => screen.push(setBearbeitenScreen(uebersicht, s)) },

@@ -214,7 +214,7 @@ function oeffneHub() {
   const punkte = [
     { label: 'Gruppenrecherche', hint: 'Werte der Gruppe abfragen und verdeckt wuerfeln', factory: () => gruppenrechercheScreen() },
     { label: 'Gruppenprobe', hint: 'die ganze Gruppe gegen eine Schwierigkeit', factory: () => gruppenprobeScreen() },
-    { label: 'Spieltisch', hint: 'aktiver Spieltisch, bestücken, Sets', factory: () => szenenBereichScreen() },
+    { label: 'Kampfspieltisch', hint: 'aktiver Kampfspieltisch, bestücken, Sets', factory: () => szenenBereichScreen() },
     { label: 'Charaktere', hint: 'Charakteransicht (Status, Werte, verdeckt würfeln) und Charakterbögen', factory: () => charaktereScreen() },
     { label: 'Post, Notizen und Ablageregal', hint: 'Meisterpost senden und empfangen, Ablage und Notizen', factory: () => postkastenScreen() },
     { label: 'Freundliche NPC', hint: 'Meister-NPC verwalten', factory: () => gegnerkarteiScreen('freund') },

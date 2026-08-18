@@ -1,5 +1,5 @@
 /**
- * Skularistool — Meistertisch: Wuerfelebene des Spieltisches.
+ * Skularistool — Meistertisch: Wuerfelebene des Kampfspieltisches.
  *
  * Mittlere Ebene des Spielbretts, mit links/rechts erreichbar. Drei Eintraege:
  *   - Freier Wurf: die Schnellwuerfe (1W6, 2W6, 1W20, 3W20) und ein freier Wurf.
@@ -121,7 +121,7 @@ async function angriffWurf(k, art) {
 // --- Monsterwurf ---------------------------------------------------------
 
 export function oeffneMonsterwurf() {
-  screen.push(karteWaehlenScreen('Monsterwurf', gegnerAmTisch, monsterKarteMenue, 'Keine Gegner auf dem Spieltisch.'));
+  screen.push(karteWaehlenScreen('Monsterwurf', gegnerAmTisch, monsterKarteMenue, 'Keine Gegner auf dem Kampfspieltisch.'));
 }
 
 function monsterKarteMenue(k) {
@@ -145,7 +145,7 @@ function monsterKarteMenue(k) {
 // --- Spielerwurf ---------------------------------------------------------
 
 export function oeffneSpielerwurf() {
-  screen.push(karteWaehlenScreen('Spielerwurf', spielerAmTisch, spielerKarteMenue, 'Keine Spieler oder freundlichen NPC auf dem Spieltisch.'));
+  screen.push(karteWaehlenScreen('Spielerwurf', spielerAmTisch, spielerKarteMenue, 'Keine Spieler oder freundlichen NPC auf dem Kampfspieltisch.'));
 }
 
 function spielerKarteMenue(k) {

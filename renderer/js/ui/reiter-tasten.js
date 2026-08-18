@@ -31,7 +31,7 @@ const TABS = {
   meister: [
     { nr: 1, name: 'Gruppenrecherche' },
     { nr: 2, name: 'Gruppenprobe' },
-    { nr: 3, name: 'Spieltisch' },
+    { nr: 3, name: 'Kampfspieltisch' },
     { nr: 4, name: 'Charakterbögen und Notizen' },
     { nr: 5, name: 'Gegner-Bibliothek' },
     { nr: 6, name: 'Freundliche NPC' },

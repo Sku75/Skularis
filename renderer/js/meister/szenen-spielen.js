@@ -1,13 +1,13 @@
 /**
- * Skularistool — Meistertisch: Spieltisch-Bereich (F3).
+ * Skularistool — Meistertisch: Kampfspieltisch-Bereich (F3).
  *
- * Ein aktiver Spieltisch. Drei Menuepunkte:
- *   - Spieltisch: das aufgebaute Brett. Oben die Gegner, in der Mitte die
+ * Ein aktiver Kampfspieltisch. Drei Menuepunkte:
+ *   - Kampfspieltisch: das aufgebaute Brett. Oben die Gegner, in der Mitte die
  *     Wuerfelebene (Freier Wurf, Monsterwurf, Spielerwurf), unten Spieler und
  *     freundliche NPC. Pfeil hoch/runter wechselt die Reihe, links/rechts die
  *     Karte. Eingabetaste oeffnet das Karten-Menue (auf der Wuerfelebene den
  *     Wurf), Leertaste tippt/verbindet Karten, Plus und Minus setzen Wunden.
- *   - Spieltisch bestuecken: Karten aus Spieler, freundlichen NPC, Gegnern oder
+ *   - Kampfspieltisch bestuecken: Karten aus Spieler, freundlichen NPC, Gegnern oder
  *     fertigen Sets auf den Tisch holen.
  *   - Sets: vorbereitete Kartenbuendel anlegen und verwalten.
  */
@@ -24,27 +24,27 @@ import { verdeckteProbe, verdeckterWurf } from './wuerfel.js';
 
 export function szenenBereichScreen() {
   return {
-    title: 'Spieltisch',
+    title: 'Kampfspieltisch',
     build() {
       const a = getMeister();
       const n = ((a.tisch && a.tisch.karten) || []).length;
       const items = [
-        { label: 'Spieltisch', hint: `das aufgebaute Brett, ${n} Karten`, onSelect: () => screen.push(tischBoardScreen()) },
-        { label: 'Spieltisch bestuecken', hint: 'Karten aus Spieler, NPC, Gegner oder Sets auf den Tisch holen', onSelect: () => screen.push(bestueckenScreen()) },
+        { label: 'Kampfspieltisch', hint: `das aufgebaute Brett, ${n} Karten`, onSelect: () => screen.push(tischBoardScreen()) },
+        { label: 'Kampfspieltisch bestuecken', hint: 'Karten aus Spieler, NPC, Gegner oder Sets auf den Tisch holen', onSelect: () => screen.push(bestueckenScreen()) },
         { label: 'Sets', hint: 'vorbereitete Kartenbuendel anlegen und verwalten', onSelect: () => screen.push(setsScreen()) },
       ];
       if (n) {
         items.push({
-          label: 'Spieltisch leeren', hint: 'alle Karten vom Tisch nehmen',
+          label: 'Kampfspieltisch leeren', hint: 'alle Karten vom Tisch nehmen',
           onSelect: async () => {
-            if (!await jaNeinDialog({ titel: 'Spieltisch leeren', frage: 'Alle Karten vom Spieltisch nehmen?' })) return;
-            a.tisch.karten = []; a.tisch.verbindungen = []; await speichere(); screen.refresh(); sprache.sage('Spieltisch geleert.');
+            if (!await jaNeinDialog({ titel: 'Kampfspieltisch leeren', frage: 'Alle Karten vom Kampfspieltisch nehmen?' })) return;
+            a.tisch.karten = []; a.tisch.verbindungen = []; await speichere(); screen.refresh(); sprache.sage('Kampfspieltisch geleert.');
           },
         });
       }
-      return menuScreen({ title: 'Spieltisch', subtitle: 'Escape zurueck.', items }).build();
+      return menuScreen({ title: 'Kampfspieltisch', subtitle: 'Escape zurueck.', items }).build();
     },
-    onShow() { sprache.sage('Spieltisch.'); },
+    onShow() { sprache.sage('Kampfspieltisch.'); },
   };
 }
 
@@ -103,7 +103,7 @@ function tischBoardScreen() {
   };
 
   const scr = {
-    title: 'Spieltisch',
+    title: 'Kampfspieltisch',
     _wrap: null,
     build() {
       const wrap = document.createElement('div');
@@ -128,7 +128,7 @@ function tischBoardScreen() {
       return wrap;
     },
     onShow() {
-      sprache.sage('Spieltisch. Pfeil hoch die Gegner, in der Mitte die Wuerfelebene, Pfeil runter die Spieler und freundlichen NPC. Links und rechts waehlt. Eingabetaste oeffnet das Karten-Menue, auf der Wuerfelebene den Wurf. Leertaste tippt und verbindet Karten. Plus und Minus setzen Wunden. Taste i geht die Initiative durch.');
+      sprache.sage('Kampfspieltisch. Pfeil hoch die Gegner, in der Mitte die Wuerfelebene, Pfeil runter die Spieler und freundlichen NPC. Links und rechts waehlt. Eingabetaste oeffnet das Karten-Menue, auf der Wuerfelebene den Wurf. Leertaste tippt und verbindet Karten. Plus und Minus setzen Wunden. Taste i geht die Initiative durch.');
       setTimeout(fokus, 120);
     },
   };
@@ -266,13 +266,13 @@ function tischBoardScreen() {
     if ((k.angriffe || []).length) { knoepfe.push({ label: 'Angriff wuerfeln', wert: 'at' }); knoepfe.push({ label: 'Schaden wuerfeln', wert: 'sch' }); }
     knoepfe.push({ label: 'Wunde plus', wert: 'w+' });
     knoepfe.push({ label: 'Wunde minus', wert: 'w-' });
-    knoepfe.push({ label: 'Vom Spieltisch nehmen', wert: 'entf' });
+    knoepfe.push({ label: 'Vom Kampfspieltisch nehmen', wert: 'entf' });
     knopfDialog({ titel: k.name, knoepfe }).then(async (wahl) => {
       if (wahl === null) { fokusNach(); return; }
       if (wahl === 'w+') { wundeAendern(1); return; }
       if (wahl === 'w-') { wundeAendern(-1); return; }
       if (wahl === 'entf') {
-        if (!await jaNeinDialog({ titel: 'Entfernen', frage: `${k.name} vom Spieltisch nehmen?` })) { fokusNach(); return; }
+        if (!await jaNeinDialog({ titel: 'Entfernen', frage: `${k.name} vom Kampfspieltisch nehmen?` })) { fokusNach(); return; }
         const i = a.tisch.karten.indexOf(k); if (i >= 0) a.tisch.karten.splice(i, 1);
         a.tisch.verbindungen = verb().filter(v => !v.includes(k.kid));
         speichere(); zeichne(); setTimeout(fokus, 0); sprache.sage(`${k.name} entfernt.`); return;
@@ -307,7 +307,7 @@ function tischBoardScreen() {
   let initPos = -1;
   function initiative() {
     const alle = [...a.tisch.karten].sort((x, y) => (y.ini || 0) - (x.ini || 0));
-    if (!alle.length) { sprache.sage('Keine Karten auf dem Spieltisch.'); return; }
+    if (!alle.length) { sprache.sage('Keine Karten auf dem Kampfspieltisch.'); return; }
     initPos = (initPos + 1) % alle.length;
     const k = alle[initPos];
     fokusKarte(k);

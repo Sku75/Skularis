@@ -4,7 +4,7 @@
  * Über allen Meisterabenteuern liegt eine große Sammlung: das mitgelieferte
  * Bestiarium (nach Ilaris übersetzt, in Kategorien) plus die eigene, global
  * gespeicherte Bibliothek des Meisters. Aufbau des Bildschirms:
- *   - Meine Auswahl: die Gegner dieses Abenteuers (a.nsc), auf den Spieltisch legbar.
+ *   - Meine Auswahl: die Gegner dieses Abenteuers (a.nsc), auf den Kampfspieltisch legbar.
  *   - Gesamtliste: alle Gegner, filterbar. Enter übernimmt in die Auswahl.
  *   - je Kategorie eine Liste. Enter übernimmt in die Auswahl.
  *   - Eigene Gegner: die selbst erstellten, mit Editor.
@@ -117,7 +117,7 @@ export function gegnerBibliothekScreen() {
       for (const g of (_userBib && _userBib.gegner) || []) alle.push({ ...g, kategorie: g.kategorie || 'Eigene Gegner' });
 
       const items = [];
-      items.push({ label: `Meine Auswahl, ${a.nsc.length}`, hint: 'die Gegner dieses Abenteuers, auf den Spieltisch legbar', onSelect: () => screen.push(gegnerkarteiScreen('gegner')) });
+      items.push({ label: `Meine Auswahl, ${a.nsc.length}`, hint: 'die Gegner dieses Abenteuers, auf den Kampfspieltisch legbar', onSelect: () => screen.push(gegnerkarteiScreen('gegner')) });
       items.push({ label: 'Gesamtliste', hint: `alle ${alle.length} Gegner, filterbar`, onSelect: () => screen.push(vorlagenListe('Gesamtliste', alle, true)) });
 
       for (const kat of BESTIARIUM) {

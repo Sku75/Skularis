@@ -3,7 +3,7 @@
  *
  * Schlanke Ilaris-Statbloecke: Name, Wundschwelle, Ruestung, Initiative, ein bis
  * zwei Angriffe (Wert und Schaden), Notizen. Angriff und Schaden lassen sich
- * verdeckt auswuerfeln, und ein Statblock laesst sich auf den Spieltisch legen.
+ * verdeckt auswuerfeln, und ein Statblock laesst sich auf den Kampfspieltisch legen.
  * Derselbe Bildschirm dient Gegnern (a.nsc) und freundlichen NPC (a.freundlicheNsc).
  */
 import * as screen from '../ui/screen.js';
@@ -35,11 +35,11 @@ export function gegnerkarteiScreen(art = 'gegner') {
         detail: statblockText(sb),
         onSelect: () => screen.push(statblockScreen(art, i)),
       }));
-      // Ganz oben (nur Gegner): die aktuelle Auswahl als Set fuer den Spieltisch buendeln.
+      // Ganz oben (nur Gegner): die aktuelle Auswahl als Set fuer den Kampfspieltisch buendeln.
       if (art === 'gegner') {
         items.unshift({
           label: 'Set erstellen',
-          hint: 'die aktuelle Gegner-Auswahl als Set fuer den Spieltisch buendeln',
+          hint: 'die aktuelle Gegner-Auswahl als Set fuer den Kampfspieltisch buendeln',
           onSelect: () => setAusGegnern(a.nsc || []),
         });
       }
@@ -65,7 +65,7 @@ export function gegnerkarteiScreen(art = 'gegner') {
         filter: arr.length >= 10,
       }).build();
     },
-    onShow() { sprache.sage(`${wort}. Anlegen, bearbeiten, auf den Spieltisch legen. Angriff und Schaden lassen sich verdeckt wuerfeln.`); },
+    onShow() { sprache.sage(`${wort}. Anlegen, bearbeiten, auf den Kampfspieltisch legen. Angriff und Schaden lassen sich verdeckt wuerfeln.`); },
   };
 }
 
@@ -164,14 +164,14 @@ export function statblockScreen(art, index) {
       });
 
       items.push({
-        label: 'Auf den Spieltisch legen',
+        label: 'Auf den Kampfspieltisch legen',
         hint: 'Als Kampfkarte auf den Tisch',
         onSelect: async () => {
           a.tisch.karten.push(baueStatblockKarte(a, sb, art));
-          protokolliere(a, `${sb.name} auf den Spieltisch gelegt.`);
+          protokolliere(a, `${sb.name} auf den Kampfspieltisch gelegt.`);
           await speichere();
           sounds.playOeffnen();
-          sprache.sage(`${sb.name} liegt jetzt auf dem Spieltisch.`);
+          sprache.sage(`${sb.name} liegt jetzt auf dem Kampfspieltisch.`);
           // Nur Gegner: jedes Mal anbieten, den (evtl. gerade bearbeiteten) Stand
           // als Vorlage zu sichern, damit die Karte nicht mit dem Abenteuer
           // verloren geht. Gleicher Name aktualisiert die vorhandene Vorlage.

@@ -4,6 +4,21 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.12, 18. August 2026
+
+
+Spieltisch heisst jetzt Kampfspieltisch
+
+- Der Meister-Spieltisch (Gegner oben, Wuerfelebene Mitte, Helden unten) heisst
+  ueberall in den Menues und Ansagen jetzt "Kampfspieltisch" — das trennt ihn klar
+  vom Spielertisch und vom Charakter-Spieltisch.
+- Es ist und bleibt EIN Tisch: Karten und ganze Sets wirft man auf denselben
+  Kampfspieltisch; die Sets sind nur vorbereitete Buendel, es gibt keinen zweiten
+  "Set-Tisch".
+- Aufgeraeumt: ein ungenutzter, doppelter Spieltisch-Baustein im Code wurde entfernt
+  (war nicht erreichbar, sorgte nur fuer Verwirrung).
+
+
 Version 1.11, 18. August 2026
 
 

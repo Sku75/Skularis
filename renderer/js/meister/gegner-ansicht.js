@@ -8,7 +8,7 @@
  *   2. Kategorienübersicht (alle Kategorien mit Anzahl, "Sonstige", Kategorie erstellen)
  *   3. Filterzeile (durchsucht alle Gegner nach Namen)
  *   4. Alle Gegner (flache, gefilterte Liste)
- * Enter auf einem Gegner legt ihn als Kampfkarte auf den Spieltisch.
+ * Enter auf einem Gegner legt ihn als Kampfkarte auf den Kampfspieltisch.
  */
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
@@ -65,13 +65,13 @@ function gegnerDetail(g) {
   ].filter(Boolean).join(' ');
 }
 
-/** Einen Gegner als Kampfkarte auf den Spieltisch legen. */
+/** Einen Gegner als Kampfkarte auf den Kampfspieltisch legen. */
 function aufTisch(g) {
   const a = getMeister();
   a.tisch.karten.push(baueStatblockKarte(a, g, 'gegner'));
   speichere();
   sounds.playOeffnen();
-  sprache.sage(`${g.name} auf den Spieltisch, ${a.tisch.karten.length} Karten.`);
+  sprache.sage(`${g.name} auf den Kampfspieltisch, ${a.tisch.karten.length} Karten.`);
 }
 
 /** Neuen eigenen Gegner anlegen: Name, Kategorie wählen, dann in den Editor. */
@@ -131,7 +131,7 @@ function kategorienScreen() {
       });
       return menuScreen({
         title: 'Kategorienübersicht',
-        subtitle: 'Kategorie öffnen, Enter legt einen Gegner auf den Spieltisch. Unten Kategorie erstellen. Escape zurück.',
+        subtitle: 'Kategorie öffnen, Enter legt einen Gegner auf den Kampfspieltisch. Unten Kategorie erstellen. Escape zurück.',
         items, leer: 'Noch keine Kategorien.',
       }).build();
     },
@@ -147,13 +147,13 @@ function kategorieGegnerScreen(katKey, katLabel) {
       const liste = alleGegner(a).filter(g => (g.kategorie || '') === katKey);
       const items = liste.map(g => ({
         label: g.name || '(ohne Name)',
-        hint: `Wundschwelle ${g.ws}, Rüstung ${g.rs}. Enter legt auf den Spieltisch`,
+        hint: `Wundschwelle ${g.ws}, Rüstung ${g.rs}. Enter legt auf den Kampfspieltisch`,
         detail: gegnerDetail(g),
         onSelect: () => aufTisch(g),
       }));
       return menuScreen({
         title: katLabel,
-        subtitle: 'Enter legt den Gegner auf den Spieltisch. Escape zurück.',
+        subtitle: 'Enter legt den Gegner auf den Kampfspieltisch. Escape zurück.',
         items, leer: 'Keine Gegner in dieser Kategorie.', filter: liste.length >= 10,
       }).build();
     },
@@ -198,7 +198,7 @@ export function gegnerBestueckenScreen() {
 
       // 4. Alle Gegner (flach)
       for (const g of treffer) {
-        wrap.appendChild(aktionZeile(g.name || '(ohne Name)', () => aufTisch(g), `Wundschwelle ${g.ws}, Rüstung ${g.rs}. Enter legt auf den Spieltisch`, gegnerDetail(g)));
+        wrap.appendChild(aktionZeile(g.name || '(ohne Name)', () => aufTisch(g), `Wundschwelle ${g.ws}, Rüstung ${g.rs}. Enter legt auf den Kampfspieltisch`, gegnerDetail(g)));
       }
 
       if (!alle.length) wrap.appendChild(infoZeile('Noch keine Gegner. Oben einen erstellen.', ''));
@@ -212,7 +212,7 @@ export function gegnerBestueckenScreen() {
         scr.__bibGeladen = true;
         ladeUserBib().then(() => screen.refresh()).catch(() => {});
       }
-      sprache.sage('Gegner. Oben Erstellen, Generieren, eigene bearbeiten, Kategorienübersicht, Filter, dann alle Gegner. Enter legt einen Gegner auf den Spieltisch.');
+      sprache.sage('Gegner. Oben Erstellen, Generieren, eigene bearbeiten, Kategorienübersicht, Filter, dann alle Gegner. Enter legt einen Gegner auf den Kampfspieltisch.');
     },
   };
   return scr;
