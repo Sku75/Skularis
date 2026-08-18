@@ -38,12 +38,6 @@ export function wertZeile(o) {
 
   const text = document.createElement('span');
   text.className = 'ed-zeile__text';
-  // Nur optisch: der Zeilentext steht sichtbar hier, der Name für den
-  // Screenreader kommt aber allein aus dem aria-label der ganzen Zeile. Ohne
-  // dieses aria-hidden trägt das Span-Kind denselben Namen wie die Zeile — eine
-  // benannte Zeile MIT benanntem Kind-Element wird von NVDA zur „Abschnitt"-Gruppe
-  // und der Name doppelt vorgelesen (einmal die Zeile, einmal „... Abschnitt").
-  text.setAttribute('aria-hidden', 'true');
 
   const btnPlus = document.createElement('button');
   btnPlus.type = 'button';
@@ -63,7 +57,9 @@ export function wertZeile(o) {
     text.textContent = t;
     row.setAttribute('data-sr-label', t);
     row.dataset.srValue = t;
-    row.setAttribute('aria-label', t);
+    // KEIN aria-label auf der Zeile: NVDA liest sonst den Namen (aria-label) UND
+    // den sichtbaren Inhalt = doppelt. Der Name kommt aus dem sichtbaren Text
+    // (die Plus/Minus-Knöpfe sind aria-hidden und zählen nicht mit).
     // Knöpfe optisch sperren, wenn der Rand erreicht ist.
     btnMinus.disabled = v <= o.min;
     btnPlus.disabled = v >= o.max;
@@ -136,7 +132,9 @@ export function infoZeile(text, detail) {
   row.textContent = text;
   row.setAttribute('data-sr-label', text);
   row.dataset.srValue = text;
-  row.setAttribute('aria-label', text);
+  // Bewusst KEIN aria-label: der sichtbare Text ist zugleich der Name für NVDA.
+  // Ein zusätzlicher aria-label-Name würde als eigener „Abschnitt" ein zweites Mal
+  // vorgelesen (siehe sprache.benenneFuerFokus).
   if (detail !== undefined) row.__detail = detail;
   return row;
 }

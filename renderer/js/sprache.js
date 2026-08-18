@@ -187,6 +187,11 @@ export function getZeilenText(element) {
   }
   const row = element.closest('.db-row');
   if (!row) return beschreibe(element);
+  // Trägt die Zeile selbst einen sauberen Vorlese-Text (data-sr-label), diesen
+  // nehmen — er ist frei von rein optischer Deko wie den Plus/Minus-Knöpfen, die
+  // im rohen textContent stünden.
+  const eigen = row.getAttribute('data-sr-label') || row.getAttribute('data-sr-value');
+  if (eigen && eigen.trim()) return eigen.trim();
   const parts = [];
   row.querySelectorAll('[data-sr-label], [data-sr-value]').forEach(el => {
     // Buttons ueberspringen — werden eigenstaendig angesagt
@@ -208,17 +213,27 @@ export function sageZeile(element) {
 }
 
 /**
- * NVDA liest ein fokussiertes Element selbst vor. Damit das genau einmal und
- * vollständig geschieht (ohne zusätzliche aria-live-Ansage), bekommt eine
- * zusammengesetzte Zeile — mehrere Zellen, aber kein Schalter oder Eingabefeld —
- * ihren kombinierten Text als Namen. Schalter, Eingabefelder und Auswahllisten
- * tragen ihren Namen bereits selbst und bleiben unangetastet. Keine Ansage.
+ * NVDA liest ein fokussiertes Element selbst vor. Fokussierbare Text- und
+ * Wertzeilen (div) bekommen dabei bewusst KEINEN eigenen Objektnamen per
+ * aria-label: ein gesetzter Name macht die Zeile fuer NVDA zu einem benannten
+ * "Abschnitt" und wird ZUSAETZLICH zum sichtbaren Zeileninhalt vorgelesen — man
+ * hoert den Text also doppelt ("Inhalt" und "Inhalt, Abschnitt"). Ohne aria-label
+ * liest NVDA nur den sichtbaren Inhalt der Zeile, also genau einmal. Rein optische
+ * Teile (Plus/Minus-Knoepfe) sind per aria-hidden ohnehin aus dem Namen genommen.
+ * Schalter, Eingabefelder und Auswahllisten tragen ihren Namen selbst und bleiben
+ * unangetastet.
  */
 export function benenneFuerFokus(element) {
   if (!element) return;
   const tag = element.tagName;
   if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA'
       || element.getAttribute('role') === 'button') return;
-  const text = getZeilenText(element);
-  if (text) element.setAttribute('aria-label', text);
+  // Trägt die Zeile einen aria-label-Namen, der GENAU dem sichtbaren Inhalt
+  // entspricht, dann wird beides vorgelesen = doppelt. In dem Fall den Namen
+  // entfernen; der sichtbare Inhalt allein wird einmal vorgelesen. Ein bewusst
+  // abweichender Name (z. B. ein sauberer Titel bei technischem Inhalt) bleibt.
+  const label = element.getAttribute('aria-label');
+  if (!label) return;
+  const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
+  if (norm(label) === norm(element.textContent)) element.removeAttribute('aria-label');
 }

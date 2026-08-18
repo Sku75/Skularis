@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.08, 18. August 2026
+
+
+Doppelte Sprachausgabe wirklich behoben (Namens- und Textzeilen)
+
+- Fokussierbare Text- und Wertzeilen (Namenszeile einer Karte, Wundenzeile,
+  Summenzeilen, Info-Zeilen) trugen ihren Text sowohl als sichtbaren Inhalt als
+  auch als Objektnamen (aria-label). NVDA las dadurch beides — den Inhalt und
+  zusätzlich den Namen als eigenen „Abschnitt". Jetzt trägt jede solche Zeile den
+  Text nur noch als Inhalt; NVDA liest ihn genau einmal. Ein bewusst abweichender
+  sauberer Name (z. B. Audio-Titel) bleibt erhalten.
+
+
 Version 1.07, 18. August 2026
 
 
