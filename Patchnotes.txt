@@ -4,6 +4,21 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.14, 18. August 2026
+
+
+Einzel-Lesen an weitere Stellen mitgenommen
+
+- Kampfspieltisch: auch nach dem Verbinden oder Entfernen einer Karte wird die Karte
+  jetzt nur noch einmal gelesen (zwei weitere Fokus-Wege liefen vorher noch am
+  sauberen Weg vorbei).
+- Text-Leser (Meistertexte lesen): Fliesstext wird jetzt Zeile fuer Zeile genau
+  EINMAL als reiner Text vorgelesen — ohne "Schalter" und ohne Doppel. Umgesetzt
+  ueber einen sauberen Namen je Zeile bei unsichtbarem Text-Kind, gleichwertig fuer
+  NVDA und JAWS. Interaktive Zeilen (Karten, Werte, Menues) bleiben wie gewohnt
+  als Schalter (einmal gelesen).
+
+
 Version 1.13, 18. August 2026
 
 

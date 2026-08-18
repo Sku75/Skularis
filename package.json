@@ -1,6 +1,6 @@
 {
   "name": "skularis",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Skularis — barrierefreie Ilaris-Charaktererstellung (Sephrasto-kompatibel)",
   "main": "main/main.js",
   "scripts": {

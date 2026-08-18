@@ -215,15 +215,15 @@ function tischBoardScreen() {
 
   function fokusNach() {
     setTimeout(() => {
-      if (zustand.reihe === 'wuerfel') { const el = scr._wrap && scr._wrap.querySelector(`#wuerfel-${zustand.spalte}`); if (el) el.focus(); return; }
+      if (zustand.reihe === 'wuerfel') { const el = scr._wrap && scr._wrap.querySelector(`#wuerfel-${zustand.spalte}`); if (el) { sprache.benenneFuerFokus(el); el.focus(); } return; }
       const k = aktuelleKarte(); if (!k) return;
-      const el = scr._wrap && scr._wrap.querySelector(`#karte-${zustand.reihe}-${k.kid}`); if (el) el.focus();
+      const el = scr._wrap && scr._wrap.querySelector(`#karte-${zustand.reihe}-${k.kid}`); if (el) { sprache.benenneFuerFokus(el); el.focus(); }
     }, 0);
   }
   function fokusKarte(k) {
     zustand.reihe = istGegner(k) ? 'gegner' : 'freund';
     const arr = reiheKarten(); const i = arr.indexOf(k); if (i >= 0) zustand.spalte = i;
-    const el = scr._wrap && scr._wrap.querySelector(`#karte-${zustand.reihe}-${k.kid}`); if (el) el.focus();
+    const el = scr._wrap && scr._wrap.querySelector(`#karte-${zustand.reihe}-${k.kid}`); if (el) { sprache.benenneFuerFokus(el); el.focus(); }
   }
 
   function aktiviere() {

@@ -164,7 +164,14 @@ function dokumentScreen(d, initialPos) {
           row.tabIndex = 0;
           const istMarke = m.lesezeichen === i;
           const label = (istMarke ? 'Lesezeichen. ' : '') + zeile;
-          row.textContent = (istMarke ? '▶ ' : '') + zeile;
+          // "Nur Text": der Name der Zeile steht im aria-label, der sichtbare Text
+          // steckt in einem aria-hidden-Kind. So gibt es KEIN zweites Text-Objekt
+          // (kein Doppel) und KEINE Rolle (kein "Schalter") — NVDA und JAWS lesen
+          // die Zeile genau einmal als reinen Text.
+          const sicht = document.createElement('span');
+          sicht.setAttribute('aria-hidden', 'true');
+          sicht.textContent = (istMarke ? '▶ ' : '') + zeile;
+          row.appendChild(sicht);
           row.setAttribute('data-sr-label', label);
           row.setAttribute('aria-label', label);
           row.addEventListener('focusin', () => {
