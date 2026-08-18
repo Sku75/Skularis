@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.13, 18. August 2026
+
+
+"Schalter"-Wort haengt sich nicht mehr an
+
+- Beim wiederholten Anspringen derselben Zeile (z. B. Pfeil links auf der ganz
+  linken Karte) hat sich das Rollenwort "Schalter" immer wieder VOR den Inhalt
+  gehaengt ("Schalter, Schalter, ... Inhalt"). Ursache: der Name wurde aus einer
+  Beschreibung gelesen, die bei Schaltern das Wort voranstellt, und dann wieder als
+  Name gespeichert. Jetzt kommt der Name nur noch aus dem reinen Zeilentext — er
+  bleibt bei jedem Fokus gleich, ganz ohne vorangestelltes "Schalter".
+
+
 Version 1.12, 18. August 2026
 
 

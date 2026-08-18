@@ -231,23 +231,32 @@ export function sageZeile(element) {
 export function benenneFuerFokus(element) {
   if (!element) return;
   const tag = element.tagName;
-  if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA'
-      ) return;
-  // Trägt die Zeile einen aria-label-Namen, der GENAU dem sichtbaren Inhalt
-  // entspricht, dann wird beides vorgelesen = doppelt. In dem Fall den Namen
-  // entfernen; der sichtbare Inhalt allein wird einmal vorgelesen. Ein bewusst
-  // abweichender Name (z. B. ein sauberer Titel bei technischem Inhalt) bleibt.
+  // Echte Widgets tragen ihren Namen selbst und werden nie doppelt gelesen.
+  if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
   // Im Textbetrachter (Lesemodus) bleiben die Zeilen normaler Text.
   if (element.closest && element.closest('[data-lesemodus="1"]')) return;
-  // Sonst die fokussierbare Zeile als Schalter (Blatt-Element) auszeichnen: ein
-  // generischer div-Container hat einen Namen UND ein gleichlautendes StaticText-
-  // Kind, NVDA liest beides (Inhalt + Inhalt als "Abschnitt"). Ein Schalter — wie
-  // jeder Menuepunkt — wird genau EINMAL vorgelesen. Ein bewusst gesetzter
-  // aria-label-Name (z. B. ein sauberer Audio-Titel) bleibt der Name.
-  // Wie ein Menuepunkt: EXPLIZITER Name plus Schalter-Rolle. Nur mit aria-label
-  // liest NVDA den Namen genau EINMAL und steigt nicht zusaetzlich in den Text-
-  // Inhalt ab (das war die zweite Ansage "Inhalt, Inhalt Schalter").
-  const zeilenText = getZeilenText(element);
-  if (zeilenText) element.setAttribute('aria-label', zeilenText);
+  // Die fokussierbare Zeile wie einen Menuepunkt aufbauen: EXPLIZITER Name plus
+  // Schalter-Rolle. Nur mit aria-label liest NVDA den Namen genau EINMAL und steigt
+  // nicht zusaetzlich in den Text-Inhalt ab.
+  //
+  // WICHTIG: den Namen aus dem SAUBEREN Text bestimmen (data-sr-label, sonst ein
+  // bewusst gesetzter aria-label, sonst der sichtbare Textinhalt) — NIEMALS ueber
+  // getZeilenText/beschreibe, denn sobald die Zeile role="button" hat, stellt
+  // beschreibe das Wort "Schalter" voran; das wuerde sich bei jedem erneuten Fokus
+  // erneut davorhaengen ("Schalter, Schalter, ... Inhalt").
+  const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
+  const row = (element.closest && element.closest('.db-row')) || element;
+  let text = norm(row.getAttribute('data-sr-label')) || norm(row.getAttribute('data-sr-value'));
+  if (!text) {
+    // Zusammengesetzte Zeile: eigene data-sr-Zellen aneinanderhaengen (ohne Schalter).
+    const parts = [];
+    row.querySelectorAll('[data-sr-label], [data-sr-value]').forEach(el => {
+      if (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button') return;
+      const t = norm(el.getAttribute('data-sr-label') || el.getAttribute('data-sr-value'));
+      if (t) parts.push(t);
+    });
+    text = parts.length ? parts.join(', ') : (norm(element.getAttribute('aria-label')) || norm(row.textContent));
+  }
+  if (text) element.setAttribute('aria-label', text);
   element.setAttribute('role', 'button');
 }
