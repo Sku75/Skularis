@@ -79,6 +79,7 @@ let _wechsel = false;
 let _letzterText = '';
 let _letzteZeit = -100000;
 const DUBLETTE_MS = 150;
+const _pendingRaf = {};
 function ansagen(elId, text) {
   const el = document.getElementById(elId);
   if (!el) return;
@@ -93,7 +94,11 @@ function ansagen(elId, text) {
   _wechsel = !_wechsel;
   const marker = _wechsel ? ' ' : '';
   el.textContent = '';
-  requestAnimationFrame(() => { el.textContent = text + marker; });
+  // Mehrere Ansagen im SELBEN Frame (Bildschirm-Titel + onShow-Ansage +
+  // Aktions-Rueckmeldung nach screen.refresh) zu EINER zusammenfassen: die letzte
+  // gewinnt. So liest NVDA beim Oeffnen/Auffrischen nicht Titel UND Ansage getrennt.
+  if (_pendingRaf[elId]) cancelAnimationFrame(_pendingRaf[elId]);
+  _pendingRaf[elId] = requestAnimationFrame(() => { _pendingRaf[elId] = 0; el.textContent = text + marker; });
 }
 
 /**
@@ -232,8 +237,12 @@ export function benenneFuerFokus(element) {
   // entspricht, dann wird beides vorgelesen = doppelt. In dem Fall den Namen
   // entfernen; der sichtbare Inhalt allein wird einmal vorgelesen. Ein bewusst
   // abweichender Name (z. B. ein sauberer Titel bei technischem Inhalt) bleibt.
-  const label = element.getAttribute('aria-label');
-  if (!label) return;
-  const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
-  if (norm(label) === norm(element.textContent)) element.removeAttribute('aria-label');
+  // Im Textbetrachter (Lesemodus) bleiben die Zeilen normaler Text.
+  if (element.closest && element.closest('[data-lesemodus="1"]')) return;
+  // Sonst die fokussierbare Zeile als Schalter (Blatt-Element) auszeichnen: ein
+  // generischer div-Container hat einen Namen UND ein gleichlautendes StaticText-
+  // Kind, NVDA liest beides (Inhalt + Inhalt als "Abschnitt"). Ein Schalter — wie
+  // jeder Menuepunkt — wird genau EINMAL vorgelesen. Ein bewusst gesetzter
+  // aria-label-Name (z. B. ein sauberer Audio-Titel) bleibt der Name.
+  element.setAttribute('role', 'button');
 }

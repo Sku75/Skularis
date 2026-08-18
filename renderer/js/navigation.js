@@ -93,7 +93,8 @@ export function fokussiereErstes(container, silent = false) {
 
 export function fokussiereLetztes(container) {
   const alle = (container || _aktivesPanel)?.querySelectorAll(FOCUSABLE);
-  if (alle && alle.length > 0) _fokussiere(alle[alle.length - 1]);
+  if (alle && alle.length > 0) { _fokussiere(alle[alle.length - 1]); return alle[alle.length - 1]; }
+  return null;
 }
 
 function _getAlleFokussierbar() {
@@ -255,7 +256,8 @@ function _onKeyDown(e) {
   // Kopfzeile weiter bedienbar ist.
   if (!_aktivesPanel.contains(document.activeElement)) {
     if (document.querySelector('dialog[open]')) return;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End'
+        || e.key === 'PageDown' || e.key === 'PageUp') {
       e.preventDefault();
       zurueckInsPanel();
     }
@@ -335,14 +337,14 @@ function _onKeyDown(e) {
     case 'Home': {
       if (e.ctrlKey || !_istInEingabefeld(document.activeElement)) {
         e.preventDefault();
-        fokussiereErstes();
+        if (fokussiereErstes()) _navTon(false);
       }
       break;
     }
     case 'End': {
       if (e.ctrlKey || !_istInEingabefeld(document.activeElement)) {
         e.preventDefault();
-        fokussiereLetztes();
+        if (fokussiereLetztes()) _navTon(false);
       }
       break;
     }

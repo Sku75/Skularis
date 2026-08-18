@@ -4,6 +4,31 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.09, 18. August 2026
+
+
+Doppelte Sprachausgabe an der Wurzel behoben (mit echtem Test)
+
+- Ursache per echtem Accessibility-Baum gefunden: eine fokussierbare Textzeile
+  (div) ist ein generischer Container MIT Namen UND einem gleichlautenden
+  Text-Kind. NVDA liest dann beides — den Inhalt und den Inhalt noch einmal als
+  "Abschnitt". Menuepunkte (Schalter) haben das nie, weil ein Schalter ein
+  Blatt-Element ist und genau einmal vorgelesen wird.
+- Jetzt werden alle fokussierbaren Zeilen wie ein Schalter behandelt und genau
+  EINMAL vorgelesen — auf dem Spieltisch (Kartennamen, Wunden), am Meistertisch,
+  im Editor und in allen Menues mit Info-/Wertzeilen. Der Textbetrachter
+  (Regeln lesen) bleibt normaler Fliesstext.
+- Beim Oeffnen oder Auffrischen eines Bildschirms werden Titel und die eigene
+  Ansage des Bildschirms nicht mehr getrennt vorgelesen (das klang wie doppelt),
+  sondern zu einer klaren Ansage zusammengefasst.
+
+Navigationstasten
+
+- Bild auf/ab, Pos1 und Ende holen den Fokus zuverlaessig in den Bildschirm
+  zurueck, falls er einmal daneben steht; Pos1 und Ende geben jetzt einen
+  Navigationston.
+
+
 Version 1.08, 18. August 2026
 
 
