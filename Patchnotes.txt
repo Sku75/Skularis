@@ -4,6 +4,24 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.10, 18. August 2026
+
+
+Doppelte Sprachausgabe endgueltig weg
+
+- Die fokussierbaren Zeilen sind jetzt EXAKT wie ein Menuepunkt aufgebaut:
+  ausdruecklicher Name plus Schalter-Rolle. NVDA liest den Text so genau EINMAL und
+  steigt nicht zusaetzlich in den Inhalt ab (das war die zweite Ansage "Inhalt,
+  Inhalt Schalter"). Betrifft Spieltisch-Karten, Wunden, Meistertisch, Editor und
+  alle Info-/Wertzeilen.
+
+Pos1, Ende und Bild auf/ab in Dialogen
+
+- In den Auswahl-Dialogen (z. B. "Kategorie waehlen" beim Gegner erstellen, Ja/Nein-
+  Abfragen, Listenauswahl) springen jetzt Pos1/Bild-auf zum ersten und Ende/Bild-ab
+  zum letzten Eintrag. Vorher taten diese Tasten dort nichts.
+
+
 Version 1.09, 18. August 2026
 
 

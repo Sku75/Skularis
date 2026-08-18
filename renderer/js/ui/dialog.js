@@ -238,6 +238,8 @@ export function jaNeinDialog({ titel, frage, jaLabel = 'Ja', neinLabel = 'Nein' 
       if (e.key === 'Escape') { e.preventDefault(); fertig(false); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); fokus(idx + 1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); fokus(idx - 1); }
+      else if (e.key === 'Home' || e.key === 'PageUp') { e.preventDefault(); fokus(0); }
+      else if (e.key === 'End' || e.key === 'PageDown') { e.preventDefault(); fokus(ring.length - 1); }
       else if (e.key === 'Enter') {
         e.preventDefault();
         // Enter bestätigt den fokussierten Knopf; auf dem Fragetext gilt Ja als Vorgabe.
@@ -290,6 +292,8 @@ export function knopfDialog({ titel, frage, knoepfe }) {
       if (e.key === 'Escape') { e.preventDefault(); fertig(null); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); fokus(idx + 1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); fokus(idx - 1); }
+      else if (e.key === 'Home' || e.key === 'PageUp') { e.preventDefault(); fokus(0); }
+      else if (e.key === 'End' || e.key === 'PageDown') { e.preventDefault(); fokus(ring.length - 1); }
       else if (e.key === 'Enter') {
         e.preventDefault();
         const b = document.activeElement;
@@ -342,6 +346,8 @@ export function codeAnzeigeDialog({ titel = 'Code', code = '', hinweis = '' }) {
       if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); fertig(); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); fokus(idx + 1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); fokus(idx - 1); }
+      else if (e.key === 'Home' || e.key === 'PageUp') { e.preventDefault(); fokus(0); }
+      else if (e.key === 'End' || e.key === 'PageDown') { e.preventDefault(); fokus(ring.length - 1); }
     });
     dlg.showModal();
     codeEl.focus();
@@ -422,6 +428,12 @@ export function auswahlDialog({ titel, eintraege }) {
         if (aufItem && aktiv > 0) fokusItem(aktiv - 1);
         else if (aufItem) { filter.focus(); }
         else sounds.playError();
+      } else if (e.key === 'Home' || e.key === 'PageUp') {
+        e.preventDefault();
+        if (items().length) fokusItem(0); else sounds.playError();
+      } else if (e.key === 'End' || e.key === 'PageDown') {
+        e.preventDefault();
+        if (items().length) fokusItem(items().length - 1); else sounds.playError();
       } else if (e.key === 'Enter') {
         e.preventDefault();
         const idx = Array.from(items()).indexOf(document.activeElement);

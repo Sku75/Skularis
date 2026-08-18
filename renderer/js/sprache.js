@@ -232,7 +232,7 @@ export function benenneFuerFokus(element) {
   if (!element) return;
   const tag = element.tagName;
   if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA'
-      || element.getAttribute('role') === 'button') return;
+      ) return;
   // Trägt die Zeile einen aria-label-Namen, der GENAU dem sichtbaren Inhalt
   // entspricht, dann wird beides vorgelesen = doppelt. In dem Fall den Namen
   // entfernen; der sichtbare Inhalt allein wird einmal vorgelesen. Ein bewusst
@@ -244,5 +244,10 @@ export function benenneFuerFokus(element) {
   // Kind, NVDA liest beides (Inhalt + Inhalt als "Abschnitt"). Ein Schalter — wie
   // jeder Menuepunkt — wird genau EINMAL vorgelesen. Ein bewusst gesetzter
   // aria-label-Name (z. B. ein sauberer Audio-Titel) bleibt der Name.
+  // Wie ein Menuepunkt: EXPLIZITER Name plus Schalter-Rolle. Nur mit aria-label
+  // liest NVDA den Namen genau EINMAL und steigt nicht zusaetzlich in den Text-
+  // Inhalt ab (das war die zweite Ansage "Inhalt, Inhalt Schalter").
+  const zeilenText = getZeilenText(element);
+  if (zeilenText) element.setAttribute('aria-label', zeilenText);
   element.setAttribute('role', 'button');
 }
