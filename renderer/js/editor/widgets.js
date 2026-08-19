@@ -132,6 +132,10 @@ export function infoZeile(text, detail) {
   row.textContent = text;
   row.setAttribute('data-sr-label', text);
   row.dataset.srValue = text;
+  // Nur-Anzeige: hier kann man nichts auslösen, also soll der Screenreader auch
+  // KEIN Rollenwort ("Schalter") anhängen. sprache.benenneFuerFokus unterdrückt
+  // es bei data-nur-lesen per aria-roledescription.
+  row.dataset.nurLesen = '1';
   // Bewusst KEIN aria-label: der sichtbare Text ist zugleich der Name für NVDA.
   // Ein zusätzlicher aria-label-Name würde als eigener „Abschnitt" ein zweites Mal
   // vorgelesen (siehe sprache.benenneFuerFokus).

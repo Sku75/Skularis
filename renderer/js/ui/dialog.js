@@ -23,6 +23,16 @@ function baueDialog(ariaLabel) {
   return dlg;
 }
 
+/**
+ * Die sichtbare Kopfzeile (db-dialog__header) fuer den Screenreader verstecken.
+ * Der Dialogname kommt schon aus dem aria-label des Dialogs — laese NVDA die
+ * Kopfzeile zusaetzlich als Inhalt, waere die Ueberschrift doppelt zu hoeren.
+ */
+function versteckeKopf(dlg) {
+  const h = dlg.querySelector('.db-dialog__header');
+  if (h) h.setAttribute('aria-hidden', 'true');
+}
+
 /** Ansage über die dialog-interne Live-Region. */
 function melde(dlg, text) {
   const el = dlg.querySelector('.dlg-live');
@@ -47,6 +57,7 @@ export function zahlDialog({ titel, label, wert = 0, min = -100000, max = 100000
         <button class="db-btn" id="dlg-ab">Abbrechen</button>
       </div>`);
     document.body.appendChild(dlg);
+    versteckeKopf(dlg);
     const input = dlg.querySelector('#dlg-zahl');
     const fertig = (val) => { dlg.close(); dlg.remove(); resolve(val); };
     const ok = () => {
@@ -62,7 +73,7 @@ export function zahlDialog({ titel, label, wert = 0, min = -100000, max = 100000
     });
     dlg.showModal();
     input.focus(); input.select();
-    melde(dlg, `${titel}. ${label}. Zahl eingeben, Eingabetaste bestätigt.`);
+    melde(dlg, `${label}. Zahl eingeben, Eingabetaste bestätigt.`);
   });
 }
 
@@ -87,6 +98,7 @@ export function erschwernisDialog({ titel = 'Erschwernis', wert = 0 }) {
         <button class="db-btn" id="dlg-ab">Abbrechen</button>
       </div>`);
     document.body.appendChild(dlg);
+    versteckeKopf(dlg);
     let v = wert | 0;
     const anzeige = dlg.querySelector('#dlg-ersch');
     const text = () => (v > 0 ? `${v} erschwert, minus ${v}` : (v < 0 ? `${-v} erleichtert, plus ${-v}` : 'keine, null'));
@@ -103,7 +115,7 @@ export function erschwernisDialog({ titel = 'Erschwernis', wert = 0 }) {
     dlg.showModal();
     anzeige.focus();
     zeige();
-    melde(dlg, `${titel} einstellen. Pfeil hoch erschwert, Pfeil runter erleichtert. Aktuell ${text()}. Eingabetaste bestätigt, Escape bricht ab.`);
+    melde(dlg, 'Pfeil hoch erschwert, Pfeil runter erleichtert. Eingabetaste bestätigt, Escape bricht ab.');
   });
 }
 
@@ -128,6 +140,7 @@ export function spinnerDialog({ titel, optionen, index = 0, format }) {
         <button class="db-btn" id="dlg-ab">Abbrechen</button>
       </div>`);
     document.body.appendChild(dlg);
+    versteckeKopf(dlg);
     let i = Math.max(0, Math.min(optionen.length - 1, index | 0));
     const anzeige = dlg.querySelector('#dlg-spin');
     const text = () => fmt(optionen[i]);
@@ -144,7 +157,7 @@ export function spinnerDialog({ titel, optionen, index = 0, format }) {
     dlg.showModal();
     anzeige.focus();
     zeige();
-    melde(dlg, `${titel}. Pfeil runter und hoch waehlt. Aktuell ${text()}. Eingabetaste bestätigt, Escape bricht ab.`);
+    melde(dlg, 'Pfeil runter und hoch wählt. Eingabetaste bestätigt, Escape bricht ab.');
   });
 }
 
@@ -172,6 +185,7 @@ export function textDialog({ titel, label, wert = '', mehrzeilig = false }) {
         <button class="db-btn" id="dlg-ab">Abbrechen</button>
       </div>`);
     document.body.appendChild(dlg);
+    versteckeKopf(dlg);
     const input = dlg.querySelector('#dlg-text');
     input.value = String(wert); // sicher setzen (kein HTML-Escaping noetig)
     const fertig = (val) => { dlg.close(); dlg.remove(); resolve(val); };
@@ -199,8 +213,8 @@ export function textDialog({ titel, label, wert = '', mehrzeilig = false }) {
     if (mehrzeilig) { const n = input.value.length; try { input.setSelectionRange(n, n); } catch { /* egal */ } }
     else input.select();
     melde(dlg, mehrzeilig
-      ? `${titel}. ${label}. Mehrere Zeilen moeglich. Eingabetaste speichert, Steuerung und Eingabetaste macht einen Zeilenumbruch.`
-      : `${titel}. ${label}.`);
+      ? `${label}. Mehrere Zeilen moeglich. Eingabetaste speichert, Steuerung und Eingabetaste macht einen Zeilenumbruch.`
+      : `${label}.`);
   });
 }
 
@@ -224,6 +238,7 @@ export function jaNeinDialog({ titel, frage, jaLabel = 'Ja', neinLabel = 'Nein' 
         <button class="db-btn" id="dlg-nein">${neinLabel}</button>
       </div>`);
     document.body.appendChild(dlg);
+    versteckeKopf(dlg);
     const fertig = (val) => { dlg.close(); dlg.remove(); resolve(val); };
     const frageEl = dlg.querySelector('#dlg-frage');
     const ja = dlg.querySelector('#dlg-ja');
@@ -280,6 +295,7 @@ export function knopfDialog({ titel, frage, knoepfe }) {
         ${knopfHtml}
       </div>`);
     document.body.appendChild(dlg);
+    versteckeKopf(dlg);
     const fertig = (val) => { dlg.close(); dlg.remove(); resolve(val); };
     const knopfEls = Array.from(dlg.querySelectorAll('.db-dialog__wahl'));
     knopfEls.forEach((b) => b.addEventListener('click', () => fertig(knoepfe[+b.dataset.i].wert)));
@@ -303,9 +319,10 @@ export function knopfDialog({ titel, frage, knoepfe }) {
     });
     dlg.showModal();
     fokus(idx);
-    // Kurze Ansage: nur Titel/Frage — den fokussierten Knopf liest der
-    // Screenreader selbst; die Bedienung (Pfeile, Eingabetaste, Escape) ist Standard.
-    melde(dlg, `${titel}${frage ? '. ' + frage : ''}.`);
+    // KEINE Titel-Ansage: der Dialogname kommt einmal aus dem aria-label des
+    // Dialogs, den fokussierten Knopf liest der Screenreader selbst. So hoert
+    // man sofort, welche Option gewaehlt ist — die Ueberschrift verdeckt nichts.
+    if (frage) melde(dlg, `${frage}.`);
   });
 }
 
@@ -332,6 +349,7 @@ export function codeAnzeigeDialog({ titel = 'Code', code = '', hinweis = '' }) {
         <button class="db-btn db-btn--primary" id="dlg-ok">OK</button>
       </div>`);
     document.body.appendChild(dlg);
+    versteckeKopf(dlg);
     const codeEl = dlg.querySelector('#dlg-code');
     codeEl.textContent = String(code);           // sicher setzen
     codeEl.setAttribute('aria-label', `Code ${ziffernGesprochen}`);
@@ -351,7 +369,7 @@ export function codeAnzeigeDialog({ titel = 'Code', code = '', hinweis = '' }) {
     });
     dlg.showModal();
     codeEl.focus();
-    melde(dlg, `${titel}. Code ${ziffernGesprochen}.${hinweis ? ' ' + hinweis : ''} Pfeiltasten lesen die Zeilen, Eingabetaste schließt.`);
+    melde(dlg, `Code ${ziffernGesprochen}.${hinweis ? ' ' + hinweis : ''} Pfeiltasten lesen die Zeilen, Eingabetaste schließt.`);
   });
 }
 
@@ -378,6 +396,7 @@ export function auswahlDialog({ titel, eintraege }) {
         <button class="db-btn" id="dlg-ab">Abbrechen</button>
       </div>`);
     document.body.appendChild(dlg);
+    versteckeKopf(dlg);
 
     const filter = dlg.querySelector('#dlg-filter');
     const liste = dlg.querySelector('#dlg-liste');
@@ -446,6 +465,6 @@ export function auswahlDialog({ titel, eintraege }) {
     zeichne();
     dlg.showModal();
     filter.focus();
-    melde(dlg, `${titel}. ${eintraege.length} Einträge. Tippen filtert, Pfeil runter geht in die Liste, Eingabetaste wählt.`);
+    melde(dlg, `${eintraege.length} Einträge. Tippen filtert, Pfeil runter geht in die Liste, Eingabetaste wählt.`);
   });
 }

@@ -56,14 +56,31 @@ function mittel3(w) {
 const _letztesKurz = {};
 export function letztesKurz(id) { return _letztesKurz[id] || ''; }
 
-export function zeigeErgebnis(id, kurz, ansage) {
+// Gesprochener Ergebnis-Anhang je Schalter-Id (z. B. "Letztes Probenergebnis 14").
+// Er wird HINTER die eigentliche Schalter-Beschriftung gehängt — die Beschriftung
+// selbst bleibt immer zuerst hörbar ("Attacke oder Parade würfeln, Schalter,
+// letztes Probenergebnis 14"), nie umgekehrt.
+const _letzterAnhang = {};
+export function letzterAnhang(id) { return _letzterAnhang[id] || ''; }
+
+export function zeigeErgebnis(id, kurz, anhang) {
   if (!id) return;
   _letztesKurz[id] = kurz;
+  if (anhang) _letzterAnhang[id] = anhang;
   const feld = document.querySelector(`[data-ergebnis="${id}"]`);
   if (feld) feld.textContent = kurz;
   const schalter = document.querySelector(`[data-ergebnis-ziel="${id}"]`);
   if (schalter) {
-    schalter.setAttribute('aria-label', ansage);
+    // Basis-Beschriftung einmalig merken (ohne früheren Ergebnis-Anhang), dann
+    // den Anhang HINTEN anfügen. So liest der Screenreader zuerst, was der
+    // Schalter tut, und danach das letzte Ergebnis — nicht andersherum.
+    if (!schalter.dataset.basisLabel) {
+      const lab = schalter.querySelector('.db-menu__label');
+      schalter.dataset.basisLabel = ((lab && lab.textContent) || schalter.getAttribute('aria-label') || '').trim();
+    }
+    const basis = schalter.dataset.basisLabel;
+    const anh = _letzterAnhang[id];
+    schalter.setAttribute('aria-label', anh ? `${basis}. ${anh}` : basis);
     // Tooltip-Zwischenspeicher verwerfen, damit mitLetztemWurf beim naechsten
     // Fokus/Abruf den frischen Wurf zeigt (sonst bleibt der alte Text stehen —
     // das war der Grund, warum das Zauber-Ergebnis nicht im Tooltip erschien).
@@ -94,7 +111,7 @@ export function wuerfeln(anzahl, seiten, mod, id, stumm) {
   const ansage = `${vd()}Gewürfelt, ${bez}, Ergebnis: ${wuerfe.join(', ')}${summeText}.`;
   // Auch einfache Wuerfe (Schnellwuerfe, freier Wurf) fuers Tooltip merken.
   if (id) _letzterWurf[id] = ['Letzter Wurf:', `${bez}: ${wuerfe.join(', ')}${summeText}`];
-  zeigeErgebnis(id, mod ? `${wuerfe.join(' ')} = ${summe}` : wuerfe.join(' '), ansage);
+  zeigeErgebnis(id, mod ? `${wuerfe.join(' ')} = ${summe}` : wuerfe.join(' '), `Letzter Wurf ${wuerfe.join(', ')}${summeText}`);
   if (!stumm) { sprache.sage(ansage); protokolliereWurf(`Wurf ${bez}`, `${wuerfe.join(', ')}${summeText}`, ansage); }
 }
 
@@ -126,12 +143,15 @@ async function erschwernisAbfrage(id) {
   return e;
 }
 
-async function wuerfelWahl(titel) {
+// Kurzer Titel OHNE Vorspann: der Screenreader sagt beim Öffnen nur "Würfel
+// wählen" und dann sofort den fokussierten Knopf — die lange Herkunft (Waffe,
+// Set) hat der Spieler gerade selbst gewählt und braucht sie nicht erneut.
+async function wuerfelWahl() {
   return knopfDialog({
-    titel: titel ? `${titel}, Würfel wählen` : 'Würfel wählen',
+    titel: 'Würfel wählen',
     knoepfe: [
-      { label: '1 Würfel, Konflikt im Kampf', wert: 1 },
-      { label: '3 Würfel, entspannte Probe', wert: 3 },
+      { label: 'Mit 1 Würfel würfeln, Konflikt', wert: 1 },
+      { label: 'Mit 3 Würfeln würfeln, entspannte Probe', wert: 3 },
     ],
   });
 }
@@ -206,7 +226,7 @@ export function modifikatorenWahl(modListe, titel) {
  * @param {Array}  [o.modListe]  Modifikatoren-Liste (nur Zauber)
  */
 export async function kampfProbe(o) {
-  const anzahl = await wuerfelWahl(o.titel);
+  const anzahl = await wuerfelWahl();
   if (anzahl === null) return;
 
   // Fester Modifikator (z. B. Manöver-Aufschlag) plus optional gewählte
@@ -259,7 +279,7 @@ export async function kampfProbe(o) {
 
   protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${erschText}, Ergebnis ${ew}.${erfolgText}${modNamenText}`);
   speichere();
-  zeigeErgebnis(o.id, `Ergebnis ${ew}`, ansage);
+  zeigeErgebnis(o.id, `Ergebnis ${ew}`, `Letztes Probenergebnis ${ew}${typeof o.schwierigkeit === 'number' ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : ''}`);
   // Fokus liegt nach dem Schließen der Dialoge schon wieder auf dem Schalter
   // (das ergibt keinen Fokuswechsel und damit keine Vorlesung), deshalb die
   // Ansage zuverlässig per aria-live. Der Schalter trägt das Ergebnis danach.
@@ -290,7 +310,7 @@ export function schadenWurf(o) {
   _letzterWurf[o.id] = [`Schaden Ergebnis ${summe}`, `${o.name}`, `${wuerfelText}${bText}`].filter(Boolean);
   protokolliere(a, `Schaden ${o.name}: ${wuerfelText}${bText}, gesamt ${summe}.`);
   speichere();
-  zeigeErgebnis(o.id, `Schaden ${summe}`, ansage);
+  zeigeErgebnis(o.id, `Schaden ${summe}`, `Letzter Schaden ${summe}`);
   sprache.sage(ansage);
   protokolliereWurf(`Schaden ${o.name}`, `Schaden ${summe}`, ansage);
 }

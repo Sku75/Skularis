@@ -6,14 +6,14 @@
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
 import { menuScreen } from '../ui/menu-screen.js';
-import { wertZeile, infoZeile, abschnittTitel, aktionZeile, verbindeDetail } from '../editor/widgets.js';
+import { wertZeile, infoZeile, abschnittTitel, verbindeDetail } from '../editor/widgets.js';
 import { zahlDialog, knopfDialog } from '../ui/dialog.js';
 import { abgeleiteteWerte, waffenwerte, waffenwerteText, fertigkeitProbenwert, wundabzug, ruestungsSetTeile } from '../core/regeln.js';
 import { getDb } from '../core/db-laden.js';
 import { leseInventar, istFernkampf, SLOTS, SET_WAFFENLOS, ergaenzeSets } from '../core/ausruestung.js';
 import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
-import { wuerfeln, kampfProbe, schadenWurf, mitLetztemWurf, letztesKurz } from './wuerfel-kern.js';
+import { wuerfeln, kampfProbe, schadenWurf, mitLetztemWurf, letztesKurz, letzterAnhang } from './wuerfel-kern.js';
 import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, GRUNDREGEL_AKTIONEN, attributsprobenScreen, profanScreen } from './kampf-menues.js';
 import { zauberspeicherVorhanden, zauberspeicherScreen } from './zauberspeicher.js';
 import { sendeStatusWennVerbunden } from './status-sync.js';
@@ -27,10 +27,14 @@ const ATTR_NAME = {
   KO: 'Konstitution', MU: 'Mut', GE: 'Gewandtheit', KK: 'Körperkraft',
   IN: 'Intuition', KL: 'Klugheit', CH: 'Charisma', FF: 'Fingerfertigkeit',
 };
-const EINSCHR_REGEL = 'Wunden und Erschöpfung zählen zusammen als Einschränkungen. '
+// Ilaris wörtlich: "Die Summe aus Wunden und Erschöpfung nennen wir
+// Einschränkungen" — jede Wunde UND jeder Punkt Erschöpfung zählt einzeln.
+// Ab vier Einschränkungen droht nach jeder weiteren die Kampfunfähigkeit
+// (Zähigkeits-Probe), die neunte bedeutet den Tod.
+const EINSCHR_REGEL = 'Jede Wunde und jeder Punkt Erschöpfung zählt als eine Einschränkung (Ilaris: die Summe aus Wunden und Erschöpfung). '
   + 'Ab der dritten Einschränkung sind alle Proben um zwei erschwert, je weitere um zwei mehr: '
   + 'drei gleich minus zwei, vier gleich minus vier, fünf gleich minus sechs. '
-  + 'Ab fünf Einschränkungen droht nach jeder weiteren die Kampfunfähigkeit. Sehr hohe Werte führen zum Tod.';
+  + 'Ab vier Einschränkungen droht nach jeder weiteren die Kampfunfähigkeit, die neunte Einschränkung bedeutet den Tod.';
 
 /** Schnellwürfe: die schnellen Würfe ohne Werte, gebündelt in einem Untermenü. */
 function schnellwuerfeScreen() {
@@ -152,10 +156,12 @@ export function kampfwerteScreen() {
         };
       };
 
-      // Bei mehreren Waffen im Set vor dem Wurf fragen, welche Waffe (sonst die eine).
+      // Bei mehreren Waffen im Set vor dem Wurf fragen, welche Waffe (sonst die
+      // eine direkt). Der Fokus steht auf der obersten Waffe; der Dialogname
+      // nennt einmal kurz das Waffenset.
       const waehleWaffe = async (info) => {
         if (!info.waffen || info.waffen.length <= 1) return info.primaer;
-        const wl = await knopfDialog({ titel: 'Welche Waffe?', knoepfe: info.waffen.map(x => ({ label: `${x.slot}: ${x.waffe.name}`, wert: x.waffe.name })) });
+        const wl = await knopfDialog({ titel: `Waffe wählen, Waffenset ${info.set.name}`, knoepfe: info.waffen.map(x => ({ label: `${x.slot}: ${x.waffe.name}`, wert: x.waffe.name })) });
         if (wl === null) return null;
         const t = info.waffen.find(x => x.waffe.name === wl);
         return t ? t.waffe : info.primaer;
@@ -164,7 +170,12 @@ export function kampfwerteScreen() {
       // Einen der beiden Würfel-Schalter (Attacke/Parade oder Schaden) neu befüllen.
       const befuelle = (btn, o) => {
         btn.innerHTML = '';
-        btn.setAttribute('aria-label', o.label);
+        // Beschriftung zuerst, dahinter (falls vorhanden) das letzte Ergebnis
+        // dieses Sets — nie umgekehrt. basisLabel mitführen, damit zeigeErgebnis
+        // nach dem Würfeln genauso anhängt statt zu ersetzen.
+        btn.dataset.basisLabel = o.label;
+        const anh = letzterAnhang(o.id);
+        btn.setAttribute('aria-label', anh ? `${o.label}. ${anh}` : o.label);
         btn.dataset.ergebnisZiel = o.id;
         btn.__detail = o.detail;
         delete btn.__detailText;
@@ -400,31 +411,43 @@ export function charakterstatusScreen() {
         wsDetail += `, Rüstungsschutz ${w.RS}`;
       }
       wsDetail += `, modifizierte Wundschwelle ${w.WS}. Schaden über der Wundschwelle verursacht eine Wunde, über dem Doppelten zwei, über dem Dreifachen drei, und so weiter.`;
-      wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, wsDetail));
 
-      // Rüstungsset wechseln: gibt es im Bogen angelegte Rüstungssets, kann man sie
-      // hier durchwählen. Jeder Wechsel berechnet Wundschwelle, Geschwindigkeit,
-      // Durchhaltevermögen, Rüstungsschutz und Behinderung neu.
+      // Rüstungsset wechseln — GANZ OBEN, VOR den Werten: mit Pfeil links/rechts
+      // wie der Waffenset-Wähler unter Kämpfen. Jeder Wechsel berechnet die
+      // danach aufgeführten Werte (Wundschwelle, Geschwindigkeit, Durchhalte-
+      // vermögen, Rüstungsschutz, Behinderung) neu.
       const OHNE_RUEST = 'Ohne Rüstung';
       const ruestSets = leseInventar(char).ruestungsSets || [];
       if (ruestSets.length) {
         const namen = [...ruestSets.map(s => s.name), OHNE_RUEST];
-        const aktName = char.aktivRuestungsset === '__ohne'
+        const aktName = () => (char.aktivRuestungsset === '__ohne'
           ? OHNE_RUEST
-          : (char.aktivRuestungsset && namen.includes(char.aktivRuestungsset) ? char.aktivRuestungsset : namen[0]);
-        const zeile = aktionZeile(`Rüstungsset: ${aktName}`, () => {
-          const i = namen.indexOf(aktName);
-          const naechste = namen[(i + 1) % namen.length];
-          char.aktivRuestungsset = (naechste === OHNE_RUEST) ? '__ohne' : naechste;
-          speichere();
-          sendeStatusWennVerbunden(); // Meister bekommt die neuen Werte (F2-Live)
-          screen.refresh('[data-ruest-set]'); // Werte neu bauen, Fokus bleibt auf dieser Zeile
-          const w2 = abgeleiteteWerte(char);
-          sprache.sage(`Rüstungsset ${naechste}. Wundschwelle ${w2.WS}, Rüstungsschutz ${w2.RS}, Behinderung ${w2.BE}, Geschwindigkeit ${w2.GS}.`);
-        }, 'Enter wechselt zum nächsten Rüstungsset. Wundschwelle, Geschwindigkeit, Durchhaltevermögen, Rüstungsschutz und Behinderung werden neu berechnet.');
+          : (char.aktivRuestungsset && namen.includes(char.aktivRuestungsset) ? char.aktivRuestungsset : namen[0]));
+        const zeile = wertZeile({
+          label: 'Rüstungsset',
+          get: () => namen.indexOf(aktName()) + 1,
+          set: (v) => {
+            const n = namen[Math.max(0, Math.min(namen.length - 1, v - 1))];
+            char.aktivRuestungsset = (n === OHNE_RUEST) ? '__ohne' : n;
+          },
+          min: 1,
+          max: namen.length,
+          suffix: () => aktName(),
+          detail: 'Wähle das getragene Rüstungsset mit Pfeil links und rechts. Wundschwelle, Geschwindigkeit, Durchhaltevermögen, Rüstungsschutz und Behinderung werden neu berechnet.',
+          onChange: () => {
+            speichere();
+            sendeStatusWennVerbunden(); // Meister bekommt die neuen Werte (F2-Live)
+            screen.refresh('[data-ruest-set]'); // Werte darunter neu bauen, Fokus bleibt auf dieser Zeile
+            const w2 = abgeleiteteWerte(char);
+            return `${aktName()}. Wundschwelle ${w2.WS}, Rüstungsschutz ${w2.RS}, Behinderung ${w2.BE}, Geschwindigkeit ${w2.GS}`;
+          },
+        });
         zeile.setAttribute('data-ruest-set', '1');
         wrap.appendChild(zeile);
       }
+
+      // Wundschwelle UNTER dem Rüstungsset-Wähler: sie hängt vom getragenen Set ab.
+      wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, wsDetail));
 
       wrap.appendChild(infoZeile(`Magieresistenz: ${w.MR}`, '4 plus Mut durch 4.'));
       wrap.appendChild(infoZeile(`Geschwindigkeit: ${w.GS}`, '4 plus Gewandtheit durch 4, minus Behinderung.'));
@@ -441,10 +464,14 @@ export function charakterstatusScreen() {
       }
       wrap.appendChild(infoZeile(`Rüstungsschutz: ${w.RS}, Behinderung: ${w.BE}`, rsBeDetail));
 
-      // Ausgerüstete Waffen, nur lesbar
+      // Ausgerüstete Waffen, nur lesbar. Die Überschrift "Waffenliste" ist eine
+      // fokussierbare Zeile, damit auch Screenreader-Nutzer hören, dass hier die
+      // Waffen beginnen (abschnittTitel wäre nur visuell).
       const waffen = (char.waffen || []).filter(x => x.name);
       if (waffen.length) {
-        wrap.appendChild(abschnittTitel('Ausgerüstete Waffen'));
+        const kopf = infoZeile('Waffenliste', 'Ab hier folgen deine Waffen mit Attacke und Verteidigung.');
+        kopf.classList.add('ed-abschnitt'); // wie eine Abschnitts-Überschrift gestaltet
+        wrap.appendChild(kopf);
         const db = getDb();
         for (const wa of waffen) {
           const k = db ? waffenwerte(char, db, wa) : null;

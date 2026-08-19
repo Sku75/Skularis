@@ -4,6 +4,44 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.16, 19. August 2026
+
+
+Abenteuertisch: Würfeln nach Spielertest verbessert
+
+- Würfel-Fenster ohne doppelte Überschrift: Beim Attacke-, Parade-, Manöver- und
+  Zauberwürfeln sagen die Fenster nicht mehr zuerst eine lange Überschrift. Man hört
+  sofort die fokussierte Option, zum Beispiel "Mit 1 Würfel würfeln, Konflikt";
+  Pfeil runter wechselt auf "Mit 3 Würfeln würfeln, entspannte Probe".
+- Waffenwahl im Set: Hat das Waffenset mehrere Waffen, kommt nach Enter die Auswahl
+  "Waffe wählen, Waffenset ..." mit dem Fokus auf der obersten Waffe. Bei nur einer
+  Waffe geht es direkt weiter.
+- Würfelergebnis hinten statt vorn: Nach einem Wurf liest der Schalter zuerst wieder
+  seine eigentliche Beschriftung ("Attacke oder Parade würfeln", "Schaden würfeln",
+  Manöver, Zauber und so weiter) und erst danach "Letztes Probenergebnis ..." oder
+  "Letzter Schaden ...". Das Ergebnis verdeckt den Schalter nicht mehr — überall auf
+  dem Abenteuertisch, auch beim Waffenset-Wechsel.
+- Reine Anzeige-Zeilen ohne "Schalter": Zeilen, auf denen man nichts auslösen kann
+  (zum Beispiel Initiative, Wundschwelle, Magieresistenz), sagen kein Rollenwort mehr
+  an — nur noch den Inhalt. Wo man etwas tun kann, bleibt "Schalter" erhalten.
+
+Charakterstatus F2 umgebaut
+
+- Rüstungsset wechselt jetzt mit Pfeil links und rechts (wie das Waffenset unter
+  Kämpfen), nicht mehr mit Enter.
+- Die Wundschwelle steht jetzt UNTER dem Rüstungsset-Wähler, denn sie hängt vom
+  getragenen Set ab. Alle Werte darunter werden beim Wechsel neu berechnet.
+- Über den Waffen ganz unten steht jetzt die hörbare Überschrift "Waffenliste".
+
+Regelprüfung Einschränkungen
+
+- Im Original-Ilaris nachgeschlagen: "Die Summe aus Wunden und Erschöpfung nennen
+  wir Einschränkungen." Jede Wunde UND jeder Punkt Erschöpfung zählt also einzeln
+  als eine Einschränkung — Skularis rechnet hier richtig. Der Erklärtext wurde
+  präzisiert: ab der dritten Einschränkung je minus zwei auf alle Proben, ab vier
+  droht nach jeder weiteren die Kampfunfähigkeit, die neunte bedeutet den Tod.
+
+
 Version 1.15, 18. August 2026
 
 

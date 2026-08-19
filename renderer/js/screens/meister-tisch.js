@@ -279,6 +279,6 @@ async function verdeckterMeisterWurf() {
   const ansage = `Verdeckt. Ergebnis ${summe}. ${anzahl} W ${seiten}, ${wuerfe.join(', ')}${erschText}.`;
   protokolliere(a, `Verdeckter Meister-Wurf: ${anzahl} W ${seiten} ${wuerfe.join(', ')}${erschText}, Ergebnis ${summe}.`);
   speichere();
-  zeigeErgebnis('meisterwurf', `Ergebnis ${summe}`, ansage);
+  zeigeErgebnis('meisterwurf', `Ergebnis ${summe}`, `Letztes Ergebnis ${summe}`);
   sprache.sage(ansage);
 }

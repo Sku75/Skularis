@@ -259,4 +259,14 @@ export function benenneFuerFokus(element) {
   }
   if (text) element.setAttribute('aria-label', text);
   element.setAttribute('role', 'button');
+  // Reine Anzeige-Zeilen (data-nur-lesen, z. B. infoZeile): die Widget-Rolle
+  // bleibt (sonst sagt NVDA "Absatz"/"Abschnitt"), aber das Rollenwort
+  // "Schalter" wird per leerer Rollenbeschreibung unterdrückt — man kann dort
+  // ja nichts auslösen. Gleiches Muster wie im Meistertexte-Leser (NVDA+JAWS).
+  if ((element.dataset && element.dataset.nurLesen)
+    || (element.closest && element.closest('[data-nur-lesen="1"]'))) {
+    element.setAttribute('aria-roledescription', ' ');
+  } else {
+    element.removeAttribute('aria-roledescription');
+  }
 }
