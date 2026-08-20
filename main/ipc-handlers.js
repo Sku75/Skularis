@@ -54,6 +54,10 @@ ipcMain.handle('skularis:config-schreiben', (_event, data) => {
 // Hauptprozess, damit keine CSP/CORS-Grenzen des Renderers greifen.
 ipcMain.handle('skularis:box-hochladen', (_event, data) => boxTransfer.uploadBogen(data.code, data.inhalt));
 ipcMain.handle('skularis:box-abholen', (_event, data) => boxTransfer.downloadBogen(data.code));
+// Abruf-Post (seit 1.20): Nachrichten unter Tisch-Code plus Empfaenger ablegen
+// und aktiv abholen (Strg B). Gleiches accountloses ntfy-Muster wie die Box.
+ipcMain.handle('skularis:post-senden', (_event, data) => boxTransfer.postSenden(data.code, data.empfaenger, data.daten));
+ipcMain.handle('skularis:post-abrufen', (_event, data) => boxTransfer.postAbrufen(data.code, data.empfaenger));
 
 // Diagnose-Mitschnitt (still): haengt eine Zeile mit Zeitstempel an
 // <basis>/skularis-diagnose.log. Nur zum Aufspueren des Post-Ton-Problems bei

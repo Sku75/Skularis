@@ -155,6 +155,20 @@ export function menuScreen(opts) {
         label.textContent = it.label;
         b.appendChild(label);
 
+        // Tastenkuerzel des Menuepunkts (it.taste, z. B. 'Strg K'): sichtbar
+        // rechtsbuendig in voller Schrift (aria-hidden), angesagt HINTEN im
+        // aria-label ("Kämpfen, Strg K"). Die Kombination kommt zur Bauzeit aus
+        // der Kuerzel-Registry — nach einer Umbelegung zeigt jedes Menue also
+        // automatisch die neue Taste, nirgends steht ein fester Tastenname.
+        const tasteText = typeof it.taste === 'function' ? it.taste() : (it.taste || '');
+        if (tasteText) {
+          const taste = document.createElement('span');
+          taste.className = 'db-menu__taste';
+          taste.setAttribute('aria-hidden', 'true');
+          taste.textContent = tasteText;
+          b.appendChild(taste);
+        }
+
         if (it.hint) {
           const hint = document.createElement('span');
           hint.className = 'db-menu__hint';
@@ -164,9 +178,8 @@ export function menuScreen(opts) {
           hint.setAttribute('aria-hidden', 'true');
           b.appendChild(hint);
         }
-        // Kurze Fokus-Ansage: nur das Label, damit die Sprachausgabe nicht bei
-        // jeder Zeile den ganzen Hinweis mitplappert. Details kommen auf Abruf.
-        b.setAttribute('aria-label', it.label);
+        // Kurze Fokus-Ansage: Label, dahinter (falls vorhanden) die Taste.
+        b.setAttribute('aria-label', tasteText ? `${it.label}, ${tasteText}` : it.label);
 
         b.__detail = (it.detail !== undefined) ? it.detail : (it.hint || '');
         b.__item = it; // fuer Sondertasten wie Strg und Eingabetaste

@@ -1,14 +1,11 @@
 /**
- * Skularistool — Meistertisch F4: Charaktere (Spielerstatus).
+ * Skularistool — Meistertisch F4: Charaktere.
  *
- * Zwei Punkte: "Charakteransicht meine Initiativephase" und "Charakterbögen".
- * Die Charakteransicht zeigt je Gruppen-Charakter eine Überschrift mit Status
- * (verbunden / offline / nicht übertragen), darunter die variablen F2-Werte des
- * Spielers (Wunden, Erschöpfung, Schicksals-/Astral-/Karma-/Gunstpunkte,
- * Astralspeicher des Magierstabs und der Zauberspeicher), dann die abgeleiteten
- * Werte ab Wundschwelle, und darunter die Initiative-Phase ab "Kämpfen" abwärts
- * (verdeckte Meister-Würfe). Verbundene Spieler liefern die Werte live; offline
- * werden die zuletzt übertragenen Werte gezeigt.
+ * Drei Punkte: Charakteransicht (Initiative-Phase je Held, verdeckt würfeln),
+ * Charakterbögen und Würfelprotokoll. Die frühere F2-Live-Übertragung der
+ * Spielerwerte (Wunden, Energien) wurde in 1.20 entfernt — der Meister führt
+ * seine eigenen Zähler im Meister-Datensatz und liest die Bogenwerte; die
+ * Verbunden-Markierung kommt weiter aus der Spielerliste des Datenkanals.
  */
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
@@ -101,27 +98,6 @@ export function charakterboegenScreen() {
   };
 }
 
-/** Eine F2-Wertzeile aus dem Live-Status (oder null, wenn nicht vorhanden). */
-function statusZeile(werte, key, wort) {
-  const v = werte[key];
-  if (!v || typeof v.aktuell !== 'number') return null;
-  const max = (v.max !== undefined && v.max !== null) ? ` von ${v.max}` : '';
-  return infoZeile(`${wort}: ${v.aktuell}${max}`, `${wort} des Spielers, live übertragen. Nur Anzeige.`);
-}
-
-/** Kompakte, vorlesbare Zusammenfassung des Live-Stands (für "Aktualisieren"). */
-function statusZusammenfassung(name, werte) {
-  if (!werte || !Object.keys(werte).length) return `${name}: noch nichts übertragen.`;
-  const teile = [];
-  const paar = (k, wort) => { const v = werte[k]; if (v && typeof v.aktuell === 'number') teile.push(`${wort} ${v.aktuell}${(v.max != null ? ` von ${v.max}` : '')}`); };
-  paar('Wunden', 'Wunden'); paar('Erschoepfung', 'Erschöpfung');
-  paar('AsP', 'Astralpunkte'); paar('KaP', 'Karmapunkte'); paar('GuP', 'Gunstpunkte');
-  paar('SchiP', 'Schicksalspunkte'); paar('AstralspeicherStab', 'Astralspeicher Stab');
-  const zs = Array.isArray(werte.zauberspeicher) ? werte.zauberspeicher.filter(Boolean) : [];
-  if (zs.length) teile.push(`Zauberspeicher ${zs.map(s => s.name).join(', ')}`);
-  return `${name}: ${teile.length ? teile.join(', ') : 'keine Zähler übertragen'}.`;
-}
-
 /** Transienten Ansicht-Kontext setzen (Bogen als Charakter, verdeckt, keine Persistenz). */
 function setzeAnsicht(c) {
   setAbenteuer({
@@ -133,47 +109,18 @@ function setzeAnsicht(c) {
   setVerdeckt(true);
 }
 
-/** Charakteransicht: Status-Überschrift, F2-Werte, abgeleitete Werte, dann ab Kämpfen. */
+/** Charakteransicht: Initiative-Phase des Helden ab Kämpfen (verdeckt würfeln). */
 function charLiveScreen(c) {
   const self = {
     title: '',
     build() {
-      // Zuordnung bevorzugt über die stabile Charakter-ID (auch nach Umbenennung),
-      // sonst über den Namen wie bisher.
-      const werte = (c.bogen && post.getStatusById(c.bogen.id)) || post.getStatus(c.name);
       const online = post.verbundeneSpieler().includes(c.name);
-      const status = online ? 'verbunden' : (werte ? 'offline' : 'nicht übertragen');
-      this.title = `${c.name} — ${status}`;
+      this.title = online ? `${c.name} — verbunden` : c.name;
       setzeAnsicht(c);
 
       const wrap = document.createElement('div');
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel(this.title));
-
-      // Aktualisieren GANZ OBEN: holt den aktuellen Live-Stand und liest ihn vor.
-      // Bewusst manuell (kein Auto-Neuaufbau), damit der Fokus nicht wegspringt.
-      wrap.appendChild(aktionZeile('Aktualisieren', () => {
-        const frisch = post.getStatus(c.name) || {};
-        sprache.sage('Aktualisiert. ' + statusZusammenfassung(c.name, frisch));
-        screen.refresh();
-      }, 'holt den aktuellen Stand des Spielers (Wunden, Energien, Zauberspeicher) und liest ihn vor'));
-
-      wrap.appendChild(abschnittTitel('Werte'));
-      if (werte) {
-        if (typeof werte.einschraenkungen === 'number') wrap.appendChild(infoZeile(`Einschränkungen: ${werte.einschraenkungen}`, 'Wunden plus Erschöpfung. Live vom Spieler. Nur Anzeige.'));
-        for (const [k, wort] of [['Wunden', 'Wunden'], ['Erschoepfung', 'Erschöpfung'], ['SchiP', 'Schicksalspunkte'], ['AsP', 'Astralpunkte'], ['KaP', 'Karmapunkte'], ['GuP', 'Gunstpunkte'], ['AstralspeicherStab', 'Astralspeicher Stab']]) {
-          const z = statusZeile(werte, k, wort); if (z) wrap.appendChild(z);
-        }
-        const zs = Array.isArray(werte.zauberspeicher) ? werte.zauberspeicher : [];
-        if (zs.length) {
-          const txt = zs.map((s, i) => s ? `${i + 1}: ${s.name}, Qualität ${s.qualitaet}` : `${i + 1}: leer`).join('; ');
-          wrap.appendChild(infoZeile(`Zauberspeicher: ${txt}`, 'Geladene Zauber im Magierstab, live vom Spieler.'));
-        }
-        const w2 = (k, wort) => { if (typeof werte[k] === 'number') wrap.appendChild(infoZeile(`${wort}: ${werte[k]}`, `${wort}, live vom Spieler. Nur Anzeige.`)); };
-        w2('WS', 'Wundschwelle'); w2('MR', 'Magieresistenz'); w2('GS', 'Geschwindigkeit'); w2('INI', 'Initiative'); w2('SB', 'Schadensbonus'); w2('DH', 'Durchhaltevermögen'); w2('RS', 'Rüstungsschutz'); w2('BE', 'Behinderung');
-      } else {
-        wrap.appendChild(infoZeile('Nicht übertragen. Der Spieler war noch nicht verbunden.', 'Sobald der Spieler über die Meisterpost verbunden ist, erscheinen hier seine Werte.'));
-      }
 
       // Initiative-Phase ab "Kämpfen" abwärts (verdeckt). Kein Würfelbecher, keine Aktionen.
       wrap.appendChild(abschnittTitel('Initiative-Phase (verdeckt)'));
@@ -209,11 +156,10 @@ export function charAnsichtInitiativeScreen() {
       const a = getMeister();
       const gruppe = a.charaktere || [];
       const verbunden = new Set(post.verbundeneSpieler());
-      const hatStatus = new Set(post.statusNamen());
       this.title = `Charakteransicht, ${gruppe.length}`;
       const items = gruppe.map(c => {
-        const zus = verbunden.has(c.name) ? ' (verbunden)' : (hatStatus.has(c.name) ? ' (offline)' : '');
-        return { label: `${c.name}, ${gesamtEP(c.bogen)} EP${zus}`, hint: 'Status und Initiative-Phase dieses Charakters', onSelect: () => screen.push(charLiveScreen(c)) };
+        const zus = verbunden.has(c.name) ? ' (verbunden)' : '';
+        return { label: `${c.name}, ${gesamtEP(c.bogen)} EP${zus}`, hint: 'Initiative-Phase dieses Charakters, verdeckt würfeln', onSelect: () => screen.push(charLiveScreen(c)) };
       });
       return menuScreen({
         title: this.title,

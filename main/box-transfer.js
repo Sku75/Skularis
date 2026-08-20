@@ -83,4 +83,92 @@ async function downloadBogen(code) {
   }
 }
 
-module.exports = { uploadBogen, downloadBogen };
+// --- Abruf-Post (seit 1.20) ----------------------------------------------
+//
+// Die Meisterpost laeuft nicht mehr als Push ueber den PeerJS-Datenkanal,
+// sondern als Ablage auf ntfy: Topic skularis-post-<code>-<empfaenger>
+// (empfaenger = normalisierter Name oder "alle"). Die Nachricht liegt als
+// TEXT im Nachrichtenkoerper (nicht als Anhang): Texte bleiben so etwa 12
+// Stunden abrufbar statt 3 (Anhaenge verfallen frueher). Zugestellt wird NUR,
+// wenn der Empfaenger aktiv abruft (Strg B). Bewusst unverschluesselt
+// (Entscheidung des Nutzers: Inhalte unkritisch, oeffentlicher Ablagedienst).
+
+/** Namen fuer das Topic normalisieren (Umlaute umschreiben, dann nur a-z und 0-9). */
+function normName(s) {
+  return String(s || '').toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^0-9a-z]/g, '');
+}
+
+function postTopic(code, empfaenger) {
+  const c = String(code || '').replace(/[^0-9a-zA-Z]/g, '').toLowerCase();
+  const e = normName(empfaenger);
+  if (!c || !e) return null;
+  return `skularis-post-${c}-${e}`;
+}
+
+/**
+ * Eine Post-Nachricht ablegen. daten = { von, an, text, zeit }.
+ * Rueckgabe { ok, id } (id = ntfy-Nachrichten-Id, fuer das Gesehen-Gedaechtnis
+ * des Absenders) oder { ok:false, fehler }.
+ */
+async function postSenden(code, empfaenger, daten) {
+  const topic = postTopic(code, empfaenger);
+  if (!topic) return { ok: false, fehler: 'Kein gültiger Code oder Empfänger.' };
+  const body = Buffer.from(JSON.stringify(daten || {}), 'utf-8');
+  if (!body.length) return { ok: false, fehler: 'Leere Nachricht.' };
+  try {
+    const kopf = { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': body.length };
+    // Sehr lange Nachrichten (ueber dem ntfy-Textlimit) als Anhang; die kuerzere
+    // Haltbarkeit von Anhaengen ist dann der Preis der Laenge.
+    if (body.length > 3800) kopf.Filename = 'post.json';
+    const r = await anfrage({ host: HOST, path: '/' + topic, method: 'PUT', headers: kopf }, body);
+    if (r.status >= 200 && r.status < 300) {
+      let id = '';
+      try { const m = JSON.parse(r.body.toString('utf-8')); if (m && m.id) id = m.id; } catch { /* egal */ }
+      return { ok: true, id };
+    }
+    return { ok: false, fehler: 'Server-Status ' + r.status };
+  } catch (e) {
+    return { ok: false, fehler: String((e && e.message) || e) };
+  }
+}
+
+/**
+ * Alle abrufbaren Post-Nachrichten eines Empfaenger-Topics holen.
+ * Rueckgabe { ok, nachrichten: [{ id, zeit, daten }] } oder { ok:false, fehler }.
+ */
+async function postAbrufen(code, empfaenger) {
+  const topic = postTopic(code, empfaenger);
+  if (!topic) return { ok: false, fehler: 'Kein gültiger Code oder Empfänger.' };
+  try {
+    const r = await anfrage({ host: HOST, path: '/' + topic + '/json?poll=1&since=all', method: 'GET', headers: {} });
+    if (r.status < 200 || r.status >= 300) return { ok: false, fehler: 'Server-Status ' + r.status };
+    const zeilen = r.body.toString('utf-8').trim().split('\n').filter(Boolean);
+    const nachrichten = [];
+    for (const z of zeilen) {
+      let m;
+      try { m = JSON.parse(z); } catch { continue; }
+      if (!m || m.event !== 'message' || !m.id) continue;
+      let daten = null;
+      if (m.attachment && m.attachment.url) {
+        // Uebergrosse Nachricht als Anhang: nachladen.
+        try {
+          const u = new URL(m.attachment.url);
+          const a = await anfrage({ host: u.host, path: u.pathname + (u.search || ''), method: 'GET', headers: {} });
+          if (a.status >= 200 && a.status < 300) daten = JSON.parse(a.body.toString('utf-8'));
+        } catch { /* defekten Anhang ueberspringen */ }
+      } else if (m.message) {
+        try { daten = JSON.parse(m.message); } catch { /* fremde Nachricht ueberspringen */ }
+      }
+      if (daten && typeof daten === 'object' && daten.text !== undefined) {
+        nachrichten.push({ id: m.id, zeit: (m.time ? m.time * 1000 : Date.now()), daten });
+      }
+    }
+    return { ok: true, nachrichten };
+  } catch (e) {
+    return { ok: false, fehler: String((e && e.message) || e) };
+  }
+}
+
+module.exports = { uploadBogen, downloadBogen, postSenden, postAbrufen };

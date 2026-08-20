@@ -32,6 +32,12 @@ let _audioEl = null;       // Hoerer: Wiedergabe-Element
 let _hoererVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
 let _appMaster = 1; // Anwendungslautstaerke (Numblock +/-): skaliert den Radio-EMPFANG mit, nie den eigenen Sendestrom
 
+// Beim Laden am Master in sounds.js anmelden — app.js muss dieses Modul dafuer
+// nicht mehr vorab importieren (Startlast).
+import * as sounds from '../sounds.js';
+sounds.onAnwendungsLautstaerke((v) => setAnwendungsLautstaerke(v));
+queueMicrotask(() => { try { setAnwendungsLautstaerke(sounds.getAnwendungsLautstaerke()); } catch { /* egal */ } });
+
 // Auto-Reconnect (Hoerer): greift, wenn die Verbindung abbricht und der Spieler
 // NICHT selbst getrennt hat. Zeitplan: 3x alle 5 s, dann 3x alle 10 s, dann Aufgabe.
 let _manuell = false;        // true = bewusst getrennt (kein Reconnect)
@@ -41,6 +47,12 @@ let _reconnectTimer = null;
 let _reconnectVersuch = 0;
 let _amReconnect = false;
 let _verbundenGewesen = false; // Reconnect erst, wenn die Verbindung einmal STAND
+// Der Versuchszaehler wird erst nach einer STABILEN Minute zurueckgesetzt (1.20).
+// Frueher genuegte ein kurzer Ton-Frame — bei flatternder Leitung griff der
+// Sechs-Versuche-Deckel dadurch nie, und es entstand ein endloser Trenn- und
+// Neuverbinde-Kreisel (der Spielabend-Fehler).
+const STABIL_MS = 60000;
+let _stabilTimer = null;
 
 /** Einen kurzen Zahlen-Schluessel erzeugen: vier Ziffern (z. B. "1234"). */
 export function generiereSchluessel() {
@@ -55,16 +67,26 @@ function raumId(schluessel) {
   return `skularis-radio-${rein}`;
 }
 
-/** Eine stille Tonspur, die der Hoerer beim Anruf mitschickt (er sendet nichts). */
+/**
+ * Eine stille Tonspur, die der Hoerer beim Anruf mitschickt (er sendet nichts).
+ * WICHTIG (1.20): EIN wiederverwendeter AudioContext fuer alle Versuche. Frueher
+ * erzeugte jeder Reconnect-Versuch einen neuen Context, der nie geschlossen
+ * wurde — Chrome deckelt die Anzahl, danach schlugen alle neuen Verbindungen
+ * fehl und nur ein Programm-Neustart half. Geschlossen wird er in stopp().
+ */
+let _stilleCtx = null;
+let _stilleStream = null;
 function stilleSpur() {
-  const ac = new (window.AudioContext || window.webkitAudioContext)();
-  const dest = ac.createMediaStreamDestination();
-  const osc = ac.createOscillator();
-  const g = ac.createGain();
+  if (_stilleStream && _stilleCtx && _stilleCtx.state !== 'closed') return _stilleStream;
+  _stilleCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const dest = _stilleCtx.createMediaStreamDestination();
+  const osc = _stilleCtx.createOscillator();
+  const g = _stilleCtx.createGain();
   g.gain.value = 0;
   osc.connect(g); g.connect(dest);
   osc.start();
-  return dest.stream;
+  _stilleStream = dest.stream;
+  return _stilleStream;
 }
 
 function verbindungWatch(call, onWeg) {
@@ -155,8 +177,11 @@ function hoereIntern(erst) {
       hatTon = true;
       const warReconnect = _amReconnect;
       _amReconnect = false;
-      _reconnectVersuch = 0;
       _verbundenGewesen = true;
+      // Zaehler NICHT sofort nullen: erst wenn die Verbindung eine Minute stabil
+      // stand, gilt sie als gesund (sonst Endlos-Kreisel bei flatternder Leitung).
+      if (_stabilTimer) clearTimeout(_stabilTimer);
+      _stabilTimer = setTimeout(() => { _stabilTimer = null; _reconnectVersuch = 0; }, STABIL_MS);
       spieleEmpfang(remote);
       if (warReconnect) _hoerCb.onReconnectErfolg && _hoerCb.onReconnectErfolg();
       else _hoerCb.onVerbunden && _hoerCb.onVerbunden();
@@ -185,6 +210,8 @@ function hoereIntern(erst) {
  */
 function dropBehandeln(fehlerText) {
   if (_manuell) return;
+  // Abbruch beendet die Stabil-Messung (der Zaehler bleibt stehen).
+  if (_stabilTimer) { clearTimeout(_stabilTimer); _stabilTimer = null; }
   if (!_verbundenGewesen) {
     // Erstverbindung fehlgeschlagen: melden, nicht endlos neu versuchen.
     if (fehlerText) _hoerCb.onFehler && _hoerCb.onFehler(fehlerText);
@@ -267,6 +294,7 @@ export function reconnectAbbrechen() {
 export function stopp() {
   _manuell = true;
   if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
+  if (_stabilTimer) { clearTimeout(_stabilTimer); _stabilTimer = null; }
   _amReconnect = false;
   _reconnectVersuch = 0;
   _verbundenGewesen = false;
@@ -274,5 +302,7 @@ export function stopp() {
   _calls.clear();
   if (_audioEl) { try { _audioEl.pause(); _audioEl.srcObject = null; } catch { /* egal */ } _audioEl = null; }
   if (_peer) { try { _peer.destroy(); } catch { /* egal */ } _peer = null; }
+  // Den Stille-Context schliessen (siehe stilleSpur): kein Context-Leck mehr.
+  if (_stilleCtx) { try { _stilleCtx.close(); } catch { /* egal */ } _stilleCtx = null; _stilleStream = null; }
   _rolle = null;
 }

@@ -23,6 +23,7 @@ import * as postkasten from './postkasten.js';
 import * as kurztasten from './kurztasten.js';
 import * as einstellungen from '../daten/einstellungen.js';
 import { getMeister, speichere as speichereMeister } from './state.js';
+import { comboText } from '../shortcuts.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -813,6 +814,11 @@ function verbindungScreen() {
       wrap.appendChild(aktionZeile(senden ? 'Senden beenden' : 'Senden starten',
         () => (senden ? sendenBeenden() : sendenStarten()),
         senden ? 'das Radio ausschalten' : 'ab jetzt hören verbundene Spieler mit'));
+      if (senden) {
+        wrap.appendChild(aktionZeile(`Senden erneuern (${comboText('me_senden_erneuern') || 'Strg R'})`,
+          () => sendenErneuern(),
+          'beendet die Übertragung und startet sie mit dem gleichen Schlüssel neu; die Hörer verbinden sich neu'));
+      }
       verbindeDetail(wrap);
       rueckKnopf(wrap);
       return wrap;
@@ -989,12 +995,33 @@ async function sendenStarten() {
   player.setSendeMono(mono);
   const strom = player.getSendeStrom();
   sitzung.starteMeisterRadio(strom, {
-    onBereit: () => { setzeStatus('Sende. 0 Hörer verbunden.'); sprache.sage(`Radio sendet. Schlüssel ${_schluessel.split('').join(' ')}.`); },
+    onBereit: () => {
+      const warErneuern = !!_erneuernPlan;
+      _erneuernPlan = null;
+      setzeStatus('Sende. 0 Hörer verbunden.');
+      sprache.sage(warErneuern ? 'Radio sendet wieder. Die Hörer verbinden sich neu.' : `Radio sendet. Schlüssel ${_schluessel.split('').join(' ')}.`);
+    },
     // Kein Ton und keine Ansage mehr bei Hörer-Wechsel (spammt). Nur die stille
     // Statuszeile wird aktualisiert; die Hörerzahl steht dort zum Nachlesen.
     onHoererNeu: (n) => { setzeStatus(`Sende. ${n} Hörer verbunden.`); },
     onHoererWeg: (n) => { setzeStatus(`Sende. ${n} Hörer verbunden.`); },
-    onFehler: (t) => { setzeStatus('Radio-Fehler.'); sprache.sage(t); },
+    onFehler: (t) => {
+      // Senden erneuern: der PeerJS-Vermittler kann den alten Schluessel nach
+      // einer Stoerung bis zu etwa 60 Sekunden festhalten. Solange die
+      // Wiederhol-Leiter laeuft, still erneut versuchen.
+      if (_erneuernPlan && /sendet schon/i.test(String(t))) {
+        if (_erneuernPlan.length) {
+          const wartezeit = _erneuernPlan.shift();
+          setTimeout(() => { sendenStarten(); }, wartezeit);
+          return;
+        }
+        _erneuernPlan = null;
+        setzeStatus('Radio aus.');
+        sprache.sage(`Schlüssel noch belegt. Bitte in einer Minute erneut ${comboText('me_senden_erneuern') || 'Strg R'} drücken.`);
+        return;
+      }
+      setzeStatus('Radio-Fehler.'); sprache.sage(t);
+    },
   }, { maxBitrate: bitrate }, postkasten.postCallbacks());
   screen.refresh();
 }
@@ -1004,6 +1031,59 @@ function sendenBeenden() {
   setzeStatus('Radio aus.');
   screen.refresh();
   sprache.sage('Senden beendet.');
+}
+
+// --- Senden erneuern (Strg R am Meistertisch, seit 1.20) ------------------
+//
+// Beendet die Uebertragung und startet sie mit dem GLEICHEN Schluessel neu.
+// Alle Hoerer werden getrennt; ihr Auto-Reconnect (oder ihr eigenes Strg R)
+// bringt sie zurueck. 2-Sekunden-Sperre gegen Spam (nur Anschlagklang).
+let _erneuernSperre = 0;
+let _erneuernPlan = null; // verbleibende Wartezeiten fuer "Schluessel noch belegt"
+
+export async function sendenErneuern() {
+  if (Date.now() - _erneuernSperre < 2000) { sounds.playGrenze(); return; }
+  _erneuernSperre = Date.now();
+  if (!(radio.istAktiv() && radio.rolle() === 'sender')) {
+    sprache.sage('Es wird gerade nicht gesendet. Senden startest du unter Audio, Verbindung.');
+    return;
+  }
+  const code = _schluessel || sitzung.meisterCode();
+  sprache.sage(`Senden wird erneuert. Schlüssel bleibt ${String(code).split('').join(' ')}.`);
+  sitzung.stoppeMeisterRadio();
+  _erneuernPlan = [2000, 4000, 8000];
+  // Kurz warten, damit der Vermittler den alten Peer freigeben kann.
+  setTimeout(() => { sendenStarten(); }, 1500);
+}
+
+// --- Reconnect (Strg R am Abenteuertisch, seit 1.20) ----------------------
+//
+// Trennt die laufende Verbindung (Radio und Post) kurz und baut sie mit dem
+// gemerkten Code und Namen neu auf. 2-Sekunden-Sperre gegen Spam.
+let _reconnectSperre = 0;
+
+export async function radioErneuern() {
+  if (Date.now() - _reconnectSperre < 2000) { sounds.playGrenze(); return; }
+  _reconnectSperre = Date.now();
+  let abenteuerOffen = false;
+  try {
+    const st = await import('../abenteuer/state.js');
+    abenteuerOffen = !!(st.getAbenteuer && st.getAbenteuer());
+  } catch { /* egal */ }
+  if (!abenteuerOffen) { sprache.sage('Nur mit geladenem Abenteuer möglich.'); return; }
+  const code = sitzung.code() || (_config && _config.radio_letzter_schluessel) || '';
+  if (!code) { sprache.sage('Keine Verbindung eingerichtet. Unter Audio den Schlüssel eingeben.'); return; }
+  sprache.sage('Verbindung wird erneuert.');
+  try {
+    const mp = await import('../abenteuer/meisterpost.js');
+    const name = (mp.vorschlagName && mp.vorschlagName()) || 'Spieler';
+    mp.verbindeSitzung(code, name, {
+      onVerbunden: () => { _verbunden = true; try { screen.refresh(); } catch { /* egal */ } sprache.sage('Verbunden. Du hörst jetzt den Tisch.'); },
+      onGetrennt: () => { _verbunden = false; try { screen.refresh(); } catch { /* egal */ } },
+      onFehler: (t) => { if (t) sprache.sage(t); },
+      onAufgegeben: () => { sprache.sage(`Wiederverbinden aufgegeben. ${comboText('ab_reconnect') || 'Strg R'} verbindet neu.`); },
+    });
+  } catch (e) { console.error('radioErneuern:', e); sprache.sage('Erneuern fehlgeschlagen.'); }
 }
 
 // --- Hauptschirm Spieler -------------------------------------------------
@@ -1091,18 +1171,20 @@ async function starteVerbinden(rohKey) {
     onGetrennt: () => { _verbunden = false; try { screen.refresh(); } catch { /* egal */ } },
     onFehler: (t) => { _verbunden = false; try { screen.refresh(); } catch { /* egal */ } sprache.sage(t); },
   };
-  // Ist ein Abenteuer offen (Spielertisch), wird die Post gleich mitverbunden — ein
-  // Code für beides. Ohne Abenteuer (globales F12) nur das Radio zum Zuhören.
+  // Zuhoeren gibt es seit 1.20 NUR mit geladenem Abenteuer (Radio und Post unter
+  // einem Code, gebunden an den Abenteuertisch). Das fruehere Nur-Radio ohne
+  // Abenteuer (globales F12) ist entfernt.
   try {
     const st = await import('../abenteuer/state.js');
     if (st.getAbenteuer && st.getAbenteuer()) {
       const mp = await import('../abenteuer/meisterpost.js');
       const name = (mp.vorschlagName && mp.vorschlagName()) || 'Spieler';
+      radioCb.onAufgegeben = () => { sprache.sage(`Wiederverbinden aufgegeben. ${comboText('ab_reconnect') || 'Strg R'} verbindet neu.`); };
       mp.verbindeSitzung(key, name, radioCb);
       return;
     }
-  } catch { /* fällt unten auf reines Radio zurück */ }
-  sitzung.verbindeNurRadio(key, radioCb);
+  } catch { /* faellt auf die Meldung unten */ }
+  sprache.sage('Zuhören geht nur mit geladenem Abenteuer.');
 }
 
 // --- Einstieg ------------------------------------------------------------

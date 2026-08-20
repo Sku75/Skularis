@@ -4,6 +4,89 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.20, 20. August 2026
+
+
+Der grosse Umbau: Skularis in drei Module
+
+- Skularis kennt jetzt einen echten Modul-Lebenszyklus: Charakterverwaltung,
+  Abenteuertisch und Meistertisch sind getrennte Module. Alles, was ein Tisch startet
+  (Radio, Post, Timer, Klänge), gehört ihm und wird beim Verlassen ZWINGEND beendet —
+  egal ob man per Escape, Speichern und schließen, Strg Pos1, Strg Q oder Fenster-X
+  hinausgeht. Nichts läuft mehr heimlich im Hauptmenü weiter.
+- F12 im Hauptmenü tut nichts mehr. Zuhören gibt es nur noch am Abenteuertisch
+  (Audio-Reiter F12), Senden nur am Meistertisch. Das Zuhören ohne geladenes
+  Abenteuer (seit 0.38) ist damit bewusst entfernt.
+- Der Meistertisch beendet beim Verlassen jetzt auch das Radio-Senden und alle
+  laufenden Klänge (früher lief das Radio weiter, nur die Post wurde gestoppt).
+
+Verbindung deutlich stabiler
+
+- Zwei Ursachen der Disconnect-Schleifen vom Spielabend sind behoben: Der
+  Wiederverbinde-Weg des Hörers erzeugte bei jedem Versuch ein Audio-Objekt, das nie
+  freigegeben wurde — nach vielen Versuchen half nur noch ein Programm-Neustart.
+  Und der Versuchszähler wurde bei jedem kurzen Erfolg genullt, wodurch bei
+  flatternder Leitung ein endloser Trenn-Verbinde-Kreisel entstand. Jetzt gilt eine
+  Verbindung erst nach einer stabilen Minute als gesund.
+- Strg R auf dem Abenteuertisch: Verbindung erneuern (kurz trennen, mit gemerktem
+  Code und Namen neu verbinden). Mit 2-Sekunden-Sperre gegen Doppeldruck.
+- Strg R auf dem Meistertisch: Senden erneuern. Die Übertragung wird beendet und mit
+  dem GLEICHEN Schlüssel neu gestartet; die Hörer verbinden sich automatisch oder
+  mit ihrem eigenen Strg R neu. Hält der Vermittler den Schlüssel noch fest, wird
+  mehrfach mit wachsendem Abstand neu versucht.
+- Gibt der automatische Wiederverbinder auf, nennt die Ansage jetzt den Ausweg:
+  Strg R verbindet neu.
+
+Meisterpost auf Abruf, Statuskanal entfernt
+
+- Post wird nicht mehr live zugestellt, sondern online abgelegt (accountlos, unter
+  Tisch-Code plus Empfängername oder an alle) und mit Strg B AKTIV abgerufen —
+  beim Spieler wie beim Meister. Post kommt nur an, wenn man danach fragt; der
+  Absender darf beim Abruf längst offline sein. Nachrichten halten etwa 12 Stunden.
+  Auch der leere Abruf wird angesagt: Keine neue Post. Hinweis: Die Ablage läuft
+  über einen öffentlichen Dienst — keine Geheimnisse hineinschreiben.
+- Senden geht jetzt auch an Offline-Spieler (Empfängerliste aus der Gruppe bzw. den
+  gespeicherten Mitspielern).
+- Pop-ups sind ersatzlos entfernt.
+- Die dauerhafte Übertragung der Spielerwerte (Wunden, Erschöpfung) an den Meister
+  ist komplett entfernt — sie machte Verbindungsprobleme und wurde nicht gebraucht.
+  Der Meister nutzt seine eigenen Zähler und die Bogenwerte; die offline-Markierung
+  in der Charakteransicht entfällt, verbunden wird weiter angezeigt.
+- Würfelprotokoll, Spielerliste und die Verbindungsüberwachung laufen unverändert.
+
+Neue Tasten am Abenteuertisch (nur mit geladenem Abenteuer)
+
+- Strg K Kampf (Kämpfen-Menü, Fokus oben), Strg P Profane Fertigkeiten,
+  Strg Z Zauber und Rituale, Strg M Manöver, Strg W Schnellwürfe,
+  Strg A Attributsproben, Strg R Reconnect, Strg B Post abrufen.
+- Dafür ist die Sprachausgabe-Umschaltung von Strg M auf Strg T umgezogen (überall).
+  Die Aus-Ansage nennt den Rückweg: Strg T schaltet wieder ein.
+- Kein Skularis-Kürzel feuert mehr in Textfeldern oder offenen Fenstern — Strg A,
+  Strg Z und Co. gehören dort wieder dem Eingabefeld.
+
+Einstellungen neu geordnet, Tasten sichtbar und angesagt
+
+- Die Optionen sind jetzt vierteilig: Allgemein (Sprachausgabe, Lautstärke, Schrift
+  und alle überall gültigen Tasten, auch die festen zum Nachlesen),
+  Charakterverwaltung, Abenteuertisch und Meistertisch — jeder Bereich zeigt die
+  dort wirksamen Tasten und Einstellungen und erlaubt das Umbelegen mit
+  Konfliktprüfung.
+- Wo ein Menüpunkt eine Taste hat, steht sie jetzt sichtbar in der Zeile und wird
+  mit angesagt, zum Beispiel: Kämpfen, Strg K. Nach einer Umbelegung zeigen alle
+  Menüs automatisch die neue Taste.
+- Die Barrierefreiheitsbox oben rechts ist nur noch mit der Maus bedienbar (kein
+  Tab-Stopp mehr). Ihre Funktionen liegen als umbelegbare Tasten im Bereich
+  Allgemein und als Menüpunkte in den Optionen.
+
+Schneller und sparsamer
+
+- Die großen Audio- und Netzmodule laden erst mit ihrem Tisch statt beim
+  Programmstart. Der Musik-Zwischenspeicher ist gedeckelt und wird beim
+  Tischverlassen geleert (vorher wuchs er unbegrenzt). In den Optionen unter
+  Allgemein zeigt der neue Punkt Diagnose die gerade laufenden Dienste — nach dem
+  Verlassen eines Tisches muss die Liste leer sein.
+
+
 Version 1.16, 19. August 2026
 
 

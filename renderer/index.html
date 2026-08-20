@@ -28,17 +28,21 @@
       <button id="btn-zurueck" class="db-nav-btn" type="button" tabindex="-1" title="Eine Ebene zurück" aria-label="Eine Ebene zurück">&#8592;</button>
       <h1 class="db-header__title">SKULARIS</h1>
     </div>
+    <!-- Seit 1.20 reine MAUS-Bedienung (tabindex -1, wie die Navigations-Schalter
+         links): kein Tab-Stopp mehr, der die Pfeil-Menü-Welt unterbricht. Dieselben
+         Funktionen sind per Tastatur über die Optionen und die umbelegbaren
+         Allgemein-Kürzel erreichbar (Strg T Sprache, Schrift- und Lautstärketasten). -->
     <div class="db-header__right" role="group" aria-label="Barrierefreiheit: Sound und Schrift">
       <label class="db-header__volume-label" for="volume-slider">Lautstärke:</label>
-      <input type="range" id="volume-slider" class="db-header__volume"
+      <input type="range" id="volume-slider" class="db-header__volume" tabindex="-1"
              min="0" max="100" value="25" aria-label="Lautstärke">
       <span id="volume-display" class="db-header__volume-value">25</span>
-      <button id="btn-sprache-toggle" class="db-header__btn" aria-label="Sprachausgabe umschalten">
+      <button id="btn-sprache-toggle" class="db-header__btn" tabindex="-1" aria-label="Sprachausgabe umschalten">
         <span class="db-header__btn-icon" aria-hidden="true">&#x1F50A;</span>
         <span id="sprache-status-text">Sprache an</span>
       </button>
-      <button id="btn-font-plus" class="db-header__btn" aria-label="Schrift vergrößern">A+</button>
-      <button id="btn-font-minus" class="db-header__btn" aria-label="Schrift verkleinern">A−</button>
+      <button id="btn-font-plus" class="db-header__btn" tabindex="-1" aria-label="Schrift vergrößern">A+</button>
+      <button id="btn-font-minus" class="db-header__btn" tabindex="-1" aria-label="Schrift verkleinern">A−</button>
     </div>
   </header>
 

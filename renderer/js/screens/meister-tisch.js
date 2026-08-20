@@ -18,7 +18,8 @@ import { menuScreen } from '../ui/menu-screen.js';
 import { textDialog, knopfDialog, jaNeinDialog, spinnerDialog, erschwernisDialog } from '../ui/dialog.js';
 import { zeigeErgebnis } from '../abenteuer/wuerfel-kern.js';
 import * as reiterHub from '../ui/reiter-hub.js';
-import * as post from '../net/post.js';
+import * as modul from '../core/modul.js';
+import * as sitzung from '../net/sitzung.js';
 import { ladeDb, getDb } from '../core/db-laden.js';
 import { createMeisterAbenteuer, parseMeisterAbenteuer, protokolliere } from '../core/meister-abenteuer.js';
 import { ladeBogenFrisch, waehleCharakterBogen } from '../core/bogen-laden.js';
@@ -208,6 +209,22 @@ function oeffneHub() {
   const a = getMeister();
   const titel = a.name;
 
+  // Modul betreten und den Aufraeum-Dienst registrieren: Verlassen des Tisches
+  // beendet ZWINGEND Radio-Senden, Post, alle Klaenge (Kanaele, Playlist,
+  // Vorhoeren), leert den Audio-Speicher und entlaedt das Meisterabenteuer —
+  // frueher sendete das Radio aus dem Hauptmenue weiter (nur die Post wurde
+  // gestoppt). Ein Ausgang fuer alle Wege (Escape, Speichern, Strg Q, Fenster-X).
+  modul.betreteModul('meister');
+  modul.dienstRegistrieren('meister-aufraeumen', () => {
+    try { sitzung.trenne(); } catch { /* egal */ }
+    import('../meister/audio-bereich.js').then(m => { try { m.alleStoppen(); } catch { /* egal */ } }).catch(() => {});
+    import('../meister/audio-player.js').then(m => { try { m.entlade(); } catch { /* egal */ } }).catch(() => {});
+    setMeister(null);
+    if (_einstieg) _einstieg._liste = null;
+  });
+  // Die Audio-Schnelltasten (Strg 1 bis Strg Acute) brauchen ihren Handler.
+  import('../meister/kurztasten.js').then(m => m.initHandler()).catch(() => {});
+
   let hub;
   const regelHelden = () => (getMeister().charaktere || []).map(c => ({ name: c.name, charakter: c.bogen }));
 
@@ -226,7 +243,7 @@ function oeffneHub() {
     { label: 'Audio', hint: 'Klänge abspielen und ans Radio senden', festeTaste: 12, factory: () => audioBereichScreen('meister') },
     { label: 'Verdeckter Meister-Wurf', hint: 'schnell und leise wuerfeln', ergebnisId: 'meisterwurf', aktion: () => verdeckterMeisterWurf() },
     { label: 'Zwischenspeichern', hint: 'Spielstand sichern', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Zwischengespeichert.'); } },
-    { label: 'Speichern und schließen', hint: 'sichern und zum Meister-Tisch zurück', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Gespeichert.'); if (_einstieg) _einstieg._liste = null; post.stopp(); hub.verlasse(); } },
+    { label: 'Speichern und schließen', hint: 'sichern und zum Meister-Tisch zurück', aktion: async () => { await speichere(); sounds.playSpeichern(); sprache.sage('Gespeichert.'); hub.verlasse(); } },
   ];
 
   hub = reiterHub.oeffneHub({
@@ -244,7 +261,8 @@ function oeffneHub() {
         ],
       });
       if (w === 'ja') { await speichere(); sounds.playSpeichern(); }
-      if (w === 'ja' || w === 'nein') { if (_einstieg) _einstieg._liste = null; post.stopp(); }
+      // Radio, Post, Klaenge und Zustand raeumt der registrierte Modul-Dienst
+      // beim verlasseModul() im Hub-Ausgang auf — ein Weg fuer alle.
       return w || 'abbrechen';
     },
   });

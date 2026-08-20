@@ -69,14 +69,41 @@ function ctx() {
   return _ctx;
 }
 
-/** Rohe Bytes einer Datei holen und einmalig dekodieren (danach im Cache). */
+/** Rohe Bytes einer Datei holen und einmalig dekodieren (danach im Cache).
+ *  Der Cache haelt dekodiertes PCM (der groesste Speicherfresser der Anwendung)
+ *  und ist deshalb seit 1.20 gedeckelt: aelteste Eintraege fliegen zuerst. */
+const DECODE_CACHE_MAX = 10;
 async function ladePuffer(pfad) {
-  if (_decodeCache.has(pfad)) return _decodeCache.get(pfad);
+  if (_decodeCache.has(pfad)) {
+    const p = _decodeCache.get(pfad);
+    _decodeCache.delete(pfad); _decodeCache.set(pfad, p); // als juengsten markieren
+    return p;
+  }
   const r = await ipc.audioDatei(pfad);
   if (!r || r.fehler || !r.bytes) throw new Error(r && r.fehler ? r.fehler : 'Datei nicht lesbar');
   const puffer = await ctx().decodeAudioData(r.bytes);
   _decodeCache.set(pfad, puffer);
+  while (_decodeCache.size > DECODE_CACHE_MAX) {
+    const aeltester = _decodeCache.keys().next().value;
+    _decodeCache.delete(aeltester);
+  }
   return puffer;
+}
+
+/**
+ * Beim Verlassen des Meistertisches (Modul-Dienst): alles stoppen, den
+ * Dekodier-Speicher leeren und den AudioContext schliessen. Der naechste
+ * Tischbesuch baut sich frisch auf (ctx() erzeugt bei Bedarf neu).
+ */
+export function entlade() {
+  try { stoppeAlles(); } catch { /* egal */ }
+  try { beendeVorhoeren(); } catch { /* egal */ }
+  _decodeCache.clear();
+  _pausiert.abspielen = null; _pausiert.hintergrund = null; _pausiert.einspielen = null;
+  if (_ctx) {
+    try { _ctx.close(); } catch { /* egal */ }
+    _ctx = null; _mixBus = null; _monitor = null; _radioDest = null;
+  }
 }
 
 function rampe(gain, ziel, dauer) {
@@ -428,3 +455,9 @@ export function getSendeStrom() {
 export function istAktiv() {
   return Boolean(_kanaele.abspielen || _kanaele.hintergrund || _kanaele.einspielen);
 }
+
+// Beim Laden am Anwendungs-Master in sounds.js anmelden (seit 1.20; app.js laedt
+// die Audio-Module nicht mehr vorab).
+import * as __sounds from '../sounds.js';
+__sounds.onAnwendungsLautstaerke((v) => setAnwendungsLautstaerke(v));
+queueMicrotask(() => { try { setAnwendungsLautstaerke(__sounds.getAnwendungsLautstaerke()); } catch { /* egal */ } });

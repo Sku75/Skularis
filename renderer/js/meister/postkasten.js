@@ -1,15 +1,12 @@
 /**
  * Skularistool — Meistertisch F5: Post, Notizen und Ablageregal.
  *
- * Aufbau: Post senden (Nachricht/Pop-up), Posteingang, Postausgang, Ablage
- * (Ablageregal), Notizen (je Charakter), ganz unten die Verbindung (Code im
- * Tooltip). Eingegangene Post laesst sich in die Ablage oder in die Notizen des
- * Absenders verschieben. Ein Pop-up geht beim Empfaenger sofort als Fenster auf
- * (Ton, Text, OK) und wird nirgends gespeichert.
- *
- * Zusaetzlich: F2-Live-Notifikation. Aendert ein verbundener Spieler einen Wert,
- * hoert der Meister einen Ton und eine Ansage der Aenderung ("Name, Wunden von 1
- * auf 2"). Ein Ueberlaufschutz bremst absichtliches Dauer-Umschalten.
+ * Seit 1.20 laeuft die Post auf ABRUF: Nachrichten werden unter dem Tisch-Code
+ * plus Empfaengername (oder "alle") accountlos auf ntfy abgelegt; der Meister
+ * holt seine Post aktiv mit Strg B. Pop-ups und die F2-Live-Uebertragung der
+ * Spielerwerte sind entfernt (Nutzer-Entscheidung 1.20) — der Meister nutzt
+ * seine eigenen Zaehler und die Bogenwerte. Der PeerJS-Datenkanal bleibt fuer
+ * Spielerliste, Wuerfelprotokoll und Herzschlag bestehen.
  */
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
@@ -20,96 +17,67 @@ import { getMeister, speichere } from './state.js';
 import * as post from '../net/post.js';
 import * as sitzung from '../net/sitzung.js';
 import { diag } from '../core/diag.js';
+import { comboText } from '../shortcuts.js';
+
+const ipc = window.skularis?.ipc;
 
 let _code = '';
-let _popupOffen = false;
 
 function kurz(t) { const s = String(t || '').replace(/\s+/g, ' ').trim(); return s.length > 50 ? s.slice(0, 50) + '…' : s; }
 /** Datum und Uhrzeit einer Nachricht lesbar (oder leer). */
 function zeitText(m) { try { return (m && m.zeit) ? new Date(m.zeit).toLocaleString('de-DE') : ''; } catch { return ''; } }
 
-// --- Eingang: Nachricht bzw. Pop-up -------------------------------------
+// --- Gesehen-Gedaechtnis und Abruf (seit 1.20) ---------------------------
 
-function zeigePopup(von, text) {
-  if (_popupOffen) return; // nur ein Pop-up-Fenster gleichzeitig
-  _popupOffen = true;
-  sounds.playPopup();
-  sprache.sage(`Pop-up von ${von}. ${text || 'Kein Text.'}`);
-  knopfDialog({ titel: `Pop-up von ${von}`, frage: text || '(kein Text)', knoepfe: [{ label: 'OK', wert: 'ok' }] })
-    .then(() => { _popupOffen = false; })
-    .catch(() => { _popupOffen = false; });
+function gesehen(a) { a.postGesehen = Array.isArray(a.postGesehen) ? a.postGesehen : []; return a.postGesehen; }
+function merkeGesehen(a, id) {
+  if (!id) return;
+  const g = gesehen(a);
+  if (!g.includes(id)) { g.push(id); if (g.length > 300) g.splice(0, g.length - 300); }
 }
 
-function empfangePost(m) {
-  diag(`empfangePost: typ=${m && m.typ} id=${m && m.id} von=${m && m.von}`);
-  if (m && m.typ === 'popup') { diag('-> PLAYPOPUP'); zeigePopup(m.von || 'Spieler', String(m.text || '')); return; }
+let _letzterAbruf = 0;
+
+/** Post aktiv abrufen (Strg B): Topics "meister" und "alle" unter dem Tisch-Code. */
+export async function postAbrufen() {
   const a = getMeister();
   if (!a) return;
-  const eintrag = { id: m.id, von: m.von || 'Spieler', text: String(m.text || ''), zeit: m.zeit || Date.now(), gelesen: false };
+  if (Date.now() - _letzterAbruf < 2000) { sounds.playGrenze(); return; }
+  _letzterAbruf = Date.now();
+  const code = sitzung.code() || sitzung.meisterCode();
+  if (!code) { sprache.sage('Kein Tisch-Code vorhanden.'); return; }
+  sprache.sage('Rufe Post ab.');
+  const [r1, r2] = await Promise.all([ipc.postAbrufen(code, 'Meister'), ipc.postAbrufen(code, 'alle')]);
+  if ((!r1 || !r1.ok) && (!r2 || !r2.ok)) {
+    sprache.sage(`Abruf fehlgeschlagen. ${(r1 && r1.fehler) || (r2 && r2.fehler) || 'Keine Verbindung ins Internet?'}`);
+    return;
+  }
+  const alle = [...((r1 && r1.nachrichten) || []), ...((r2 && r2.nachrichten) || [])];
+  const g = gesehen(a);
+  const neu = [];
+  for (const n of alle) {
+    if (!n || !n.id || g.includes(n.id)) continue;
+    if (n.daten && n.daten.von === 'Meister') { merkeGesehen(a, n.id); continue; } // eigene Rundpost
+    merkeGesehen(a, n.id);
+    neu.push(n);
+  }
+  neu.sort((x, y) => (x.zeit || 0) - (y.zeit || 0));
   a.posteingang = a.posteingang || [];
-  if (m.id && a.posteingang.some(x => x.id === m.id)) { diag('-> Post-Dedup: schon im Eingang, kein Ton'); return; }
-  a.posteingang.unshift(eintrag);
+  for (const n of neu) {
+    a.posteingang.unshift({ id: n.id, von: (n.daten && n.daten.von) || 'Unbekannt', text: String((n.daten && n.daten.text) || ''), zeit: (n.daten && n.daten.zeit) || n.zeit, gelesen: false });
+  }
   speichere();
-  diag('-> PLAYPOST (langer Post-Ton)');
+  if (!neu.length) { sprache.sage('Keine neue Post.'); return; }
   sounds.playPost();
-  sprache.sage(`Neue Post von ${eintrag.von}.`);
+  const absender = [...new Set(neu.map(n => (n.daten && n.daten.von) || 'Unbekannt'))];
+  sprache.sage(`${neu.length === 1 ? 'Eine neue Nachricht' : `${neu.length} neue Nachrichten`}. Von ${absender.join(', ')}. Im Posteingang.`);
+  try { screen.refresh(); } catch { /* egal */ }
 }
-
-// --- F2-Live-Notifikation + Ueberlaufschutz ------------------------------
-
-const _letzterStatus = new Map(); // name -> zuletzt empfangene Werte (fuer Diff)
-const _angesagt = new Map();      // name -> zuletzt ANGESAGTE Werte
-const _statusTimer = new Map();   // name -> Timer: buendelt F2-Aenderungen zum Endstand
 
 // Live-Hook: ein offener "Meine Initiativephase"-Bildschirm meldet sich hier an und
 // wird bei einer echten Werteänderung des Spielers sofort neu gezeichnet (Task 147).
 let _liveHook = null;
 export function setLiveHook(fn) { _liveHook = fn || null; }
-
-const FELD = { Wunden: 'Wunden', Erschoepfung: 'Erschöpfung', SchiP: 'Schicksalspunkte', AsP: 'Astralpunkte', KaP: 'Karmapunkte', GuP: 'Gunstpunkte', AstralspeicherStab: 'Astralspeicher' };
-function az(werte, k) { return (werte && werte[k] && typeof werte[k].aktuell === 'number') ? werte[k].aktuell : null; }
-
-/** Geaenderte variable Werte als Liste "Feld von X auf Y" (inkl. Zauberspeicher). */
-function diffTeile(alt, neu) {
-  const teile = [];
-  for (const k of Object.keys(FELD)) {
-    const n = az(neu, k); const a = az(alt, k);
-    if (n !== null && n !== a) teile.push(`${FELD[k]} von ${a === null ? '—' : a} auf ${n}`);
-  }
-  // Zauberspeicher: ein Zauber wurde eingelegt oder verbraucht.
-  const za = Array.isArray(alt && alt.zauberspeicher) ? alt.zauberspeicher : [];
-  const zn = Array.isArray(neu && neu.zauberspeicher) ? neu.zauberspeicher : [];
-  const zmax = Math.max(za.length, zn.length);
-  for (let i = 0; i < zmax; i++) {
-    const an = za[i] && za[i].name; const bn = zn[i] && zn[i].name;
-    if (an === bn) continue;
-    if (bn && !an) teile.push(`Zauberspeicher Platz ${i + 1}, ${bn} eingelegt`);
-    else if (!bn && an) teile.push(`Zauberspeicher Platz ${i + 1}, ${an} verbraucht`);
-    else teile.push(`Zauberspeicher Platz ${i + 1}, jetzt ${bn}`);
-  }
-  return teile;
-}
-
-// F2-Änderungen werden GEBÜNDELT: Statt jeder Zwischenänderung wird erst nach einer
-// kurzen Ruhe (1,8 s ohne weitere Änderung) EINMAL der Endstand angesagt — also nur
-// das, was die Person am Ende wirklich eingestellt hat. Mit einem weichen Ton.
-const STATUS_RUHE_MS = 1800;
-function statusAenderung(name, werte) {
-  _letzterStatus.set(name, werte);
-  // Der periodische Voll-Abgleich (alle 25 s) und ein Reconnect senden denselben
-  // Stand erneut — das erzeugt keinen Diff und bleibt daher von selbst still.
-  if (_statusTimer.has(name)) clearTimeout(_statusTimer.get(name));
-  _statusTimer.set(name, setTimeout(() => {
-    _statusTimer.delete(name);
-    const aktuell = _letzterStatus.get(name) || {};
-    const teile = diffTeile(_angesagt.get(name) || {}, aktuell); // Diff seit der letzten Ansage
-    _angesagt.set(name, aktuell);
-    if (teile.length) {
-      sounds.play('click', 0.4); sprache.sage(`${name}, ${teile.join(', ')}.`);
-      if (_liveHook) { try { _liveHook(name); } catch { /* egal */ } } // offenen Live-Bildschirm neu zeichnen
-    }
-  }, STATUS_RUHE_MS));
-}
 
 // --- An-/Abmelde-Meldungen: komplett still -------------------------------
 // Wunsch: KEINE Connect-/Disconnect-Ansagen mehr am Meistertisch (sie spammen und
@@ -129,8 +97,6 @@ export function postCallbacks() {
     onFehler: (t) => { sprache.sage(t); },
     onSpielerNeu: (name) => meldeConnect(name),
     onSpielerWeg: (name) => meldeDisconnect(name),
-    onNachricht: (m) => empfangePost(m),
-    onStatus: (name, werte) => statusAenderung(name, werte),
     onWurf: (name) => { if (_liveHook) { try { _liveHook(name); } catch { /* egal */ } } }, // offenes Protokoll neu zeichnen
   };
 }
@@ -149,50 +115,41 @@ function codeTooltip() {
 
 // --- Senden --------------------------------------------------------------
 
-async function schreibeInhalt(ziel, typ) {
+async function schreibeInhalt(ziel) {
+  const code = sitzung.code() || sitzung.meisterCode();
+  if (!code) { sprache.sage('Kein Tisch-Code vorhanden.'); return; }
   const zielName = ziel === '*' ? 'alle' : ziel;
-  const wort = typ === 'popup' ? 'Pop-up' : 'Post';
-  const text = await textDialog({ titel: `${wort} an ${zielName}`, label: 'Nachricht schreiben', mehrzeilig: true });
+  const text = await textDialog({ titel: `Post an ${zielName}`, label: 'Nachricht schreiben. Post bleibt etwa 12 Stunden abrufbar.', mehrzeilig: true });
   if (text === null || !text.trim()) return;
-  if (post.meisterSende(ziel, text.trim(), typ)) {
-    if (typ !== 'popup') { // Pop-ups werden nirgends gesammelt
-      const a = getMeister();
-      a.postAusgang = a.postAusgang || [];
-      a.postAusgang.unshift({ an: zielName, text: text.trim(), zeit: Date.now() });
-      speichere();
-    }
-    sounds.playSpeichern(); screen.pop(); sprache.sage(`${wort} an ${zielName} gesendet.`);
-  } else sprache.sage('Nicht gesendet. Kein passender Spieler verbunden.');
+  const daten = { von: 'Meister', an: zielName, text: text.trim(), zeit: Date.now() };
+  const r = await ipc.postSenden(code, ziel === '*' ? 'alle' : ziel, daten);
+  if (r && r.ok) {
+    const a = getMeister();
+    a.postAusgang = a.postAusgang || [];
+    a.postAusgang.unshift({ an: zielName, text: daten.text, zeit: daten.zeit });
+    merkeGesehen(a, r.id); // eigene Rundpost nicht selbst wieder abholen
+    speichere();
+    sounds.playSpeichern(); screen.pop();
+    sprache.sage(`Post an ${zielName} abgelegt. Der Empfänger holt sie mit seiner Abruf-Taste ab.`);
+  } else {
+    sprache.sage(`Nicht gesendet. ${r && r.fehler ? r.fehler : 'Keine Verbindung ins Internet?'}`);
+  }
 }
 
-function zieleScreen(typ) {
-  const wort = typ === 'popup' ? 'Pop-up senden' : 'Nachricht senden';
-  return {
-    title: wort,
-    build() {
-      const namen = post.verbundeneSpieler();
-      const items = [{ label: 'An alle', hint: 'an alle verbundenen Spieler', onSelect: () => schreibeInhalt('*', typ) }];
-      for (const n of namen) items.push({ label: n, hint: 'an diesen Spieler', onSelect: () => schreibeInhalt(n, typ) });
-      return menuScreen({ title: wort, subtitle: 'Erst An alle, dann die Einzelziele. Enter öffnet das Textfeld. Escape zurück.', items, leer: 'Kein Spieler verbunden.' }).build();
-    },
-    onShow() { sprache.sage(`${wort}. An wen?`); },
-  };
-}
-
-function sendenScreen() {
+function zieleScreen() {
   return {
     title: 'Post senden',
     build() {
-      return menuScreen({
-        title: 'Post senden',
-        subtitle: 'Nachricht landet im Posteingang; ein Pop-up geht beim Empfänger sofort auf. Escape zurück.',
-        items: [
-          { label: 'Nachricht senden', hint: 'landet im Posteingang des Spielers', onSelect: () => screen.push(zieleScreen('msg')) },
-          { label: 'Pop-up senden', hint: 'öffnet beim Spieler sofort ein Fenster', onSelect: () => screen.push(zieleScreen('popup')) },
-        ],
-      }).build();
+      const a = getMeister();
+      // Empfaenger: alle, dazu die Gruppen-Charaktere (auch offline erreichbar)
+      // und live verbundene Spieler, die (noch) nicht in der Gruppe stehen.
+      const namen = new Set(((a && a.charaktere) || []).map(c => c.name).filter(Boolean));
+      for (const n of post.verbundeneSpieler()) namen.add(n);
+      const items = [{ label: 'An alle', hint: 'für alle Spieler abrufbar', onSelect: () => schreibeInhalt('*') }];
+      for (const n of namen) items.push({ label: n, hint: 'an diesen Spieler, auch wenn er gerade offline ist', onSelect: () => schreibeInhalt(n) });
+      return menuScreen({ title: 'Post senden', subtitle: 'Erst An alle, dann die Einzelziele. Enter öffnet das Textfeld. Escape zurück.', items, leer: 'Noch keine Helden in der Gruppe.' }).build();
     },
-    onShow() { sprache.sage('Post senden. Nachricht oder Pop-up?'); },
+    onShow() { sprache.sage('Post senden. An wen?'); },
   };
 }
 
@@ -218,7 +175,7 @@ function nachrichtMenuScreen(index) {
         // Der Nachrichtentext steht als ERSTE, fokussierte Zeile — sofort auffindbar
         // und vorlesbar (wie die Info-Seite). Enter liest ihn erneut vor.
         { label: m.text || 'Kein Text.', hint: `Post von ${m.von}${z ? ', ' + z : ''}`, detail: `Post von ${m.von}${z ? ', ' + z : ''}. ${m.text || 'Kein Text.'}`, onSelect: () => sprache.sage(m.text || 'Kein Text.') },
-        { label: 'Antworten', hint: `Antwort an ${m.von}`, onSelect: () => schreibeInhalt(m.von, 'msg') },
+        { label: 'Antworten', hint: `Antwort an ${m.von}`, onSelect: () => schreibeInhalt(m.von) },
         {
           label: 'In Ablage verschieben',
           onSelect: async () => {
@@ -439,9 +396,11 @@ export function postkastenScreen() {
     title: 'Post, Notizen und Ablageregal',
     build() {
       const aktiv = post.istAktiv();
+      const abrufTaste = comboText('me_postabruf') || 'Strg B';
       const items = [
-        { label: 'Post senden', hint: aktiv ? 'Nachricht oder Pop-up' : 'zuerst Verbindung starten', onSelect: () => screen.push(sendenScreen()) },
-        { label: 'Posteingang', hint: 'eingegangene Nachrichten', onSelect: () => screen.push(posteingangScreen()) },
+        { label: 'Post abrufen', taste: abrufTaste, hint: 'holt neue Post für den Meister und für alle', onSelect: () => postAbrufen() },
+        { label: 'Post senden', hint: 'Nachricht online ablegen, der Empfänger ruft sie ab', onSelect: () => screen.push(zieleScreen()) },
+        { label: 'Posteingang', hint: 'abgerufene Nachrichten', onSelect: () => screen.push(posteingangScreen()) },
         { label: 'Postausgang', hint: 'was du gesendet hast', onSelect: () => screen.push(postausgangScreen()) },
         { label: 'Ablage', hint: 'Ablageregal für verschobene Post', onSelect: () => screen.push(ablageScreen()) },
         { label: 'Notizen', hint: 'je Charakter; Verschiebeziel für Post', onSelect: () => screen.push(notizenScreen()) },

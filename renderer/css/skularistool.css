@@ -56,6 +56,17 @@
 }
 .db-menu__ergebnis:empty { display: none; }
 
+/* Tastenkuerzel eines Menuepunkts (1.20): rechtsbuendig, nahezu volle
+   Schriftgroesse und voller Kontrast — fuer Sehbehinderte gut lesbar,
+   waechst mit dem Schrift-Offset der Barrierefreiheits-Einstellungen. */
+.db-menu__taste {
+  float: right;
+  margin-left: 1.5rem;
+  font-weight: 700;
+  font-size: calc(1.1rem + var(--db-font-offset, 0px));
+  opacity: 0.95;
+}
+
 .db-menu__item .db-menu__hint {
   display: block;
   font-size: calc(0.9rem + var(--db-font-offset, 0px));

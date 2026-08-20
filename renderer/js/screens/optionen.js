@@ -1,8 +1,14 @@
 /**
- * Skularis — Optionen (Sound, Schrift, Über Skularis).
- * Ergänzt die Barrierefreiheits-Box oben rechts um ein volles Menü.
- * Der Updater ist ein eigenes Werkzeug (Skularis Updaten) neben dem
- * Programmordner — deshalb gibt es hier keinen Update-Knopf mehr.
+ * Skularis — Optionen (seit 1.20 vierteilig).
+ *
+ * Vier Bereiche: Allgemein (Sprachausgabe, Lautstärke, Schrift, alle überall
+ * gültigen Tasten — auch die festen, als lesbare Dokumentation),
+ * Charakterverwaltung, Abenteuertisch und Meistertisch (je Bereich die dort
+ * wirksamen Tasten und Einstellungen). Danach Neuerungen und Über Skularis.
+ *
+ * Tasten werden je Bereich angezeigt, angesagt und umbelegt; Anzeige, Ansage
+ * und Auslösung kommen aus derselben Kürzel-Registry (shortcuts.js) — nach
+ * einer Umbelegung stimmen alle drei sofort überein.
  */
 
 import * as sprache from '../sprache.js';
@@ -100,7 +106,7 @@ function erfasseKombination() {
     dlg.setAttribute('aria-modal', 'true');
     dlg.setAttribute('aria-label', 'Neue Tastenkombination');
     dlg.insertAdjacentHTML('beforeend',
-      '<div class="db-dialog__header"><span class="db-dialog__title">Neue Tastenkombination</span></div>'
+      '<div class="db-dialog__header" aria-hidden="true"><span class="db-dialog__title">Neue Tastenkombination</span></div>'
       + '<div class="db-dialog__body"><p class="db-dialog__label">Druecke jetzt die gewuenschte Tastenkombination. Escape bricht ab.</p></div>');
     const live = document.createElement('div');
     live.className = 'sr-only'; live.setAttribute('aria-live', 'assertive');
@@ -119,71 +125,143 @@ function erfasseKombination() {
   });
 }
 
-/** Menue zum freien Umbelegen der globalen Tasten. */
-function tastenScreen() {
+/** Menü-Eintrag für EIN umbelegbares Kürzel aus der Registry (mit Konfliktprüfung). */
+function kuerzelEintrag(k) {
   return {
-    title: '',
-    build() {
-      const liste = shortcuts.belegbareListe();
-      this.title = 'Tasten neu belegen';
-      const items = liste.map(k => ({
-        label: `${k.beschreibung}: ${k.combo}`,
-        hint: 'Enter: neu belegen oder auf Standard zuruecksetzen',
-        onSelect: async () => {
-          const w = await knopfDialog({
-            titel: k.beschreibung,
-            frage: `Aktuell ${k.combo}. Standard ${k.standard}.`,
-            knoepfe: [
-              { label: 'Neu belegen', wert: 'neu' },
-              { label: 'Auf Standard zuruecksetzen', wert: 'std' },
-              { label: 'Abbrechen', wert: 'ab' },
-            ],
-          });
-          if (w === 'neu') {
-            const c = await erfasseKombination();
-            if (!c) return;
-            shortcuts.neuBelegen(k.id, c);
-            screen.refresh();
-            sprache.sage(`${k.beschreibung} liegt jetzt auf ${c}.`);
-          } else if (w === 'std') {
-            shortcuts.zuruecksetzen(k.id);
-            screen.refresh();
-            sprache.sage(`${k.beschreibung} auf Standard zurueckgesetzt.`);
-          }
-        },
-      }));
-      // Reiter-Tasten der Tische: je Reiter ZWEI eigene Eintraege (an Merkposition
-      // und Menue oben), jeder frei auf eine beliebige Taste legbar. Pro Tisch.
-      for (const b of reiterTasten.BEREICHE) {
-        items.push({
-          label: `Reiter-Tasten ${reiterTasten.bereichName(b)}`,
-          hint: 'jede Reiter-Funktion einzeln umbelegen (an Merkposition und Menue oben getrennt)',
-          onSelect: () => screen.push(reiterBereichScreen(b)),
-        });
-      }
-      // Audio-Schnelltasten des Meistertisches (Strg+1 bis Strg+´).
-      items.push({
-        label: 'Audio-Schnelltasten (Meistertisch)',
-        hint: 'die Tasten Strg+1 bis Strg+´ und Strg+Shift+1 bis Strg+Shift+´ frei umbelegen',
-        onSelect: () => screen.push(kurztastenBelegungScreen()),
+    label: `${k.beschreibung}: ${shortcuts.kuerzelText(k.combo)}`,
+    hint: 'Enter: neu belegen oder auf Standard zurücksetzen',
+    onSelect: async () => {
+      const w = await knopfDialog({
+        titel: k.beschreibung,
+        frage: `Aktuell ${shortcuts.kuerzelText(k.combo)}. Standard ${shortcuts.kuerzelText(k.standard)}.`,
+        knoepfe: [
+          { label: 'Neu belegen', wert: 'neu' },
+          { label: 'Auf Standard zurücksetzen', wert: 'std' },
+          { label: 'Abbrechen', wert: 'ab' },
+        ],
       });
-      return menuScreen({
-        title: this.title,
-        subtitle: 'Enter belegt eine Taste neu oder setzt sie zurueck. Escape zurueck.',
-        items,
-        leer: 'Keine umbelegbaren Tasten.',
-      }).build();
+      if (w === 'neu') {
+        const c = await erfasseKombination();
+        if (!c) return;
+        if (!shortcuts.istVergebbar(c)) { sprache.sage(`${shortcuts.kuerzelText(c)} ist für die Navigation reserviert und kann nicht vergeben werden.`); return; }
+        const konflikt = shortcuts.konfliktFuer(k.id, c);
+        if (konflikt) { sprache.sage(`${shortcuts.kuerzelText(c)} liegt schon auf ${konflikt}. Bitte eine andere Kombination wählen.`); return; }
+        shortcuts.neuBelegen(k.id, c);
+        screen.refresh();
+        sprache.sage(`${k.beschreibung} liegt jetzt auf ${shortcuts.kuerzelText(c)}.`);
+      } else if (w === 'std') {
+        shortcuts.zuruecksetzen(k.id);
+        screen.refresh();
+        sprache.sage(`${k.beschreibung} auf Standard zurückgesetzt.`);
+      }
     },
   };
 }
 
-/**
- * Reiter-Tasten eines Tisches als FLACHE Liste: jede Reiter-Funktion ist ein
- * eigener Eintrag. Je Reiter zwei Zeilen — "an Merkposition" (kommt an die
- * zuletzt verlassene Stelle) und "Menü oben" (Fokus oben auf dem ersten Punkt).
- * Jeder Eintrag ist frei auf EINE beliebige Taste legbar (Standard F-Taste bzw.
- * Shift+F-Taste, aber es geht auch etwas ganz anderes wie Strg+J oder m).
- */
+/** Nicht umbelegbare Taste als lesbare Dokumentations-Zeile. */
+function festeZeile(beschreibung, taste, detail) {
+  return { label: `${beschreibung}: ${taste} (fest)`, detail: detail || `${beschreibung}. Diese Taste ist fest belegt und nicht umbelegbar.`, onSelect: () => sprache.sage(`${beschreibung}, ${taste}. Fest belegt.`) };
+}
+
+// --- Bereich Allgemein ----------------------------------------------------
+
+function allgemeinScreen() {
+  return {
+    title: 'Allgemein',
+    build() {
+      const items = [
+        {
+          label: 'Sprachausgabe ein oder aus',
+          taste: () => shortcuts.comboText('sprache'),
+          hint: 'Schaltet die gesprochenen Ansagen um',
+          onSelect: async () => { const m = await import('../app.js'); m.sprachausgabeUmschalten(); },
+        },
+        { label: 'Lautstärke erhöhen', taste: () => shortcuts.comboText('lautstaerke_plus'), hint: 'Software-Sounds lauter', onSelect: () => setVolume(sounds.getVolume() + 5) },
+        { label: 'Lautstärke verringern', taste: () => shortcuts.comboText('lautstaerke_minus'), hint: 'Software-Sounds leiser', onSelect: () => setVolume(sounds.getVolume() - 5) },
+        { label: 'Schrift vergrößern', taste: () => shortcuts.comboText('schrift_plus'), onSelect: async () => setFont((await aktuellerFont()) + 1) },
+        { label: 'Schrift verkleinern', taste: () => shortcuts.comboText('schrift_minus'), onSelect: async () => setFont((await aktuellerFont()) - 1) },
+        { label: 'Schrift auf Normalgröße', taste: () => shortcuts.comboText('schrift_reset'), onSelect: () => setFont(0) },
+      ];
+      // Alle umbelegbaren Allgemein-Kürzel als eigene Tastenzeilen.
+      for (const k of shortcuts.belegbareListe('global')) items.push(kuerzelEintrag(k));
+      // Feste Tasten als lesbare Dokumentation.
+      items.push(festeZeile('Zurück', 'Escape oder Rücktaste'));
+      items.push(festeZeile('Anwendungslautstärke', 'Numpad Plus und Minus', 'Ein Master über alles, was du hörst (Bedien-Töne, Player, Radio-Empfang). Mit Strg in 5er-Schritten.'));
+      items.push(festeZeile('Tooltip lesen', 'Umschalt halten und Pfeil runter'));
+      items.push(festeZeile('Zur nächsten Überschrift', 'Strg und Pfeil hoch oder runter'));
+      // Diagnose: welche Dienste laufen gerade? Nach dem Verlassen eines Tisches
+      // muss die Liste leer sein (Release-Prüfung gegen heimliche Dauerläufer).
+      items.push({
+        label: 'Diagnose: laufende Dienste',
+        hint: 'zeigt registrierte Dienste des aktiven Moduls; nach Tischverlassen leer',
+        onSelect: async () => {
+          const m = await import('../core/modul.js');
+          const liste = m.aktiveDienste();
+          sprache.sage(liste.length ? `${liste.length} aktive Dienste: ${liste.join(', ')}.` : 'Keine aktiven Dienste. Alles ruhig.');
+        },
+      });
+      return menuScreen({
+        title: 'Allgemein',
+        subtitle: 'Überall gültige Einstellungen und Tasten. Enter stellt um oder belegt neu. Escape zurück.',
+        items, filter: false,
+      }).build();
+    },
+    onShow() { sprache.sage('Allgemein. Einstellungen und Tasten, die überall gelten.'); },
+  };
+}
+
+// --- Bereich Charakterverwaltung ------------------------------------------
+
+function charakterBereichScreen() {
+  return menuScreen({
+    title: 'Charakterverwaltung',
+    subtitle: 'Tasten des Charakter-Editors. Escape zurück.',
+    items: [
+      festeZeile('Editor-Bereiche', 'F1 bis F12', 'Im Editor springen die F-Tasten direkt zwischen den Bereichen (Attribute, Fertigkeiten, Ausrüstung und so weiter), in der Reihenfolge des Editor-Menüs.'),
+      festeZeile('Bereich frisch oben öffnen', 'Umschalt und F-Taste'),
+      festeZeile('Zum Hauptmenü des Editors', 'Strg Pos1'),
+    ],
+    filter: false,
+  });
+}
+
+// --- Reiter-Tasten (bestehende Umbelegung je Tisch) -----------------------
+
+function reiterEintrag(bereich, nr, name, frisch) {
+  const combo = reiterTasten.comboFuer(bereich, nr, frisch);
+  const bez = frisch ? `${name} Menü oben` : `${name} an Merkposition`;
+  const std = frisch ? `Shift+F${nr}` : `F${nr}`;
+  return {
+    label: `${bez}: ${shortcuts.kuerzelText(combo)}`,
+    hint: frisch
+      ? 'springt in den Reiter und stellt den Fokus oben auf den ersten Punkt'
+      : 'springt in den Reiter an die zuletzt verlassene Stelle',
+    onSelect: async () => {
+      const w = await knopfDialog({
+        titel: bez,
+        frage: `Aktuell ${shortcuts.kuerzelText(combo)}. Standard ${shortcuts.kuerzelText(std)}.`,
+        knoepfe: [
+          { label: 'Neu belegen', wert: 'neu' },
+          { label: 'Auf Standard zurücksetzen', wert: 'std' },
+          { label: 'Abbrechen', wert: 'ab' },
+        ],
+      });
+      if (w === 'neu') {
+        const c = await erfasseKombination();
+        if (!c) return;
+        if (!shortcuts.istVergebbar(c)) { sprache.sage(`${shortcuts.kuerzelText(c)} ist für die Navigation reserviert.`); return; }
+        reiterTasten.setCombo(bereich, nr, frisch, c);
+        screen.refresh();
+        sprache.sage(`${bez} liegt jetzt auf ${shortcuts.kuerzelText(c)}.`);
+      } else if (w === 'std') {
+        reiterTasten.reset(bereich, nr, frisch);
+        screen.refresh();
+        sprache.sage(`${bez} auf Standard zurückgesetzt.`);
+      }
+    },
+  };
+}
+
 function reiterBereichScreen(bereich) {
   return {
     title: '',
@@ -196,96 +274,57 @@ function reiterBereichScreen(bereich) {
       }
       return menuScreen({
         title: this.title,
-        subtitle: 'Jede Funktion hat eine eigene Taste. Enter belegt neu oder setzt auf Standard zurueck. Escape zurueck.',
+        subtitle: 'Jede Funktion hat eine eigene Taste. Enter belegt neu oder setzt auf Standard zurück. Escape zurück.',
         items, filter: false,
       }).build();
     },
   };
 }
 
-/** Ein einzelner Reiter-Eintrag (normal = an Merkposition, frisch = Menü oben). */
-function reiterEintrag(bereich, nr, name, frisch) {
-  const combo = reiterTasten.comboFuer(bereich, nr, frisch);
-  const bez = frisch ? `${name} Menü oben` : `${name} an Merkposition`;
-  const std = frisch ? `Shift+F${nr}` : `F${nr}`;
-  return {
-    label: `${bez}: ${combo}`,
-    hint: frisch
-      ? 'springt in den Reiter und stellt den Fokus oben auf den ersten Punkt'
-      : 'springt in den Reiter an die zuletzt verlassene Stelle',
-    onSelect: async () => {
-      const w = await knopfDialog({
-        titel: bez,
-        frage: `Aktuell ${combo}. Standard ${std}.`,
-        knoepfe: [
-          { label: 'Neu belegen', wert: 'neu' },
-          { label: 'Auf Standard zuruecksetzen', wert: 'std' },
-          { label: 'Abbrechen', wert: 'ab' },
-        ],
-      });
-      if (w === 'neu') {
-        const c = await erfasseKombination();
-        if (!c) return;
-        reiterTasten.setCombo(bereich, nr, frisch, c);
-        screen.refresh();
-        sprache.sage(`${bez} liegt jetzt auf ${c}.`);
-      } else if (w === 'std') {
-        reiterTasten.reset(bereich, nr, frisch);
-        screen.refresh();
-        sprache.sage(`${bez} auf Standard zurueckgesetzt.`);
-      }
-    },
-  };
-}
+// --- Audio-Schnelltasten (Meistertisch) -----------------------------------
 
-/**
- * Audio-Schnelltasten des Meistertisches (Strg+1 bis Strg+´). Global umbelegbar;
- * jede Taste ein eigener Eintrag, frei auf eine beliebige Kombination legbar.
- */
 function kurztastenBelegungScreen() {
   return {
     title: 'Audio-Schnelltasten',
     build() {
       const items = kurztasten.liste().map(k => ({
-        label: `Schnelltaste ${k.nr}: ${k.combo}`,
-        hint: 'Enter: neu belegen oder auf Standard zuruecksetzen',
+        label: `Schnelltaste ${k.nr}: ${shortcuts.kuerzelText(k.combo)}`,
+        hint: 'Enter: neu belegen oder auf Standard zurücksetzen',
         onSelect: async () => {
           const w = await knopfDialog({
             titel: `Schnelltaste ${k.nr}`,
-            frage: `Aktuell ${k.combo}. Standard ${k.std}.`,
+            frage: `Aktuell ${shortcuts.kuerzelText(k.combo)}. Standard ${shortcuts.kuerzelText(k.std)}.`,
             knoepfe: [
               { label: 'Neu belegen', wert: 'neu' },
-              { label: 'Auf Standard zuruecksetzen', wert: 'std' },
+              { label: 'Auf Standard zurücksetzen', wert: 'std' },
               { label: 'Abbrechen', wert: 'ab' },
             ],
           });
           if (w === 'neu') {
             const c = await erfasseKombination();
             if (!c) return;
+            if (!shortcuts.istVergebbar(c)) { sprache.sage(`${shortcuts.kuerzelText(c)} ist für die Navigation reserviert.`); return; }
             kurztasten.setCombo(k.nr, c);
             screen.refresh();
-            sprache.sage(`Schnelltaste ${k.nr} liegt jetzt auf ${c}.`);
+            sprache.sage(`Schnelltaste ${k.nr} liegt jetzt auf ${shortcuts.kuerzelText(c)}.`);
           } else if (w === 'std') {
             kurztasten.reset(k.nr);
             screen.refresh();
-            sprache.sage(`Schnelltaste ${k.nr} auf Standard zurueckgesetzt.`);
+            sprache.sage(`Schnelltaste ${k.nr} auf Standard zurückgesetzt.`);
           }
         },
       }));
       return menuScreen({
         title: 'Audio-Schnelltasten (Meistertisch)',
-        subtitle: 'Die 24 Tasten fuer die Audio-Schnelltasten (Block 1 mit Strg, Block 2 mit Strg und Shift). Was jede Taste abspielt, legst du im Meistertisch unter F12, Bibliothek, Kurztasten fest. Escape zurueck.',
+        subtitle: 'Die 24 Tasten für die Audio-Schnelltasten (Block 1 mit Strg, Block 2 mit Strg und Umschalt). Was jede Taste abspielt, legst du im Meistertisch unter F12, Bibliothek, Kurztasten fest. Escape zurück.',
         items, filter: false,
       }).build();
     },
   };
 }
 
-/**
- * Uebertragungseinstellungen fuer das Meister-Radio: Qualitaet (Bitrate) und
- * Stereo/Mono. Standard 128 kbit/s und Stereo (wie bisher). Gilt beim naechsten
- * Sende-Start. Niedriger = weniger Datenverbrauch.
- */
+// --- Übertragungseinstellungen (Meister-Radio) ----------------------------
+
 function uebertragungScreen() {
   const scr = {
     title: 'Übertragungseinstellungen',
@@ -332,69 +371,63 @@ function uebertragungScreen() {
   return scr;
 }
 
+// --- Bereiche Abenteuertisch und Meistertisch -----------------------------
+
+function abenteuertischScreen() {
+  return {
+    title: 'Abenteuertisch',
+    build() {
+      const items = [
+        { label: 'Reiter-Tasten (F1 bis F12)', hint: 'jede Reiter-Funktion einzeln umbelegen', onSelect: () => screen.push(reiterBereichScreen('abenteuer')) },
+      ];
+      for (const k of shortcuts.belegbareListe('abenteuer')) items.push(kuerzelEintrag(k));
+      items.push(festeZeile('Spieler-Audio (Zuhören)', 'F12', 'Der Audio-Reiter des Abenteuertisches: Schlüssel eingeben und den Tisch des Meisters anhören.'));
+      return menuScreen({
+        title: 'Abenteuertisch',
+        subtitle: 'Diese Tasten wirken nur am Abenteuertisch mit geladenem Abenteuer. Escape zurück.',
+        items, filter: false,
+      }).build();
+    },
+    onShow() { sprache.sage('Abenteuertisch. Diese Tasten wirken nur mit geladenem Abenteuer.'); },
+  };
+}
+
+function meistertischScreen() {
+  return {
+    title: 'Meistertisch',
+    build() {
+      const items = [
+        { label: 'Reiter-Tasten (F1 bis F12)', hint: 'jede Reiter-Funktion einzeln umbelegen', onSelect: () => screen.push(reiterBereichScreen('meister')) },
+        { label: 'Audio-Schnelltasten', hint: 'Strg 1 bis Strg Akzent und mit Umschalt, frei umbelegbar', onSelect: () => screen.push(kurztastenBelegungScreen()) },
+      ];
+      for (const k of shortcuts.belegbareListe('meister')) items.push(kuerzelEintrag(k));
+      items.push({ label: 'Übertragungseinstellungen', hint: 'Qualität und Stereo/Mono für das Meister-Radio (spart Daten)', onSelect: () => screen.push(uebertragungScreen()) });
+      items.push(festeZeile('Meister-Audio (Senden)', 'F12', 'Der Audio-Reiter des Meistertisches: Bibliothek, Playlists, Schlüssel und Senden.'));
+      items.push(festeZeile('Privates Vorhören', 'Strg und Eingabetaste', 'Im Audio-Bereich: Datei nur für den Meister anhören, der Spieler-Stream läuft unverändert weiter.'));
+      items.push(festeZeile('Klänge stoppen', 'Strg F12', 'Stoppt alle laufenden Klänge (Kanäle, Playlist, Vorhören). Das Radio-Senden läuft weiter.'));
+      return menuScreen({
+        title: 'Meistertisch',
+        subtitle: 'Diese Tasten wirken nur am Meistertisch mit geladenem Meisterabenteuer. Escape zurück.',
+        items, filter: false,
+      }).build();
+    },
+    onShow() { sprache.sage('Meistertisch. Diese Tasten wirken nur mit geladenem Meisterabenteuer.'); },
+  };
+}
+
+// --- Einstieg -------------------------------------------------------------
+
 export function build() {
   return menuScreen({
     title: 'Optionen',
-    subtitle: 'Escape kehrt zurück.',
+    subtitle: 'Allgemein, Charakterverwaltung, Abenteuertisch, Meistertisch. Escape kehrt zurück.',
     items: [
-      {
-        label: 'Sprachausgabe ein oder aus',
-        hint: 'Schaltet die gesprochenen Ansagen um, auch mit Strg und M',
-        onSelect: () => {
-          const neu = !sprache.istAn();
-          sprache.setAn(neu);
-          sounds.playClick();
-          const st = document.getElementById('sprache-status-text');
-          if (st) st.textContent = neu ? 'Sprache an' : 'Sprache aus';
-          if (neu) sprache.sage('Sprachausgabe aktiviert.');
-          else {
-            const el = document.getElementById('sr-live');
-            if (el) { el.textContent = ''; requestAnimationFrame(() => { el.textContent = 'Sprachausgabe deaktiviert.'; }); }
-          }
-        },
-      },
-      {
-        label: 'Lautstärke erhöhen',
-        hint: 'Software-Sounds lauter',
-        onSelect: () => setVolume(sounds.getVolume() + 5),
-      },
-      {
-        label: 'Lautstärke verringern',
-        hint: 'Software-Sounds leiser',
-        onSelect: () => setVolume(sounds.getVolume() - 5),
-      },
-      {
-        label: 'Schrift vergrößern',
-        onSelect: async () => setFont((await aktuellerFont()) + 1),
-      },
-      {
-        label: 'Schrift verkleinern',
-        onSelect: async () => setFont((await aktuellerFont()) - 1),
-      },
-      {
-        label: 'Schrift auf Normalgröße',
-        onSelect: () => setFont(0),
-      },
-      {
-        label: 'Übertragungseinstellungen',
-        hint: 'Qualität und Stereo/Mono für das Meister-Radio (spart Daten)',
-        onSelect: () => screen.push(uebertragungScreen()),
-      },
-      {
-        label: 'Tasten neu belegen',
-        hint: 'Globale Kombinationen und die Reiter-Tasten der Tische (F1-F12, Shift+F1-F12) frei umbelegen',
-        onSelect: () => screen.push(tastenScreen()),
-      },
-      {
-        label: 'Neuerungen',
-        hint: 'Was sich in dieser und den letzten Versionen geändert hat',
-        onSelect: () => zeigePatchnotes(),
-      },
-      {
-        label: 'Über Skularis',
-        hint: 'Programm-Informationen, Zeile für Zeile lesbar',
-        onSelect: () => zeigeUeber(),
-      },
+      { label: 'Allgemein', hint: 'Sprachausgabe, Lautstärke, Schrift und alle überall gültigen Tasten', onSelect: () => screen.push(allgemeinScreen()) },
+      { label: 'Charakterverwaltung', hint: 'Tasten des Charakter-Editors', onSelect: () => screen.push(charakterBereichScreen()) },
+      { label: 'Abenteuertisch', hint: 'Reiter-Tasten und die Würfel-Kürzel (wirken nur am Tisch)', onSelect: () => screen.push(abenteuertischScreen()) },
+      { label: 'Meistertisch', hint: 'Reiter-Tasten, Audio-Schnelltasten, Senden und Übertragung', onSelect: () => screen.push(meistertischScreen()) },
+      { label: 'Neuerungen', hint: 'Was sich in dieser und den letzten Versionen geändert hat', onSelect: () => zeigePatchnotes() },
+      { label: 'Über Skularis', hint: 'Programm-Informationen, Zeile für Zeile lesbar', onSelect: () => zeigeUeber() },
     ],
   });
 }

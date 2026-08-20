@@ -153,8 +153,16 @@ export function getVolume() {
  * zwischen den Kanaelen und NICHT die Sende-Lautstaerke an die Spieler. Die
  * eigentliche Persistenz (app_master_vol) uebernimmt der Numblock-Handler.
  */
+const _masterHooks = [];
+/** Player und Radio melden sich hier an und bekommen jede Master-Aenderung —
+ *  app.js muss die Audio-Module dafuer nicht mehr vorab laden (seit 1.20). */
+export function onAnwendungsLautstaerke(fn) {
+  if (typeof fn === 'function') _masterHooks.push(fn);
+}
 export function setAnwendungsLautstaerke(prozent) {
   _appMaster = Math.max(0, Math.min(1, prozent / 100));
+  const v = Math.round(_appMaster * 100);
+  for (const fn of _masterHooks) { try { fn(v); } catch { /* egal */ } }
 }
 export function getAnwendungsLautstaerke() {
   return Math.round(_appMaster * 100);

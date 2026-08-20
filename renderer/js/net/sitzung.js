@@ -13,7 +13,16 @@
  */
 import * as radio from './radio.js';
 import * as post from './post.js';
+import * as modul from '../core/modul.js';
 import { generiereSchluessel } from './radio.js';
+
+// Die Sitzung ist ein DIENST ihres Tisches (1.20): sobald eine Verbindung
+// laeuft, traegt sie sich in der Modul-Registry ein. Verlaesst man den Tisch,
+// ruft verlasseModul() zwingend trenne() — nichts sendet oder lauscht danach
+// weiter, egal auf welchem Weg der Tisch verlassen wurde.
+function alsDienstAnmelden() {
+  try { modul.dienstRegistrieren('sitzung', () => trenne()); } catch { /* egal */ }
+}
 
 let _code = null;      // aktueller Sitzungscode (Spieler: verbunden mit; Meister: eigener)
 let _name = null;      // Spielername fuer die Post
@@ -58,17 +67,19 @@ export function verbindeSpieler(rohCode, spielerName, postCb = {}, radioCb = {})
   const n = String(spielerName || '').trim();
   if (!c || !n) return false;
   _name = n;
+  alsDienstAnmelden();
   // Radio zuhoeren (Fehler bleiben STILL: der Meister sendet evtl. (noch) kein Radio,
   // die Post soll trotzdem laufen). Der Reconnect greift (wie in radio.js) erst,
   // nachdem der Ton einmal ankam.
-  verbindeNurRadio(c, radioCb);
+  starteRadioHoeren(c, radioCb);
   // Post: die eigentliche Nachrichten-Logik liefert der Aufrufer als postCb.
   post.verbindeSpielerPost(c, n, wrapPostCb(postCb));
   return true;
 }
 
-/** Nur den Radio-Ton zuhoeren (ohne Post) — fuers globale F12 ohne offenes Abenteuer. */
-export function verbindeNurRadio(rohCode, radioCb = {}) {
+/** Den Radio-Ton zuhoeren. Seit 1.20 nur noch als Teil der Spieler-Sitzung am
+ *  Abenteuertisch (das fruehere Zuhoeren ohne Abenteuer per globalem F12 ist weg). */
+function starteRadioHoeren(rohCode, radioCb = {}) {
   const c = String(rohCode || '').trim();
   if (!c) return false;
   _rolle = 'spieler'; _code = c; _radioAn = false;
@@ -79,7 +90,8 @@ export function verbindeNurRadio(rohCode, radioCb = {}) {
     onFehler: () => { _radioAn = false; ping(); rc('onFehler'); },
     onReconnectStart: () => { _radioAn = false; ping(); rc('onGetrennt'); },
     onReconnectErfolg: () => { _radioAn = true; ping(); rc('onVerbunden'); },
-    onAufgegeben: () => { _radioAn = false; ping(); rc('onGetrennt'); },
+    // Aufgegeben eigens durchreichen: die Ansage soll den Ausweg (Strg R) nennen.
+    onAufgegeben: () => { _radioAn = false; ping(); rc('onAufgegeben'); rc('onGetrennt'); },
   });
   return true;
 }
@@ -100,6 +112,7 @@ function wrapPostCb(cb) {
 export function starteMeisterPost(postCb = {}) {
   _rolle = 'meister';
   _code = meisterCode();
+  alsDienstAnmelden();
   post.starteMeisterPost(_code, postCb);
   ping();
   return _code;
@@ -113,6 +126,7 @@ export function starteMeisterPost(postCb = {}) {
 export function starteMeisterRadio(sendeStrom, radioCb = {}, radioOpts = {}, postCb = {}) {
   _rolle = 'meister';
   _code = meisterCode();
+  alsDienstAnmelden();
   if (!post.istAktiv()) post.starteMeisterPost(_code, postCb);
   const rc = { ...radioCb };
   const ob = radioCb.onBereit;
@@ -131,5 +145,6 @@ export function trenne() {
   try { radio.stopp(); } catch { /* egal */ }
   try { post.stopp(); } catch { /* egal */ }
   _rolle = null; _code = null; _name = null; _radioAn = false;
+  try { modul.dienstAbmelden('sitzung'); } catch { /* egal */ }
   ping();
 }

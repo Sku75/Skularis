@@ -17,7 +17,8 @@ import * as screen from './screen.js';
 import * as sprache from '../sprache.js';
 import { menuScreen } from './menu-screen.js';
 import * as reiterTasten from './reiter-tasten.js';
-import { comboAusEvent } from '../shortcuts.js';
+import * as modul from '../core/modul.js';
+import { comboAusEvent, kuerzelText } from '../shortcuts.js';
 
 let _aktiv = null;
 let _listenerInstalliert = false;
@@ -153,8 +154,16 @@ export function oeffneHub(o) {
       const items = punkte.map((p, i) => {
         // Die F-Taste gehoert INS Label, damit sie beim Fokus mit angesagt wird
         // ("Charakterstatus, F2"). Der uebrige Hinweis bleibt nur optisch (hint).
+        // Bei den Tischen (bereich) wird die AKTUELLE Belegung aus reiter-tasten
+        // nachgeschlagen — nach einer Umbelegung zeigt und sagt das Menue also
+        // die neue Taste, nicht den festen Standard.
+        let taste = p.taste;
+        if (taste && o.bereich && reiterTasten.istBereich(o.bereich)) {
+          const nr = parseInt(String(p.taste).replace(/^F/, ''), 10);
+          if (Number.isInteger(nr)) taste = kuerzelText(reiterTasten.comboFuer(o.bereich, nr, false));
+        }
         return {
-          label: p.taste ? `${p.label}, ${p.taste}` : p.label,
+          label: taste ? `${p.label}, ${taste}` : p.label,
           hint: p.hint || '',
           detail: p.detail,
           klasse: p.klasse,
@@ -190,6 +199,12 @@ export function oeffneHub(o) {
   };
 
   function verlasseZumEinstieg() {
+    // DER eine Ausgang jedes Hubs: zuerst das Modul verlassen — die Dienst-
+    // Registry stoppt zwingend alles, was der Tisch gestartet hat (Radio, Post,
+    // Timer, Audio). Danach die Segment-Referenzen nullen (sonst halten sie bis
+    // zum naechsten Hub-Oeffnen ganze Screen-Baeume im Speicher).
+    try { modul.verlasseModul(); } catch (e) { console.error('verlasseModul:', e); }
+    for (const p of punkte) { p.screen = null; p.segment = null; }
     _aktiv = null;
     if (o.zurueckAuf && screen.imStack(o.zurueckAuf)) screen.zurueckBis(o.zurueckAuf);
     else screen.entferneAb(anker);
@@ -228,6 +243,20 @@ export function zumHubTop() {
 /** Bereich des gerade offenen Hubs ('abenteuer' | 'meister') oder null. */
 export function aktiverBereich() {
   return (_aktiv && screen.imStack(_aktiv.anker)) ? (_aktiv.bereich || null) : null;
+}
+
+/**
+ * Einen Reiter des offenen Hubs ueber seine feste Nummer aktivieren (fuer die
+ * Strg-Kuerzel wie Strg K). frisch=true stellt den Fokus oben auf den ersten
+ * Menuepunkt. true, wenn der Reiter aktiviert wurde.
+ */
+export function aktiviereReiter(nr, opts = {}) {
+  if (!_aktiv || !screen.imStack(_aktiv.anker)) return false;
+  if (document.querySelector('dialog[open]')) return false;
+  const idx = _aktiv.fTaste ? _aktiv.fTaste[nr] : (nr - 1);
+  if (idx == null || idx < 0 || idx >= _aktiv.punkte.length) return false;
+  _aktiv.aktiviere(idx, opts);
+  return true;
 }
 
 /** Den gerade offenen Hub verlassen (falls einer offen ist). */

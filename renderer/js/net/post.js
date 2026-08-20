@@ -31,9 +31,6 @@ const _conns = new Map();       // Meister: name -> DataConnection
 let _meisterConn = null;        // Spieler: Verbindung zum Meister
 let _selbstName = '';
 let _cb = {};
-const _gesehen = new Set();     // Ids bereits verarbeiteter Nachrichten (Dedup)
-const _status = new Map();      // Meister: name -> { werte, seq, zeit }  (F2-Live)
-let _statusSeq = 0;             // Spieler: laufende Nummer der eigenen Statusmeldung
 
 // Würfelprotokoll (verlustfrei über Sequenznummern):
 const _wuerfe = new Map();      // Meister: name -> [ {seq, was, ergebnis, detail, zeit} ] (neueste vorn)
@@ -67,6 +64,7 @@ let _reconnectTimer = null;
 let _reconnectVersuch = 0;
 let _amReconnect = false;
 let _verbundenGewesen = false; // Reconnect erst, wenn die Verbindung einmal STAND
+let _stabilTimer = null;       // nullt den Versuchszaehler erst nach 60 s stabiler Verbindung
 
 // --- Heartbeat (Totmann-Erkennung) --------------------------------------
 // PeerJS meldet einen echten Netzabbruch oft NICHT (kein close-Event). Daher ein
@@ -81,26 +79,9 @@ let _meisterLastSeen = 0;     // Spieler: wann kam zuletzt etwas vom Meister
 function jetzt() { return Date.now(); }
 function istHerzschlag(d) { return d && (d.typ === 'ping' || d.typ === 'pong'); }
 
-/** Meister: letzter empfangener F2-Stand eines Spielers (oder null). */
-export function getStatus(name) { const s = _status.get(name); return s ? s.werte : null; }
-/** Meister: Live-Stand nach stabiler Charakter-ID (ordnet auch nach Umbenennung korrekt zu). */
-export function getStatusById(id) {
-  if (!id) return null;
-  for (const s of _status.values()) if (s.werte && s.werte.id === id) return s.werte;
-  return null;
-}
-/** Meister: alle Namen mit einem Live-Status. */
-export function statusNamen() { return [..._status.keys()]; }
-
 function postRaum(code) {
   const rein = String(code || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   return `skularis-post-${rein}`;
-}
-
-function neueId() {
-  const a = new Uint32Array(2);
-  crypto.getRandomValues(a);
-  return `${a[0].toString(36)}-${a[1].toString(36)}`;
 }
 
 export function istAktiv() { return Boolean(_peer); }
@@ -186,15 +167,6 @@ function meisterEmpfang(conn, d) {
     sendeSpielerListe();
     return;
   }
-  if (d.typ === 'status') {
-    const name = nameVon(conn) || d.name;
-    if (!name) return;
-    const vorher = _status.get(name);
-    if (vorher && typeof d.seq === 'number' && d.seq < vorher.seq) return; // veraltetes Paket verwerfen
-    _status.set(name, { werte: d.werte || {}, seq: (typeof d.seq === 'number' ? d.seq : 0), zeit: Date.now() });
-    _cb.onStatus && _cb.onStatus(name, d.werte || {});
-    return;
-  }
   if (d.typ === 'wurf') {
     const name = nameVon(conn) || d.von;
     if (!name) return;
@@ -202,41 +174,6 @@ function meisterEmpfang(conn, d) {
     _cb.onWurf && _cb.onWurf(name);
     return;
   }
-  if (d.typ === 'msg' || d.typ === 'popup') {
-    if (d.id && _gesehen.has(d.id)) return;
-    if (d.id) _gesehen.add(d.id);
-    const von = nameVon(conn) || d.von || 'Spieler';
-    const typ = d.typ;
-    // "An alle": an den Meister zustellen UND an alle anderen Spieler weiterreichen.
-    if (d.an === '*') {
-      for (const [n, c] of _conns) { if (c !== conn) { try { c.send({ typ, id: d.id, von, an: '*', text: d.text, zeit: d.zeit }); } catch { /* egal */ } } }
-      _cb.onNachricht && _cb.onNachricht({ id: d.id, von, text: String(d.text || ''), zeit: d.zeit, typ, an: '*' });
-      return;
-    }
-    // Post an einen anderen Spieler: über den Meister weiterreichen (Relay).
-    if (d.an && d.an !== 'Meister') {
-      const ziel = _conns.get(d.an);
-      if (ziel) { try { ziel.send({ typ, id: d.id, von, an: d.an, text: d.text, zeit: d.zeit }); } catch { /* egal */ } }
-      return;
-    }
-    _cb.onNachricht && _cb.onNachricht({ id: d.id, von, text: String(d.text || ''), zeit: d.zeit, typ });
-  }
-}
-
-/**
- * Meister sendet an einen Spieler oder mit an='*' an alle. typ 'msg' (Posteingang)
- * oder 'popup' (Pop-up beim Empfänger). true bei mindestens einer Zustellung.
- */
-export function meisterSende(an, text, typ = 'msg') {
-  const paket = (ziel) => ({ typ, id: neueId(), von: 'Meister', an: ziel, text: String(text || ''), zeit: Date.now() });
-  if (an === '*') {
-    let ok = false;
-    for (const c of _conns.values()) { try { c.send(paket('*')); ok = true; } catch { /* egal */ } }
-    return ok;
-  }
-  const c = _conns.get(an);
-  if (!c) return false;
-  try { c.send(paket(an)); return true; } catch { return false; }
 }
 
 /** Meister: einen einzelnen Spieler bewusst trennen (aus der Connectliste). */
@@ -290,7 +227,10 @@ function spielerVerbindeIntern(erst) {
       try { conn.send({ typ: 'hello', name: _selbstName }); } catch { /* egal */ }
       const warReconnect = _amReconnect;
       _amReconnect = false;
-      _reconnectVersuch = 0;
+      // Zaehler erst nach einer STABILEN Minute nullen (1.20): sonst greift der
+      // Sechs-Versuche-Deckel bei flatternder Leitung nie (Endlos-Kreisel).
+      if (_stabilTimer) clearTimeout(_stabilTimer);
+      _stabilTimer = setTimeout(() => { _stabilTimer = null; _reconnectVersuch = 0; }, 60000);
       _verbundenGewesen = true;
       _meisterLastSeen = jetzt();
       if (_hbSpieler) clearInterval(_hbSpieler);
@@ -321,6 +261,7 @@ function spielerVerbindeIntern(erst) {
  */
 function dropBehandelnPost(fehlerText) {
   if (_manuell) return;
+  if (_stabilTimer) { clearTimeout(_stabilTimer); _stabilTimer = null; }
   if (!_verbundenGewesen) {
     if (fehlerText) _cb.onFehler && _cb.onFehler(fehlerText);
     return;
@@ -354,28 +295,6 @@ function spielerEmpfang(d) {
   if (d.typ === 'pong') return; // nur Lebenszeichen
   try { diag(`RX Spieler: typ=${d.typ} id=${d.id || '-'} von=${d.von || '?'}`); } catch { /* egal */ }
   if (d.typ === 'liste') { _cb.onSpielerListe && _cb.onSpielerListe(Array.isArray(d.namen) ? d.namen : []); return; }
-  if (d.typ === 'msg' || d.typ === 'popup') {
-    if (d.id && _gesehen.has(d.id)) return;
-    if (d.id) _gesehen.add(d.id);
-    _cb.onNachricht && _cb.onNachricht({ id: d.id, von: d.von || 'Meister', text: String(d.text || ''), zeit: d.zeit, typ: d.typ });
-  }
-}
-
-/**
- * Spieler sendet an "Meister", einen Mitspieler-Namen oder '*' (alle, Relay über
- * Meister). typ 'msg' (Posteingang) oder 'popup' (Pop-up beim Empfänger).
- */
-export function spielerSende(an, text, typ = 'msg') {
-  if (!_meisterConn || !_meisterConn.open) return false;
-  try { _meisterConn.send({ typ, id: neueId(), von: _selbstName, an, text: String(text || ''), zeit: Date.now() }); return true; }
-  catch { return false; }
-}
-
-/** Spieler sendet seinen F2-Stand (Live-Übertragung) an den Meister. */
-export function spielerStatus(werte) {
-  if (!_meisterConn || !_meisterConn.open) return false;
-  try { _meisterConn.send({ typ: 'status', name: _selbstName, seq: ++_statusSeq, werte: werte || {}, zeit: Date.now() }); return true; }
-  catch { return false; }
 }
 
 /**
@@ -416,6 +335,7 @@ export function stopp() {
   if (_hbSpieler) { clearInterval(_hbSpieler); _hbSpieler = null; }
   _meisterLastSeen = 0;
   if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
+  if (_stabilTimer) { clearTimeout(_stabilTimer); _stabilTimer = null; }
   _amReconnect = false;
   _reconnectVersuch = 0;
   _verbundenGewesen = false;

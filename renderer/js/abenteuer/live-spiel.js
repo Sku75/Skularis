@@ -16,7 +16,7 @@ import { getAbenteuer, speichere } from './state.js';
 import { wuerfeln, kampfProbe, schadenWurf, mitLetztemWurf, letztesKurz, letzterAnhang } from './wuerfel-kern.js';
 import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, GRUNDREGEL_AKTIONEN, attributsprobenScreen, profanScreen } from './kampf-menues.js';
 import { zauberspeicherVorhanden, zauberspeicherScreen } from './zauberspeicher.js';
-import { sendeStatusWennVerbunden } from './status-sync.js';
+import { comboText } from '../shortcuts.js';
 
 const RES_NAME = {
   Wunden: 'Wunden', Erschoepfung: 'Erschöpfung', SchiP: 'Schicksalspunkte',
@@ -36,8 +36,9 @@ const EINSCHR_REGEL = 'Jede Wunde und jeder Punkt Erschöpfung zählt als eine E
   + 'drei gleich minus zwei, vier gleich minus vier, fünf gleich minus sechs. '
   + 'Ab vier Einschränkungen droht nach jeder weiteren die Kampfunfähigkeit, die neunte Einschränkung bedeutet den Tod.';
 
-/** Schnellwürfe: die schnellen Würfe ohne Werte, gebündelt in einem Untermenü. */
-function schnellwuerfeScreen() {
+/** Schnellwürfe: die schnellen Würfe ohne Werte, gebündelt in einem Untermenü.
+ *  Exportiert für das Kürzel Strg W (app.js). */
+export function schnellwuerfeScreen() {
   return menuScreen({
     title: 'Schnellwürfe',
     subtitle: 'Schnelle Würfe ohne Werte. Escape zurück.',
@@ -56,21 +57,22 @@ export function liveSpielScreen() {
   const char = a.charakter;
   const db = getDb();
   const items = [
-    { label: 'Schnellwürfe', hint: '1 W6, 2 W6, 1 W20, 3 W20, freier Wurf', onSelect: () => screen.push(schnellwuerfeScreen()) },
+    { label: 'Schnellwürfe', taste: () => comboText('ab_schnellwuerfe'), hint: '1 W6, 2 W6, 1 W20, 3 W20, freier Wurf', onSelect: () => screen.push(schnellwuerfeScreen()) },
     { label: 'Aktionen', hint: 'Was du in deiner Initiativephase tun kannst', detail: GRUNDREGEL_AKTIONEN, onSelect: () => screen.push(aktionenScreen()) },
     {
       label: 'Kämpfen',
+      taste: () => comboText('ab_kampf'),
       hint: 'Je Waffenset Probe und Schaden würfeln, dazu die abgeleiteten Werte',
       detail: 'Ganz oben je Waffenset eine Probe und ein Schadenswurf, darunter die abgeleiteten '
         + 'Werte und die Probenwerte der Kampffertigkeiten.',
       onSelect: () => screen.push(kampfwerteScreen()),
     },
-    { label: 'Manöver', hint: 'Nahkampf-Manöver mit ihrer Wirkung', onSelect: () => screen.push(manoeverScreen()) },
-    { label: 'Attributsproben', hint: 'je Attribut eine Probe (Attribut mal zwei)', onSelect: () => screen.push(attributsprobenScreen()) },
-    { label: 'Profane Fertigkeiten und Talente', hint: 'auf jede Fertigkeit und jedes Talent würfeln, auch nicht gelernte', onSelect: () => screen.push(profanScreen()) },
+    { label: 'Manöver', taste: () => comboText('ab_manoever'), hint: 'Nahkampf-Manöver mit ihrer Wirkung', onSelect: () => screen.push(manoeverScreen()) },
+    { label: 'Attributsproben', taste: () => comboText('ab_attribute'), hint: 'je Attribut eine Probe (Attribut mal zwei)', onSelect: () => screen.push(attributsprobenScreen()) },
+    { label: 'Profane Fertigkeiten und Talente', taste: () => comboText('ab_profan'), hint: 'auf jede Fertigkeit und jedes Talent würfeln, auch nicht gelernte', onSelect: () => screen.push(profanScreen()) },
   ];
   if (zauberVorhanden(char, db)) {
-    items.push({ label: zauberKategorieLabel(char, db), hint: 'Deine bekannten Zauber und Rituale würfeln', onSelect: () => screen.push(zauberScreen()) });
+    items.push({ label: zauberKategorieLabel(char, db), taste: () => comboText('ab_zauber'), hint: 'Deine bekannten Zauber und Rituale würfeln', onSelect: () => screen.push(zauberScreen()) });
   }
   // Zauberspeicher des Magierstabs (Vorteile "Magierstab Zauberspeicher 1/2") —
   // ganz unten, nach Manöver und Zauber. Zauber laden und spaeter wirken.
@@ -381,7 +383,6 @@ export function charakterstatusScreen() {
           onChange: () => {
             protokolliere(a, `${name} auf ${r.aktuell}.`);
             speichere();
-            sendeStatusWennVerbunden(); // F2-Live: den Meister ueber die Aenderung informieren
             // Bei Wunden/Erschöpfung die Einschränkungen-Zeile aktualisieren und
             // die Folge gleich mit ansagen; sonst nur der Maximal-Hinweis.
             if (istEinschr) return aktualisiereEinschr();
@@ -436,7 +437,6 @@ export function charakterstatusScreen() {
           detail: 'Wähle das getragene Rüstungsset mit Pfeil links und rechts. Wundschwelle, Geschwindigkeit, Durchhaltevermögen, Rüstungsschutz und Behinderung werden neu berechnet.',
           onChange: () => {
             speichere();
-            sendeStatusWennVerbunden(); // Meister bekommt die neuen Werte (F2-Live)
             screen.refresh('[data-ruest-set]'); // Werte darunter neu bauen, Fokus bleibt auf dieser Zeile
             const w2 = abgeleiteteWerte(char);
             return `${aktName()}. Wundschwelle ${w2.WS}, Rüstungsschutz ${w2.RS}, Behinderung ${w2.BE}, Geschwindigkeit ${w2.GS}`;

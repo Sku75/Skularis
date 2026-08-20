@@ -24,7 +24,7 @@ import { createAbenteuer, parseAbenteuer, protokolliere, mergeRessourcen } from 
 import { ladeBogenFrisch, waehleCharakterBogen } from '../core/bogen-laden.js';
 import { getAbenteuer, setAbenteuer, setDb, speichere, speichereMitBogen } from '../abenteuer/state.js';
 import * as reiterHub from '../ui/reiter-hub.js';
-import * as post from '../net/post.js';
+import * as modul from '../core/modul.js';
 import * as sitzung from '../net/sitzung.js';
 import * as meisterpost from '../abenteuer/meisterpost.js';
 import { liveSpielScreen, charakterstatusScreen } from '../abenteuer/live-spiel.js';
@@ -285,6 +285,17 @@ function oeffneHub() {
   const a = getAbenteuer();
   const titel = a.name;
 
+  // Modul betreten und den Aufraeum-Dienst registrieren: WIE auch immer der
+  // Tisch verlassen wird (Escape, Speichern und zurueck, Strg Pos1, Strg Q,
+  // Fenster-X), verlasseModul() stoppt zwingend Verbindung und Zustand.
+  modul.betreteModul('abenteuer');
+  modul.dienstRegistrieren('abenteuer-aufraeumen', () => {
+    try { sitzung.trenne(); } catch { /* egal */ }
+    try { versteckeEP(); } catch { /* egal */ }
+    setAbenteuer(null);
+    if (_einstieg) _einstieg._liste = null;
+  });
+
   // Feste EP-Anzeige unten mittig einblenden (ein Charakter geladen).
   const cha = a.charakter;
   if (cha && cha.erfahrung) {
@@ -329,7 +340,8 @@ function oeffneHub() {
         ],
       });
       if (w === 'ja') { await speichereMitBogen(); sounds.playSpeichern(); }
-      if (w === 'ja' || w === 'nein') { versteckeEP(); setAbenteuer(null); if (_einstieg) _einstieg._liste = null; sitzung.trenne(); }
+      // Aufraeumen (Trennen, EP-Anzeige, Abenteuer entladen) erledigt der
+      // registrierte Dienst beim verlasseModul() im Hub-Ausgang — ein Weg fuer alle.
       return w || 'abbrechen';
     },
   });
@@ -360,8 +372,6 @@ async function speichernUndZurueck(hub) {
   await speichereMitBogen();
   sounds.playSpeichern();
   sprache.sage('Abenteuer gespeichert.');
-  versteckeEP();
-  setAbenteuer(null);
-  sitzung.trenne();
+  // Trennen und Entladen uebernimmt der Modul-Dienst beim Hub-Ausgang.
   if (hub) hub.verlasse(); else screen.pop();
 }

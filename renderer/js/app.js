@@ -12,14 +12,15 @@ import * as navigation from './navigation.js';
 import * as einstellungen from './daten/einstellungen.js';
 import * as screen from './ui/screen.js';
 import * as reiterHub from './ui/reiter-hub.js';
-import * as post from './net/post.js';
+import * as modul from './core/modul.js';
 import * as startScreen from './screens/start.js';
 import { hatInhalt } from './core/infotext.js';
 import { knopfDialog } from './ui/dialog.js';
-import { audioBereichScreen, klaengeStoppen as audioKlaengeStoppen } from './meister/audio-bereich.js';
-import * as radio from './net/radio.js';
-import * as audioPlayer from './meister/audio-player.js';
 import * as kurztasten from './meister/kurztasten.js';
+// Die grossen Audio- und Netzmodule (audio-bereich, audio-player, radio) werden
+// hier bewusst NICHT mehr beim Programmstart geladen — sie kommen erst mit ihrem
+// Tisch (Performance). Die Anwendungslautstaerke laeuft ueber sounds.js, an dem
+// sich Player und Radio beim eigenen Laden anmelden.
 
 const ipc = window.skularis?.ipc;
 
@@ -29,11 +30,8 @@ async function init() {
   // Einstellungen + Sound
   await einstellungen.laden();
   await sounds.init();
-  // Anwendungslautstaerke (Numblock +/-) auf Player und Radio uebertragen; sounds
-  // hat sie in init() bereits geladen und skaliert die Bedien-Toene selbst.
-  const _master = sounds.getAnwendungsLautstaerke();
-  audioPlayer.setAnwendungsLautstaerke(_master);
-  radio.setAnwendungsLautstaerke(_master);
+  // Die Anwendungslautstaerke haelt sounds.js; Player und Radio melden sich beim
+  // eigenen Laden dort an (kein Vorab-Laden der Audio-Module mehr noetig).
   sounds.playStart();
   await new Promise(r => setTimeout(r, 900));
 
@@ -56,6 +54,13 @@ async function init() {
 
   // Gespeicherte Tasten-Umbelegungen laden und anwenden (vor dem Registrieren).
   const tastenbelegung = (await einstellungen.get('tastenbelegung')) || {};
+  // Migration 1.20: Die Sprachausgabe ist von Strg M (jetzt Manöver) auf Strg T
+  // umgezogen. Ein alter Override, der noch auf Strg M zeigt, wird verworfen —
+  // eine selbst gewaehlte andere Taste bleibt erhalten.
+  if (String(tastenbelegung.sprache || '').toLowerCase().replace(/strg/g, 'ctrl').replace(/\s+/g, '') === 'ctrl+m') {
+    delete tastenbelegung.sprache;
+    einstellungen.setWert('tastenbelegung', { ...tastenbelegung });
+  }
   shortcuts.setOverrides(tastenbelegung, (obj) => einstellungen.setWert('tastenbelegung', obj));
   // Reiter-Tasten der Tische (pro Tisch, mit Menünamen) — umbelegbar in den Optionen.
   const reiterBelegung = (await einstellungen.get('reiter_tasten')) || {};
@@ -77,7 +82,7 @@ async function init() {
 
   // Hauptmenü zeigen
   screen.reset(startScreen.build());
-  sprache.sageStatus('Pfeiltasten hoch und runter zum Wählen, Eingabetaste öffnet, Escape zurück, Tabulator erreicht die Sound- und Schrift-Einstellungen.');
+  sprache.sageStatus('Pfeiltasten hoch und runter zum Wählen, Eingabetaste öffnet, Escape zurück. Sound, Schrift und Tasten stellst du unter Optionen ein.');
 }
 
 // --- Escape = zurück ---
@@ -107,10 +112,8 @@ function registriereEscape() {
     // Kam das Escape aus einem Dialog (der sich soeben selbst geschlossen hat),
     // NICHT zusätzlich den darunterliegenden Bildschirm verlassen.
     if (e.target && e.target.closest && e.target.closest('dialog')) return;
-    // Laeuft gerade ein automatisches Wiederverbinden? Dann bricht Escape ZUERST
-    // dieses ab (und navigiert NICHT zusaetzlich zurueck).
-    if (radio.istAmReconnect && radio.istAmReconnect()) { e.preventDefault(); radio.reconnectAbbrechen(); sprache.sage('Wiederverbinden abgebrochen.'); return; }
-    if (post.istAmReconnect && post.istAmReconnect()) { e.preventDefault(); post.reconnectAbbrechen(); sprache.sage('Wiederverbinden abgebrochen.'); return; }
+    // Kein Reconnect-Sonderfall mehr: seit 1.20 sind alle Verbindungen an ihren
+    // Tisch gebunden — das Verlassen des Tisches stoppt auch jedes Wiederverbinden.
     e.preventDefault();
     if (!await screen.zurueck()) {
       if (screen.tiefe() <= 1) sprache.sage('Hauptmenü. Bereits oberste Ebene.');
@@ -118,33 +121,21 @@ function registriereEscape() {
   });
 }
 
-// --- Audio-Bereich global auf F12 ---
+// --- Strg und F12: Klaenge stoppen ---
 //
-// F12 oeffnet ueberall den Audio-Bereich, damit ein Spieler auch vom Hauptmenue
-// aus (ohne geladenes Abenteuer) den Tisch anhoeren kann — immer dasselbe
-// Spieler-Menue. Ausnahme: An einem Tisch-Hub behandelt der Hub F12 selbst
-// (am Meistertisch die Meister-Version mit Schluessel und Senden).
+// Das globale nackte F12 (Audio-Bereich von ueberall, auch ohne Abenteuer) ist
+// seit 1.20 WEG: Zuhoeren gibt es nur noch am Abenteuertisch (dort ist Audio der
+// feste F12-Reiter), Senden nur am Meistertisch. Im Hauptmenue tut F12 nichts.
+// Strg und F12 (laufende Klaenge stoppen) bleibt erhalten; das Audio-Modul wird
+// dafuer erst bei Bedarf geladen.
 function registriereAudioTaste() {
-  // Strg und F12: NUR die laufenden Klaenge stoppen (Kanaele, Playlist,
-  // Vorhoeren). Das Radio (Senden bzw. Zuhoeren) laeuft bewusst weiter.
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'F12' || !e.ctrlKey || e.altKey || e.shiftKey) return;
     if (document.querySelector('dialog[open]')) return;
     e.preventDefault();
-    try { audioKlaengeStoppen(); } catch { /* egal */ }
-    sprache.sage('Klaenge gestoppt.');
-  }, true);
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key !== 'F12' || e.ctrlKey || e.altKey || e.shiftKey) return;
-    if (document.querySelector('dialog[open]')) return;
-    if (reiterHub.hubAktiv()) return; // im Tisch-Hub uebernimmt der Hub die F12
-    const cur = screen.current();
-    if (cur && cur._audioBereich) { sprache.sage('Audio ist schon offen.'); return; }
-    e.preventDefault();
-    const scr = audioBereichScreen('spieler');
-    scr._audioBereich = true;
-    screen.push(scr);
+    import('./meister/audio-bereich.js')
+      .then(m => { try { m.klaengeStoppen(); } catch { /* egal */ } sprache.sage('Klaenge gestoppt.'); })
+      .catch(() => { /* Modul nicht ladbar: nichts zu stoppen */ });
   }, true);
 }
 
@@ -170,9 +161,9 @@ function registriereAnwendungsLautstaerke() {
     const delta = (e.code === 'NumpadAdd' ? 1 : -1) * schritt;
     const alt = sounds.getAnwendungsLautstaerke();
     const v = Math.max(0, Math.min(100, alt + delta));
+    // sounds haelt den Master und benachrichtigt Player und Radio ueber ihren
+    // Anmelde-Hook — die Audio-Module muessen dafuer nicht geladen sein.
     sounds.setAnwendungsLautstaerke(v);
-    audioPlayer.setAnwendungsLautstaerke(v);
-    radio.setAnwendungsLautstaerke(v);
     if (ipc && ipc.configSchreiben) { try { ipc.configSchreiben('app_master_vol', v); } catch { /* egal */ } }
     if (v === alt || v === 0 || v === 100) sounds.playGrenze();
   }, true);
@@ -256,6 +247,9 @@ async function beendenAblauf() {
 }
 
 function beenden() {
+  // Derselbe Aufraeumweg wie beim Tischverlassen: alle registrierten Dienste
+  // (Radio, Post, Timer, Audio) sauber stoppen, dann schliessen.
+  try { modul.verlasseModul(); } catch { /* egal */ }
   sounds.playSchliessen();
   sprache.sage('Skularis wird beendet.');
   setTimeout(() => {
@@ -265,25 +259,51 @@ function beenden() {
 
 // --- Shortcuts (nur global sinnvolle) ---
 
+/** Sprachausgabe umschalten (Strg T, umbelegbar). Die Aus-Ansage nennt den
+ *  Rueckweg und laeuft direkt ueber die aria-live-Region, damit NVDA sie auch
+ *  nach dem internen Stummschalten noch vorliest. */
+export function sprachausgabeUmschalten() {
+  const neu = !sprache.istAn();
+  sprache.setAn(neu);
+  sounds.playClick();
+  const st = document.getElementById('sprache-status-text');
+  if (st) st.textContent = neu ? 'Sprache an' : 'Sprache aus';
+  if (neu) sprache.sage('Sprachausgabe aktiviert.');
+  else {
+    const el = document.getElementById('sr-live');
+    const taste = shortcuts.comboText('sprache') || 'Strg T';
+    if (el) { el.textContent = ''; requestAnimationFrame(() => { el.textContent = `Sprachausgabe deaktiviert. ${taste} schaltet wieder ein.`; }); }
+  }
+}
+
+/** Software-Sound-Lautstaerke (Bedien-Toene) verstellen — auch per Taste. */
+export function soundLautstaerke(delta) {
+  const alt = sounds.getVolume();
+  const v = Math.max(0, Math.min(100, alt + delta));
+  sounds.setVolume(v);
+  const slider = document.getElementById('volume-slider');
+  const anzeige = document.getElementById('volume-display');
+  if (slider) slider.value = v;
+  if (anzeige) anzeige.textContent = String(v);
+  if (v === alt || v === 0 || v === 100) sounds.playGrenze();
+  else sprache.sage(`Lautstärke ${v}.`);
+}
+
 function registriereShortcuts() {
-  shortcuts.registriere('Ctrl+M', () => {
-    const neu = !sprache.istAn();
-    sprache.setAn(neu);
-    sounds.playClick();
-    const st = document.getElementById('sprache-status-text');
-    if (st) st.textContent = neu ? 'Sprache an' : 'Sprache aus';
-    if (neu) sprache.sage('Sprachausgabe aktiviert.');
-    else {
-      const el = document.getElementById('sr-live');
-      if (el) { el.textContent = ''; requestAnimationFrame(() => { el.textContent = 'Sprachausgabe deaktiviert.'; }); }
-    }
-  }, 'Sprachausgabe ein/aus', 'sprache');
+  // Sprachausgabe: seit 1.20 auf Strg T (T wie Ton) — Strg M gehoert jetzt den
+  // Manoevern am Abenteuertisch.
+  shortcuts.registriere('Ctrl+T', sprachausgabeUmschalten, 'Sprachausgabe ein/aus', 'sprache');
 
   // Schriftgröße auf Strg und Bild-hoch/Bild-runter — damit Strg und Plus/Minus
   // am Ziffernblock frei sind für die Lautstärke (5er-Schritte).
   shortcuts.registriere('Ctrl+PageUp', () => schriftAendern(1), 'Schrift vergrößern', 'schrift_plus');
   shortcuts.registriere('Ctrl+PageDown', () => schriftAendern(-1), 'Schrift verkleinern', 'schrift_minus');
   shortcuts.registriere('Ctrl+0', () => schriftReset(), 'Schrift zurücksetzen', 'schrift_reset');
+
+  // Bedien-Ton-Lautstaerke (die Funktion der Kopfzeilen-Box) als umbelegbare
+  // Tasten, seit die Box nur noch mit der Maus bedienbar ist.
+  shortcuts.registriere('Ctrl+Shift+PageUp', () => soundLautstaerke(5), 'Lautstärke erhöhen', 'lautstaerke_plus');
+  shortcuts.registriere('Ctrl+Shift+PageDown', () => soundLautstaerke(-5), 'Lautstärke verringern', 'lautstaerke_minus');
 
   // Strg und Pos1: von ueberall im Tisch-Hub zurueck zum Hauptmenue des Tisches
   // (oberster Eintrag mit Fokus). Pos1 allein bleibt "im Menue ganz nach oben".
@@ -293,11 +313,95 @@ function registriereShortcuts() {
   // wird vorher gefragt und auf Wunsch gespeichert.
   shortcuts.registriere('Ctrl+Q', async () => { if (await beendenAblauf()) beenden(); }, 'Skularis beenden', 'beenden');
 
+  registriereTischKuerzel();
+
   // Shift halten und Pfeil: Tooltip. Strg und I oder Doppelklick: Info-Fenster.
   // Beides steuert das Info-Fenster auf der rechten Bildschirmhälfte
   // (ui/infofenster.js). Registriert wird das direkt über keydown/keyup, weil
   // der Shortcut-Manager nur auf Drücken hört, nicht auf Loslassen.
   registriereInfoFenster();
+}
+
+// --- Tischgebundene Kuerzel (nur mit offenem Tisch wirksam) ---------------
+//
+// Die Wuerfel-Familie des Abenteuertisches (Strg K, P, Z, M, W, A) springt in
+// den Reiter 1 (Meine Initiative-Phase) und oeffnet dort direkt das Ziel-Menue
+// mit dem Fokus oben — Escape fuehrt danach wie gewohnt eine Ebene zurueck.
+// Ausserhalb des Tisches existieren diese Tasten nicht (Modul-Registry).
+function registriereTischKuerzel() {
+  const oeffneInPhase = (lade) => async () => {
+    if (document.querySelector('dialog[open]')) return;
+    if (!reiterHub.aktiviereReiter(1, { frisch: true })) return;
+    try {
+      const scr = await lade();
+      if (scr) screen.push(scr);
+    } catch (e) { console.error('Tisch-Kuerzel:', e); }
+  };
+
+  shortcuts.registriere('Ctrl+K', oeffneInPhase(async () => {
+    const m = await import('./abenteuer/live-spiel.js');
+    return m.kampfwerteScreen();
+  }), 'Kampf (Kämpfen-Menü)', 'ab_kampf', { modul: 'abenteuer' });
+
+  shortcuts.registriere('Ctrl+P', oeffneInPhase(async () => {
+    const m = await import('./abenteuer/kampf-menues.js');
+    return m.profanScreen();
+  }), 'Profane Fertigkeiten und Talente', 'ab_profan', { modul: 'abenteuer' });
+
+  shortcuts.registriere('Ctrl+Z', oeffneInPhase(async () => {
+    const [km, st, db] = await Promise.all([
+      import('./abenteuer/kampf-menues.js'),
+      import('./abenteuer/state.js'),
+      import('./core/db-laden.js'),
+    ]);
+    const a = st.getAbenteuer();
+    if (!a || !km.zauberVorhanden(a.charakter, db.getDb())) { sprache.sage('Keine Zauber bekannt.'); return null; }
+    return km.zauberScreen();
+  }), 'Zauber und Rituale', 'ab_zauber', { modul: 'abenteuer' });
+
+  shortcuts.registriere('Ctrl+M', oeffneInPhase(async () => {
+    const m = await import('./abenteuer/kampf-menues.js');
+    return m.manoeverScreen();
+  }), 'Manöver', 'ab_manoever', { modul: 'abenteuer' });
+
+  shortcuts.registriere('Ctrl+W', oeffneInPhase(async () => {
+    const m = await import('./abenteuer/live-spiel.js');
+    return m.schnellwuerfeScreen();
+  }), 'Schnellwürfe', 'ab_schnellwuerfe', { modul: 'abenteuer' });
+
+  shortcuts.registriere('Ctrl+A', oeffneInPhase(async () => {
+    const m = await import('./abenteuer/kampf-menues.js');
+    return m.attributsprobenScreen();
+  }), 'Attributsproben', 'ab_attribute', { modul: 'abenteuer' });
+
+  // Strg R am Abenteuertisch: Radio- und Post-Verbindung kurz trennen und mit
+  // dem gemerkten Code neu aufbauen (2-Sekunden-Sperre im Audio-Modul).
+  shortcuts.registriere('Ctrl+R', async () => {
+    if (document.querySelector('dialog[open]')) return;
+    try { const m = await import('./meister/audio-bereich.js'); m.radioErneuern(); }
+    catch (e) { console.error('Reconnect:', e); }
+  }, 'Reconnect (Verbindung erneuern)', 'ab_reconnect', { modul: 'abenteuer' });
+
+  // Strg B am Abenteuertisch: Post aktiv abrufen.
+  shortcuts.registriere('Ctrl+B', async () => {
+    if (document.querySelector('dialog[open]')) return;
+    try { const m = await import('./abenteuer/meisterpost.js'); m.postAbrufen(); }
+    catch (e) { console.error('Post-Abruf:', e); }
+  }, 'Post abrufen', 'ab_postabruf', { modul: 'abenteuer' });
+
+  // Strg R am Meistertisch: Senden erneuern (gleicher Schluessel, Hoerer
+  // verbinden sich neu). Strg B: Meisterpost abrufen.
+  shortcuts.registriere('Ctrl+R', async () => {
+    if (document.querySelector('dialog[open]')) return;
+    try { const m = await import('./meister/audio-bereich.js'); m.sendenErneuern(); }
+    catch (e) { console.error('Senden erneuern:', e); }
+  }, 'Senden erneuern', 'me_senden_erneuern', { modul: 'meister' });
+
+  shortcuts.registriere('Ctrl+B', async () => {
+    if (document.querySelector('dialog[open]')) return;
+    try { const m = await import('./meister/postkasten.js'); m.postAbrufen(); }
+    catch (e) { console.error('Post-Abruf:', e); }
+  }, 'Post abrufen', 'me_postabruf', { modul: 'meister' });
 }
 
 /** Titel eines fokussierten Eintrags für die Fensterüberschrift. */
@@ -418,16 +522,7 @@ function initKopfzeile() {
     });
   }
 
-  if (btnSprache) {
-    btnSprache.addEventListener('click', () => {
-      const neu = !sprache.istAn();
-      sprache.setAn(neu);
-      sounds.playClick();
-      const st = document.getElementById('sprache-status-text');
-      if (st) st.textContent = neu ? 'Sprache an' : 'Sprache aus';
-      if (neu) sprache.sage('Sprachausgabe aktiviert.');
-    });
-  }
+  if (btnSprache) btnSprache.addEventListener('click', () => sprachausgabeUmschalten());
 
   if (btnFontPlus) btnFontPlus.addEventListener('click', () => schriftAendern(1));
   if (btnFontMinus) btnFontMinus.addEventListener('click', () => schriftAendern(-1));
