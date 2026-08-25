@@ -4,6 +4,24 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.21, 20. August 2026
+
+
+Einschränkungen wirken jetzt auf alle Proben
+
+- Hat ein Charakter genug Wunden und Erschöpfung, dass laut Ilaris eine pauschale
+  Erschwernis gilt (ab der dritten Einschränkung je minus 2), wird sie am
+  Abenteuertisch jetzt automatisch in JEDE Probe eingerechnet: Attacke, Parade,
+  Manöver, Attributsproben, profane Fertigkeiten und Talente, Zauber.
+- In der Ansage und im Tooltip des letzten Wurfs steht sie als eigener Posten
+  ("Einschränkungen minus 2") — sauber getrennt von der situativen Erschwernis
+  oder Erleichterung, die man weiterhin im Erschwernis-Dialog einstellt, wenn der
+  Meister eine ansagt.
+- Schadenswürfe und Schnellwürfe sind keine Proben und bleiben unberührt. Der
+  Meistertisch bleibt unverändert: der Meister vertraut auf das, was die Spieler
+  aus ihrem System ablesen.
+
+
 Version 1.20, 20. August 2026
 
 

@@ -15,8 +15,27 @@ import * as screen from '../ui/screen.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { knopfDialog, erschwernisDialog } from '../ui/dialog.js';
 import { protokolliere } from '../core/abenteuer.js';
+import { wundabzug } from '../core/regeln.js';
 import { getAbenteuer, speichere } from './state.js';
 import * as post from '../net/post.js';
+
+/**
+ * Pauschaler Abzug aus den Einschraenkungen (Wunden plus Erschoepfung, Ilaris:
+ * ab der dritten je minus 2). Er gilt automatisch fuer JEDE Probe am
+ * Abenteuertisch und wird in Ansage und Tooltip als EIGENER Posten ausgewiesen —
+ * getrennt von der situativen Erschwernis, die der Meister ansagt und die man im
+ * Erschwernis-Dialog einstellt. Am Meistertisch (Charakteransicht) sind die
+ * Zaehler leer, dort bleibt der Abzug automatisch null.
+ */
+function einschraenkungsAbzug() {
+  try {
+    const a = getAbenteuer();
+    if (!a || !a.ressourcen) return 0;
+    const wu = a.ressourcen.Wunden ? (a.ressourcen.Wunden.aktuell || 0) : 0;
+    const er = a.ressourcen.Erschoepfung ? (a.ressourcen.Erschoepfung.aktuell || 0) : 0;
+    return wundabzug(wu + er);
+  } catch { return 0; }
+}
 
 /**
  * Einen Wurf ins verlustfreie Würfelprotokoll legen: Als Spieler wird er (mit
@@ -247,13 +266,17 @@ export async function kampfProbe(o) {
   const wuerfe = [];
   for (let i = 0; i < anzahl; i++) wuerfe.push(1 + Math.floor(Math.random() * 20));
   const wert = anzahl === 3 ? mittel3(wuerfe) : wuerfe[0];
-  const ew = wert + o.probenwert + extraMod - ersch;
+  // Pauschaler Einschraenkungs-Abzug (Wunden plus Erschoepfung) — automatisch,
+  // ZUSAETZLICH zur situativen Erschwernis aus dem Dialog, nie vermischt.
+  const einschr = einschraenkungsAbzug();
+  const ew = wert + o.probenwert + extraMod - ersch - einschr;
   sounds.playWuerfel();
 
   const wuerfelText = anzahl === 3
     ? `drei W20 ${wuerfe.join(', ')}, der mittlere zählt ${wert}`
     : `ein W20 ${wert}`;
   const modText = extraMod ? (extraMod > 0 ? `, Modifikatoren plus ${extraMod}` : `, Modifikatoren minus ${-extraMod}`) : '';
+  const einschrText = einschr ? `, Einschränkungen minus ${einschr}` : '';
   const erschText = ersch ? (ersch > 0 ? `, Erschwernis minus ${ersch}` : `, Erleichterung plus ${-ersch}`) : '';
   const modNamenText = modNamen.length ? ` Modifikatoren: ${modNamen.join(', ')}.` : '';
   // Bei fester Schwierigkeit gleich Erfolg oder Misserfolg ansagen; sonst der
@@ -266,7 +289,7 @@ export async function kampfProbe(o) {
   // Das Probenergebnis steht bewusst ganz vorn — das ist beim Würfeln die
   // wichtigste Zahl. Danach Erfolg/Misserfolg, dann Herkunft (Titel, Würfel,
   // Werte) und zuletzt die Zusätze (Kosten usw.).
-  const ansage = `${vd()}Probenergebnis ${ew}.${erfolgText} ${o.titel}, ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}.${zusatzText}${modNamenText}`;
+  const ansage = `${vd()}Probenergebnis ${ew}.${erfolgText} ${o.titel}, ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${einschrText}${erschText}.${zusatzText}${modNamenText}`;
 
   // Letzten Wurf mehrzeilig fuer den Tooltip merken (bleibt die Sitzung ueber).
   _letzterWurf[o.id] = [
@@ -275,9 +298,10 @@ export async function kampfProbe(o) {
     anzahl === 3 ? `Wurf drei W20 ${wuerfe.join(', ')}` : `Wurf ein W20 ${wuerfe[0]}`,
     anzahl === 3 ? `Mittlerer Wurf zaehlt ${wert}` : null,
     `Dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}`,
+    einschr ? `Einschränkungen minus ${einschr} (Wunden und Erschöpfung)` : null,
   ].filter(Boolean);
 
-  protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${erschText}, Ergebnis ${ew}.${erfolgText}${modNamenText}`);
+  protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${einschrText}${erschText}, Ergebnis ${ew}.${erfolgText}${modNamenText}`);
   speichere();
   zeigeErgebnis(o.id, `Ergebnis ${ew}`, `Letztes Probenergebnis ${ew}${typeof o.schwierigkeit === 'number' ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : ''}`);
   // Fokus liegt nach dem Schließen der Dialoge schon wieder auf dem Schalter
