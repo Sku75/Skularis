@@ -1071,6 +1071,10 @@ export async function radioErneuern() {
     abenteuerOffen = !!(st.getAbenteuer && st.getAbenteuer());
   } catch { /* egal */ }
   if (!abenteuerOffen) { sprache.sage('Nur mit geladenem Abenteuer möglich.'); return; }
+  // Der gemerkte Schluessel liegt in den Grunddaten. Wurde der Audio-Bereich in
+  // dieser Sitzung noch nie geoeffnet, sind sie noch nicht geladen — dann jetzt
+  // nachholen, sonst fiele Strg R ohne Grund auf "keine Verbindung" zurueck.
+  if (!_config) { try { await ladeGrunddaten(); } catch { /* egal */ } }
   const code = sitzung.code() || (_config && _config.radio_letzter_schluessel) || '';
   if (!code) { sprache.sage('Keine Verbindung eingerichtet. Unter Audio den Schlüssel eingeben.'); return; }
   sprache.sage('Verbindung wird erneuert.');

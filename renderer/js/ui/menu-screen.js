@@ -138,18 +138,6 @@ export function menuScreen(opts) {
         // anspringbar. Zählen auch als Überschrift, damit Strg und Pfeil hier hält.
         if (it.kapitel) { b.classList.add('db-menu__kapitel'); b.dataset.ueberschrift = '1'; b.dataset.kapitel = '1'; }
 
-        // Ergebnisfeld rechts in der Zeile, z. B. für den Würfelwurf. Für
-        // Sehende steht das Ergebnis damit direkt neben dem Schalter; für den
-        // Screenreader steckt es in der Beschriftung, deshalb aria-hidden.
-        if (it.ergebnisId) {
-          const erg = document.createElement('span');
-          erg.className = 'db-menu__ergebnis';
-          erg.dataset.ergebnis = it.ergebnisId;
-          erg.setAttribute('aria-hidden', 'true');
-          b.appendChild(erg);
-          b.dataset.ergebnisZiel = it.ergebnisId;
-        }
-
         const label = document.createElement('span');
         label.className = 'db-menu__label';
         label.textContent = it.label;
@@ -178,6 +166,19 @@ export function menuScreen(opts) {
           hint.setAttribute('aria-hidden', 'true');
           b.appendChild(hint);
         }
+        // Ergebnisfeld (z. B. Würfelwurf) in einer EIGENEN Zeile UNTER der
+        // Beschriftung: Bei langen Namen (etwa Zaubern) und großer Schrift lief
+        // es früher rechts aus dem Bild. Für den Screenreader steckt das Ergebnis
+        // in der Beschriftung (aria-label), deshalb hier aria-hidden.
+        if (it.ergebnisId) {
+          const erg = document.createElement('span');
+          erg.className = 'db-menu__ergebnis';
+          erg.dataset.ergebnis = it.ergebnisId;
+          erg.setAttribute('aria-hidden', 'true');
+          b.appendChild(erg);
+          b.dataset.ergebnisZiel = it.ergebnisId;
+        }
+
         // Kurze Fokus-Ansage: Label, dahinter (falls vorhanden) die Taste.
         b.setAttribute('aria-label', tasteText ? `${it.label}, ${tasteText}` : it.label);
 

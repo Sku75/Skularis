@@ -4,6 +4,53 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.22, 25. August 2026
+
+
+Wundschwelle klar erklärt
+
+- Die Wundschwelle wird jetzt getrennt von der modifizierten Wundschwelle angezeigt:
+  eine Zeile "Wundschwelle" (der Wert aus Konstitution) und darunter eine Zeile
+  "Modifizierte Wundschwelle" (mit Rüstung). Vorher stand überall nur "Wundschwelle",
+  gemeint war aber der Wert MIT Rüstung — das führte in die Irre.
+- Der Tooltip erklärt die Formel jetzt in Worten: 4 Wundschwelle Basis plus je 1
+  Wundschwelle je 4 Punkte Konstitution. Dazu Beispiele (Konstitution 4 gibt 5,
+  8 gibt 6, 12 gibt 7), die eigenen Zahlen und die getragenen Rüstungsteile einzeln.
+- Gerechnet wird wie bisher; an den Werten ändert sich nichts.
+
+Würfelergebnis bleibt sichtbar
+
+- Das Würfelergebnis steht jetzt in einer eigenen Zeile unter der Beschriftung. Bei
+  langen Namen (etwa Zaubern) und großer Schrift lief es vorher rechts aus dem Bild.
+  Lange Namen brechen außerdem um, statt die Zeile zu sprengen. Die Ansage ist
+  unverändert: erst die Beschriftung, dann das letzte Ergebnis.
+
+Kopfzeile: vier Schalter für die Maus
+
+- H führt ins Hauptmenü und schließt dabei den offenen Tisch beziehungsweise
+  Charakter. Deshalb kommt jetzt ZUERST dieselbe Abfrage wie bei Escape (Speichern
+  und schließen, ohne Speichern, Abbrechen). Vorher konnte ein ungespeicherter Stand
+  verloren gehen. Es gibt nur noch zwei Zustände: Hauptmenü oder ein Modul mit
+  geladenem Inhalt — nichts bleibt im Hintergrund offen.
+- Neu: M springt zum Menü des offenen Moduls (wie Strg Pos1).
+- Neu: i schaltet das Info-Fenster ein und aus. Passend dazu ist Strg I jetzt ein
+  Umschalter: Der zweite Druck schließt das Fenster wieder.
+- Reihenfolge der Schalter: H, M, Pfeil zurück, i. Alle nur mit der Maus, wie bisher.
+
+Mehr Platz für das Info-Fenster
+
+- Der Inhalt steht jetzt linksbündig statt mittig. Das Info-Fenster belegt die rechte
+  Bildschirmhälfte und verdeckte den Inhalt vorher — jetzt kann man es dauerhaft
+  offen lassen.
+
+Strg R
+
+- Unverändert wie in 1.20 (Abenteuertisch: Verbindung erneuern, Meistertisch: Senden
+  mit gleichem Schlüssel neu starten), aber robuster: Es greift jetzt auch, wenn der
+  Audio-Bereich in dieser Sitzung noch nie geöffnet war — der gemerkte Schlüssel wird
+  dann nachgeladen, statt "keine Verbindung" zu melden.
+
+
 Version 1.21, 20. August 2026
 
 

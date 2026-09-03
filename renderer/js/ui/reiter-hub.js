@@ -210,7 +210,8 @@ export function oeffneHub(o) {
     else screen.entferneAb(anker);
   }
 
-  _aktiv = { anker, punkte, aktiviere, fTaste, bereich: o.bereich };
+  _aktiv = { anker, punkte, aktiviere, fTaste, bereich: o.bereich,
+    beimVerlassen: o.beimVerlassen, verlasse: verlasseZumEinstieg };
   installiereListener();
   if (o.ersetzen) screen.replace(anker); else screen.push(anker);
   return {
@@ -262,4 +263,24 @@ export function aktiviereReiter(nr, opts = {}) {
 /** Den gerade offenen Hub verlassen (falls einer offen ist). */
 export function verlasseAktiven() {
   if (_aktiv) { const a = _aktiv.anker; _aktiv = null; screen.entferneAb(a); }
+}
+
+/**
+ * Den offenen Hub MIT der ueblichen Verlassen-Abfrage schliessen (Speichern und
+ * schliessen / ohne Speichern / Abbrechen) — derselbe Weg wie Escape. Fuer den
+ * H-Schalter oben links: er fuehrt ins Hauptmenue und wuerde sonst einen
+ * geladenen Charakter oder Tisch ungefragt verwerfen.
+ * @returns {Promise<boolean>} true, wenn verlassen wurde (oder gar kein Hub
+ *   offen war); false bei Abbrechen — dann bleibt alles, wie es ist.
+ */
+export async function verlasseAktivenMitAbfrage() {
+  if (!_aktiv || !screen.imStack(_aktiv.anker)) return true; // kein Tisch offen
+  if (document.querySelector('dialog[open]')) return false;  // Dialog hat Vorrang
+  let ent = 'ja';
+  if (typeof _aktiv.beimVerlassen === 'function') {
+    try { ent = await _aktiv.beimVerlassen(); } catch (e) { console.error('beimVerlassen:', e); ent = 'ja'; }
+  }
+  if (ent === 'abbrechen') return false;
+  _aktiv.verlasse();
+  return true;
 }

@@ -9,7 +9,10 @@
 
 .db-menu {
   max-width: 720px;
-  margin: 0 auto;
+  /* Linksbündig statt zentriert (1.22): Das Info-Fenster belegt die rechte
+     Bildschirmhälfte. Stand der Inhalt mittig, verdeckte es ihn — jetzt bleibt
+     rechts Platz, und man kann das Info-Fenster dauerhaft offen lassen. */
+  margin: 0 auto 0 0;
   padding: 2rem 1.5rem 3rem;
   width: 100%;
   display: flex;
@@ -43,13 +46,16 @@
   padding: 1rem 1.25rem;
   font-size: calc(1.2rem + var(--db-font-offset, 0px));
   line-height: 1.35;
+  /* Lange Namen (Zauber, Talente) umbrechen, statt rechts aus dem Bild zu laufen. */
+  overflow-wrap: anywhere;
 }
 
-/* Ergebnisanzeige rechts in einer Menüzeile, etwa das Würfelergebnis.
-   Steht im Quelltext vor der Beschriftung, damit der Umbruch stimmt. */
+/* Ergebnisanzeige (z. B. Würfelwurf) in einer EIGENEN Zeile unter der
+   Beschriftung. Früher schwebte sie rechts in derselben Zeile — bei langen
+   Namen (Zauber) und großer Schrift lief sie aus dem Bild. */
 .db-menu__ergebnis {
-  float: right;
-  margin-left: 1.5rem;
+  display: block;
+  margin-top: 0.35rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   font-size: calc(1.3rem + var(--db-font-offset, 0px));

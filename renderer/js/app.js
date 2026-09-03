@@ -413,8 +413,25 @@ function eintragTitel(el) {
     || 'Eintrag';
 }
 
+// Das Info-Fenster wird verzoegert geladen und modulweit gehalten, damit es
+// sowohl das Kuerzel (Strg I) als auch der i-Schalter in der Kopfzeile bedienen
+// koennen.
+let infofenster = null;
+
+/**
+ * Info-Fenster zum fokussierten Eintrag EIN- und AUSSCHALTEN (Strg I und der
+ * i-Schalter oben). Ist es offen, schliesst der zweite Druck es wieder.
+ */
+export async function infoFensterUmschalten() {
+  if (!infofenster) return;
+  if (infofenster.istOffen()) { infofenster.schliesse(); sprache.sage('Info-Fenster geschlossen.'); return; }
+  const el = document.activeElement;
+  const detail = await detailBaustein(el);
+  if (!hatInhalt(detail)) { sprache.sage('Keine weiteren Informationen.'); return; }
+  infofenster.oeffneInfo(eintragTitel(el), detail);
+}
+
 function registriereInfoFenster() {
-  let infofenster = null;
   import('./ui/infofenster.js').then(m => { infofenster = m; });
 
   // Tooltip: Shift gehalten und Pfeil. Läuft in der Erfassungsphase, damit die
@@ -452,14 +469,9 @@ function registriereInfoFenster() {
     if (e.key === 'Shift' && infofenster.imTooltip()) infofenster.schliesseTooltip();
   }, true);
 
-  // Strg und I: Info-Fenster, bleibt offen.
-  shortcuts.registriere('Ctrl+I', async () => {
-    if (!infofenster) return;
-    const el = document.activeElement;
-    const detail = await detailBaustein(el);
-    if (!hatInhalt(detail)) { sprache.sage('Keine weiteren Informationen.'); return; }
-    infofenster.oeffneInfo(eintragTitel(el), detail);
-  }, 'Info-Fenster öffnen', 'info');
+  // Strg und I: Info-Fenster ein und aus (seit 1.22 ein Umschalter, damit der
+  // i-Schalter in der Kopfzeile dasselbe tut).
+  shortcuts.registriere('Ctrl+I', () => infoFensterUmschalten(), 'Info-Fenster ein und aus', 'info');
 
   // Doppelklick auf einen Eintrag öffnet ebenfalls das Info-Fenster.
   document.addEventListener('dblclick', async (e) => {
@@ -527,12 +539,36 @@ function initKopfzeile() {
   if (btnFontPlus) btnFontPlus.addEventListener('click', () => schriftAendern(1));
   if (btnFontMinus) btnFontMinus.addEventListener('click', () => schriftAendern(-1));
 
-  // Navigations-Schalter oben links: H zum Hauptmenü (Ebene für Ebene, mit den
-  // Wächtern/Verlassen-Abfragen), Pfeil links eine Ebene zurück. Für die Maus;
-  // Blinde nutzen wie gewohnt Escape. Kein Tastatur-Fokus, damit die Pfeil-Menü-
-  // Navigation nicht gestört wird.
+  // Navigations-Schalter oben links (nur Maus, kein Tastatur-Fokus; Blinde
+  // nutzen die Tasten): H zum Hauptmenue, M zum Menue des offenen Moduls,
+  // Pfeil eine Ebene zurueck, i schaltet das Info-Fenster um.
   const btnHaupt = document.getElementById('btn-hauptmenue');
+  const btnModul = document.getElementById('btn-modulmenue');
   const btnZurueck = document.getElementById('btn-zurueck');
-  if (btnHaupt) btnHaupt.addEventListener('click', () => { sounds.playClick(); screen.zumHauptmenue(); });
+  const btnInfo = document.getElementById('btn-info');
+
+  // H: Es gibt nur zwei Zustaende — Hauptmenue oder ein Modul mit geladenem
+  // Inhalt. H fuehrt ins Hauptmenue, schliesst also einen offenen Tisch bzw.
+  // Charakter. Deshalb laeuft ZUERST dieselbe Abfrage wie bei Escape
+  // (Speichern und schliessen / ohne Speichern / Abbrechen); bei Abbrechen
+  // bleibt alles offen. Danach ist nichts mehr im Hintergrund geladen.
+  if (btnHaupt) {
+    btnHaupt.addEventListener('click', async () => {
+      sounds.playClick();
+      if (!await reiterHub.verlasseAktivenMitAbfrage()) return; // abgebrochen
+      await screen.zumHauptmenue();
+    });
+  }
+
+  // M: zum Menue des offenen Moduls (wie Strg Pos1).
+  if (btnModul) {
+    btnModul.addEventListener('click', () => {
+      sounds.playClick();
+      if (reiterHub.hubAktiv()) reiterHub.zumHubTop();
+      else sprache.sage('Kein Tisch geladen. Das Modul-Menue gibt es nur im Charakter-Editor, am Abenteuertisch und am Meistertisch.');
+    });
+  }
+
   if (btnZurueck) btnZurueck.addEventListener('click', () => { sounds.playClick(); screen.zurueck(); });
+  if (btnInfo) btnInfo.addEventListener('click', () => { sounds.playClick(); infoFensterUmschalten(); });
 }

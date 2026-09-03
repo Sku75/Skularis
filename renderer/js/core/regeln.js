@@ -356,7 +356,12 @@ export function abgeleiteteWerte(char) {
   const rs = roh.rs + mod('RS');
   const be = Math.max(roh.be + mod('BE'), 0);
 
-  const ws = 4 + Math.floor(at('KO') / 4) + mod('WS') + rs;
+  // Wundschwelle: 4 Wundschwelle Basis plus je 1 Wundschwelle je 4 Punkte
+  // Konstitution. Erst DANACH kommt der Rüstungsschutz dazu — dieses Ergebnis
+  // ist die MODIFIZIERTE Wundschwelle (WS*). Beide Werte gehen zurück, damit die
+  // Anzeigen sie getrennt benennen (sonst hält man WS* für die Wundschwelle).
+  const wsBasis = 4 + Math.floor(at('KO') / 4) + mod('WS');
+  const ws = wsBasis + rs;
   const mr = 4 + Math.floor(at('MU') / 4) + mod('MR');
   const gs = Math.max(4 + Math.floor(at('GE') / 4) + mod('GS') - be, 1);
   const sb = Math.floor(at('KK') / 4) + mod('SB');
@@ -365,7 +370,35 @@ export function abgeleiteteWerte(char) {
   const schipBasis = 4 + mod('SchiP');
   const schip = schipBasis + (fin >= 2 ? (fin - 2) : -((2 - fin) * 2));
 
-  return { WS: ws, MR: mr, GS: gs, SB: sb, INI: ini, DH: dh, RS: rs, BE: be, SchiP: schip };
+  return { WS: ws, WSBasis: wsBasis, MR: mr, GS: gs, SB: sb, INI: ini, DH: dh, RS: rs, BE: be, SchiP: schip };
+}
+
+/**
+ * Erklärtexte zur Wundschwelle — EINE Quelle für alle Anzeigen (Charakterbogen,
+ * Kämpfen, Charakterstatus). Liefert getrennte Tooltips für die Wundschwelle und
+ * für die modifizierte Wundschwelle, mit der Formel in Worten und den echten
+ * Zahlen des Charakters. Grund: Bisher stand überall nur "Wundschwelle", gemeint
+ * war aber der Wert MIT Rüstung — das führte in die Irre.
+ */
+export function wundschwelleErklaerung(char) {
+  const w = abgeleiteteWerte(char);
+  const ko = (char.attribute && char.attribute.KO) || 0;
+  const schritte = Math.floor(ko / 4);
+  const gruppen = schritte === 0 ? 'keine volle Vierergruppe'
+    : (schritte === 1 ? 'eine volle Vierergruppe' : `${schritte} volle Vierergruppen`);
+
+  const textBasis = 'So wird gerechnet: 4 Wundschwelle Basis plus je 1 Wundschwelle je 4 Punkte Konstitution. '
+    + 'Konstitution 4 gibt Wundschwelle 5, Konstitution 8 gibt 6, Konstitution 12 gibt 7. '
+    + `Deine Werte: Konstitution ${ko}, das ist ${gruppen}, also 4 plus ${schritte} gleich Wundschwelle ${w.WSBasis}. `
+    + 'Gegen Gifte, Krankheiten und rüstungsbrechende Angriffe zählt dieser Wert ohne Rüstung.';
+
+  let textMod = `So wird gerechnet: Wundschwelle ${w.WSBasis} plus Rüstungsschutz ${w.RS} gleich modifizierte Wundschwelle ${w.WS}. `;
+  const teile = ruestungsSetTeile(char);
+  if (teile.length) textMod += `Getragen: ${teile.map(t => `${t.name} Rüstung ${t.rs}`).join(', ')}. `;
+  else if (!w.RS) textMod += 'Zurzeit ist keine Rüstung angelegt, deshalb sind beide Werte gleich. ';
+  textMod += 'Schaden über diesem Wert verursacht eine Wunde, über dem Doppelten zwei, über dem Dreifachen drei, und so weiter.';
+
+  return { basis: w.WSBasis, rs: w.RS, mod: w.WS, textBasis, textMod };
 }
 
 // --- Wunden und Erschöpfung (Ilaris) ---

@@ -11,7 +11,7 @@
  * Abenteuers, wie bisher.
  */
 import { menuScreen } from '../ui/menu-screen.js';
-import { abgeleiteteWerte, fertigkeitBasiswert, fertigkeitProbenwert, waffenwerte, waffenwerteText } from '../core/regeln.js';
+import { abgeleiteteWerte, fertigkeitBasiswert, fertigkeitProbenwert, waffenwerte, waffenwerteText, wundschwelleErklaerung } from '../core/regeln.js';
 import { getDb } from '../core/db-laden.js';
 import { getAbenteuer } from './state.js';
 
@@ -67,7 +67,9 @@ export function baueCharakterbogen(char, db, titel = 'Charakterbogen') {
     eintrag(`${ATTR_NAME[k]} ${k}: ${char.attribute[k] || 0}`);
   }
   kopf('Abgeleitete Werte');
-  eintrag(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Schaden, der über diesem Wert liegt, verursacht eine Wunde; über dem Doppelten zwei, über dem Dreifachen drei, und so weiter. Grundwert ohne Rüstung: 4 plus Konstitution durch 4.');
+  const wsErk = wundschwelleErklaerung(char);
+  eintrag(`Wundschwelle: ${wsErk.basis}`, wsErk.textBasis);
+  eintrag(`Modifizierte Wundschwelle: ${wsErk.mod}`, wsErk.textMod);
   eintrag(`Magieresistenz: ${w.MR}`, 'Schwierigkeit, dich mit schädlicher Magie zu treffen. Bei Zaubern gegen die Magieresistenz zählt der Wurf des Zaubernden dagegen. Wert: 4 plus Mut durch 4.');
   eintrag(`Geschwindigkeit: ${w.GS}`, `So viele Schritt kannst du dich mit einer Aktion Bewegung fortbewegen, hier ${w.GS}. Geradeaus vorwärts das Doppelte, ohne Gepäck und Rüstung das Vierfache; auf unsicherem Boden die Hälfte. Wert: 4 plus Gewandtheit durch 4, minus Behinderung.`);
   eintrag(`Initiative: ${w.INI}`, 'Bestimmt die Reihenfolge im Kampf: wer den höheren Wert hat, handelt zuerst. Wert: gleich dem Attribut Intuition.');

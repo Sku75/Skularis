@@ -8,7 +8,7 @@ import * as sprache from '../sprache.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { wertZeile, infoZeile, abschnittTitel, verbindeDetail } from '../editor/widgets.js';
 import { zahlDialog, knopfDialog } from '../ui/dialog.js';
-import { abgeleiteteWerte, waffenwerte, waffenwerteText, fertigkeitProbenwert, wundabzug, ruestungsSetTeile } from '../core/regeln.js';
+import { abgeleiteteWerte, waffenwerte, waffenwerteText, fertigkeitProbenwert, wundabzug, ruestungsSetTeile, wundschwelleErklaerung } from '../core/regeln.js';
 import { getDb } from '../core/db-laden.js';
 import { leseInventar, istFernkampf, SLOTS, SET_WAFFENLOS, ergaenzeSets } from '../core/ausruestung.js';
 import { protokolliere } from '../core/abenteuer.js';
@@ -278,7 +278,9 @@ export function kampfwerteScreen() {
       wrap.appendChild(abschnittTitel('Abgeleitete Werte'));
       const info2 = (label, detail) => wrap.appendChild(infoZeile(label, detail));
       info2(`Initiative: ${w.INI}`, 'Bestimmt die Reihenfolge im Kampf: wer den höheren Wert hat, handelt zuerst. Zu Kampfbeginn wird 1 W20 plus Initiative gewürfelt. Wert: gleich dem Attribut Intuition.');
-      info2(`Wundschwelle: ${w.WS}`, 'Modifizierte Wundschwelle, sie enthält den Rüstungsschutz der getragenen Rüstung. Schaden, der über diesem Wert liegt, verursacht eine Wunde; über dem Doppelten zwei, über dem Dreifachen drei, und so weiter. Grundwert ohne Rüstung: 4 plus Konstitution durch 4.');
+      const wsErk = wundschwelleErklaerung(char);
+      info2(`Wundschwelle: ${wsErk.basis}`, wsErk.textBasis);
+      info2(`Modifizierte Wundschwelle: ${wsErk.mod}`, wsErk.textMod);
       info2(`Magieresistenz: ${w.MR}`, 'Schwierigkeit, dich mit schädlicher Magie zu treffen. Bei Zaubern gegen die Magieresistenz wird der Wurf des Zaubernden dagegen verglichen. Wert: 4 plus Mut durch 4.');
       info2(`Geschwindigkeit: ${w.GS}`, `So viele Schritt kannst du dich mit einer einfachen Aktion Bewegung fortbewegen, hier also ${w.GS} Schritt. Geradeaus vorwärts das Doppelte, ganz ohne Gepäck und Rüstung das Vierfache; auf unsicherem Boden die Hälfte, kniend ein Viertel. Wert: 4 plus Gewandtheit durch 4, minus Behinderung.`);
       info2(`Durchhaltevermögen: ${w.DH}`, 'Deine Reserve gegen Erschöpfung durch Anstrengung, Hitze oder Kälte. Wert: Konstitution minus zweimal Behinderung.');
@@ -400,18 +402,7 @@ export function charakterstatusScreen() {
       const rTeile = ruestungsSetTeile(char);
       const rsSumme = rTeile.reduce((s, t) => s + t.rs, 0);
       const teilListe = rTeile.map(t => `${t.name} Rüstung ${t.rs}, Behinderung ${t.be}`).join('; ');
-      const wsBasis = w.WS - w.RS; // Grundwert ohne Rüstung (4 plus Konstitution durch 4, plus evtl. Aufschläge)
-      // Erst die Rechenformel, dann die tatsächlich angelegten Werte.
-      let wsDetail = 'So wird gerechnet: Wundschwelle gleich 4 plus Konstitution durch 4, plus dem summierten Rüstungsschutz aller angelegten Rüstungsteile. ';
-      wsDetail += `Deine Werte: Grundwert ohne Rüstung ${wsBasis}`;
-      if (rTeile.length) {
-        wsDetail += `, Rüstung summiert ${rsSumme}`;
-        if (w.RS !== rsSumme) wsDetail += ` plus Aufschlag ${w.RS - rsSumme}`;
-        wsDetail += ` (Teile: ${teilListe})`;
-      } else if (w.RS) {
-        wsDetail += `, Rüstungsschutz ${w.RS}`;
-      }
-      wsDetail += `, modifizierte Wundschwelle ${w.WS}. Schaden über der Wundschwelle verursacht eine Wunde, über dem Doppelten zwei, über dem Dreifachen drei, und so weiter.`;
+      const wsErk = wundschwelleErklaerung(char);
 
       // Rüstungsset wechseln — GANZ OBEN, VOR den Werten: mit Pfeil links/rechts
       // wie der Waffenset-Wähler unter Kämpfen. Jeder Wechsel berechnet die
@@ -439,7 +430,7 @@ export function charakterstatusScreen() {
             speichere();
             screen.refresh('[data-ruest-set]'); // Werte darunter neu bauen, Fokus bleibt auf dieser Zeile
             const w2 = abgeleiteteWerte(char);
-            return `${aktName()}. Wundschwelle ${w2.WS}, Rüstungsschutz ${w2.RS}, Behinderung ${w2.BE}, Geschwindigkeit ${w2.GS}`;
+            return `${aktName()}. Modifizierte Wundschwelle ${w2.WS}, Rüstungsschutz ${w2.RS}, Behinderung ${w2.BE}, Geschwindigkeit ${w2.GS}`;
           },
         });
         zeile.setAttribute('data-ruest-set', '1');
@@ -447,7 +438,9 @@ export function charakterstatusScreen() {
       }
 
       // Wundschwelle UNTER dem Rüstungsset-Wähler: sie hängt vom getragenen Set ab.
-      wrap.appendChild(infoZeile(`Wundschwelle: ${w.WS}`, wsDetail));
+      // Getrennt ausgewiesen, damit klar ist, was die Rüstung beisteuert.
+      wrap.appendChild(infoZeile(`Wundschwelle: ${wsErk.basis}`, wsErk.textBasis));
+      wrap.appendChild(infoZeile(`Modifizierte Wundschwelle: ${wsErk.mod}`, wsErk.textMod));
 
       wrap.appendChild(infoZeile(`Magieresistenz: ${w.MR}`, '4 plus Mut durch 4.'));
       wrap.appendChild(infoZeile(`Geschwindigkeit: ${w.GS}`, '4 plus Gewandtheit durch 4, minus Behinderung.'));
