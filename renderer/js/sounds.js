@@ -81,9 +81,11 @@ const FALLBACK_BEEPS = {
 // damit sich alles gleich laut anfuehlt und zusammenpasst. tab/schliessen/click
 // stammen noch aus dem alten Satz und behalten ihre eigenen Werte.
 const BEDIEN_PEGEL = 0.45;
-// Bewusst leiser (etwa 45 Prozent) als die uebrigen Bedientoene: das staendige
-// Pfeil-hoch-runter und die Textfeld-Toene sollen dezent im Hintergrund bleiben.
-const BEDIEN_LEISE = 0.24;
+// Bewusst leiser als die uebrigen Bedientoene: das staendige Pfeil-hoch-runter
+// und die Textfeld-Toene sollen dezent im Hintergrund bleiben. Seit 1.24 noch
+// einmal um die Haelfte reduziert (Nutzerwunsch: die Menue-Klickgeraeusche bei
+// Pfeil, Eingabetaste und Escape sind auf Dauer zu praesent).
+const BEDIEN_LEISE = 0.12;
 const VOLUME_MAP = {
   navigation: BEDIEN_LEISE,   // Pfeil-Navigation zwischen Zeilen (leiser)
   buch_auf:   BEDIEN_PEGEL,   // Info-Fenster oeffnet (Tooltip)
@@ -98,9 +100,9 @@ const VOLUME_MAP = {
   ap_bezahlen: BEDIEN_PEGEL,  // EP ausgeben
   ap_zurueck:  BEDIEN_PEGEL,  // EP erstatten
   ep_hinzu:    BEDIEN_PEGEL,  // Gesamt-EP hinzugefuegt (Erfolg)
-  tab:        0.30,   // Bildschirmwechsel vor (Alt-Satz)
-  schliessen: 0.30,   // Bildschirmwechsel zurueck (Alt-Satz)
-  click:      0.30,   // Menuepunkt auswaehlen (Alt-Satz)
+  tab:        0.15,   // Bildschirmwechsel vor (Alt-Satz) — seit 1.24 halbiert
+  schliessen: 0.15,   // Bildschirmwechsel zurueck (Escape) — seit 1.24 halbiert
+  click:      0.15,   // Menuepunkt auswaehlen (Eingabetaste) — seit 1.24 halbiert
   grenze:     0.30,   // Anschlag am Listenrand
   post:       0.85,   // Nachrichteneingang: bewusst auffaellig (30 Prozent lauter als zuvor)
   popup:      0.7,    // Pop-up: noch etwas praesenter
@@ -108,8 +110,9 @@ const VOLUME_MAP = {
 const DEFAULT_VOLUME_FACTOR = 0.55;  // Ereignistoene (Wuerfeln, Speichern, Fehler, ...)
 
 // Ebenen-Toene (synthetisch): einheitlicher Grundpegel, an die Gesamtlautstaerke
-// gekoppelt. Bewusst im selben Band wie die uebrigen Bedientoene.
-const EBENE_VOLUME = 0.16;
+// gekoppelt. Bewusst im selben Band wie die uebrigen Bedientoene; seit 1.24
+// zusammen mit den uebrigen Menue-Geraeuschen um die Haelfte reduziert.
+const EBENE_VOLUME = 0.08;
 
 let _soundAn = true;
 let _globalVolume = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
