@@ -4,6 +4,20 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.25, 3. September 2026
+
+
+Ebenen-Ton behält seine Lautstärke
+
+- Nachtrag zu 1.24: Der Ton, dessen Tonhöhe ansteigt und abfällt und damit anzeigt,
+  auf welcher Menüebene man gelandet ist, wurde versehentlich mit leiser gemacht.
+  Er trägt Information und ist jetzt wieder so laut wie vorher — ebenso die beiden
+  Ebenenwechsel-Töne und der Ton des Verlassen-Dialogs.
+- Leiser bleiben nur die reinen Klickgeräusche: Pfeil hoch und runter, die
+  Eingabetaste beim Auswählen und die Töne beim Betreten und Verlassen von
+  Textfeldern.
+
+
 Version 1.24, 3. September 2026
 
 

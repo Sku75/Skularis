@@ -100,8 +100,8 @@ const VOLUME_MAP = {
   ap_bezahlen: BEDIEN_PEGEL,  // EP ausgeben
   ap_zurueck:  BEDIEN_PEGEL,  // EP erstatten
   ep_hinzu:    BEDIEN_PEGEL,  // Gesamt-EP hinzugefuegt (Erfolg)
-  tab:        0.15,   // Bildschirmwechsel vor (Alt-Satz) — seit 1.24 halbiert
-  schliessen: 0.15,   // Bildschirmwechsel zurueck (Escape) — seit 1.24 halbiert
+  tab:        0.30,   // Ebenenwechsel vor — NICHT reduziert (zeigt die Ebene an)
+  schliessen: 0.30,   // Ebenenwechsel zurueck — NICHT reduziert (zeigt die Ebene an)
   click:      0.15,   // Menuepunkt auswaehlen (Eingabetaste) — seit 1.24 halbiert
   grenze:     0.30,   // Anschlag am Listenrand
   post:       0.85,   // Nachrichteneingang: bewusst auffaellig (30 Prozent lauter als zuvor)
@@ -110,9 +110,10 @@ const VOLUME_MAP = {
 const DEFAULT_VOLUME_FACTOR = 0.55;  // Ereignistoene (Wuerfeln, Speichern, Fehler, ...)
 
 // Ebenen-Toene (synthetisch): einheitlicher Grundpegel, an die Gesamtlautstaerke
-// gekoppelt. Bewusst im selben Band wie die uebrigen Bedientoene; seit 1.24
-// zusammen mit den uebrigen Menue-Geraeuschen um die Haelfte reduziert.
-const EBENE_VOLUME = 0.08;
+// gekoppelt. Dieser Ton zeigt ueber seine steigende bzw. fallende Tonhoehe an,
+// auf welcher Menueebene man gelandet ist — er traegt also INFORMATION und wird
+// deshalb bewusst NICHT mitreduziert (Nutzerwunsch 1.25).
+const EBENE_VOLUME = 0.16;
 
 let _soundAn = true;
 let _globalVolume = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
