@@ -66,6 +66,13 @@ export function menuScreen(opts) {
 
       const wrap = document.createElement('div');
       wrap.className = 'db-menu';
+      // Darstellungsart (rein optisch, seit 1.23): 'lesen' = Fliesstext wie im
+      // Buch (Regelwerk, lange Texte), 'blatt' = zweispaltiges Werteblatt
+      // (Charakterbogen). Ohne Angabe bleibt es die gewohnte Menue-Optik.
+      // WICHTIG: Fokus-Reihenfolge, Tastatur und Ansagen sind davon NICHT
+      // betroffen — es aendert sich ausschliesslich das CSS.
+      if (opts.stil === 'lesen') wrap.classList.add('db-menu--lesen');
+      else if (opts.stil === 'blatt') wrap.classList.add('db-menu--blatt');
 
       const h = document.createElement('div');
       h.className = 'db-menu__title';
@@ -138,10 +145,33 @@ export function menuScreen(opts) {
         // anspringbar. Zählen auch als Überschrift, damit Strg und Pfeil hier hält.
         if (it.kapitel) { b.classList.add('db-menu__kapitel'); b.dataset.ueberschrift = '1'; b.dataset.kapitel = '1'; }
 
+        // Im Werteblatt-Stil wird "Bezeichnung: Wert" optisch in zwei Spalten
+        // zerlegt (Wert rechts, untereinander stehend). Das ist NUR die Anzeige:
+        // das aria-label unten bleibt der vollstaendige Text, damit die
+        // Sprachausgabe unveraendert "Konstitution KO, 5" liest.
+        let labelText = it.label;
+        let wertText = '';
+        if (opts.stil === 'blatt' && !it.ueberschrift && !it.kapitel) {
+          const p = String(it.label).lastIndexOf(': ');
+          if (p > 0) {
+            const w = String(it.label).slice(p + 2);
+            // Nur kurze Werte (Zahlen, knappe Angaben) wandern in die Wertespalte.
+            if (w.length <= 14) { labelText = String(it.label).slice(0, p); wertText = w; }
+          }
+        }
+
         const label = document.createElement('span');
         label.className = 'db-menu__label';
-        label.textContent = it.label;
+        label.textContent = labelText;
         b.appendChild(label);
+
+        if (wertText) {
+          const wert = document.createElement('span');
+          wert.className = 'db-menu__wert';
+          wert.setAttribute('aria-hidden', 'true'); // steckt schon im aria-label
+          wert.textContent = wertText;
+          b.appendChild(wert);
+        }
 
         // Tastenkuerzel des Menuepunkts (it.taste, z. B. 'Strg K'): sichtbar
         // rechtsbuendig in voller Schrift (aria-hidden), angesagt HINTEN im

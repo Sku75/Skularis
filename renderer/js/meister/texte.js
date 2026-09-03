@@ -125,7 +125,12 @@ function dokumentScreen(d, initialPos) {
       const a = getMeister();
       const m = merker(a, d.pfad);
       const wrap = document.createElement('div');
-      wrap.className = 'db-menu';
+      // db-lesetext ist NUR eine Optik-Klasse (Fliesstext statt Kaesten, seit
+      // 1.23). An der Barrierefreiheit der Zeilen aendert sie NICHTS: die
+      // Widget-Rolle mit unterdruecktem Rollenwort und der sichtbare Text im
+      // aria-hidden-Kind bleiben unangetastet — sonst kaeme das muehsam
+      // beseitigte "Absatz" bzw. "Schalter" je Zeile zurueck.
+      wrap.className = 'db-menu db-lesetext';
       // Lesemodus: kein Klickton bei hoch und runter (nur Anschlag am Rand), und
       // keine Rollen-Ansagen wie "Schalter" oder "Leerzeile".
       wrap.dataset.lesemodus = '1';

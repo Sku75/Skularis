@@ -302,3 +302,116 @@
   opacity: 0.75;
   font-style: italic;
 }
+
+/* ============================================================
+   Darstellungsarten (seit 1.23) — REIN OPTISCH.
+   Fokus-Reihenfolge, Tastaturbedienung und Sprachausgabe bleiben in allen
+   Varianten unveraendert; es aendert sich nur, wie es aussieht.
+   ============================================================ */
+
+/* --- Lesetext: Regelwerk und lange Texte wie in einem Buch ---
+   Statt einer Kolonne aus Schaltflaechen-Kaesten: Fliesstext in angenehmer
+   Lesebreite. Der Fokus wird durch einen kraeftigen Balken am linken Rand und
+   einen leichten Hintergrund angezeigt — deutlich sichtbar, aber ohne Kasten. */
+.db-menu--lesen .db-menu__list { gap: 0; }
+
+.db-menu--lesen .db-menu__item {
+  background: none;
+  border: none;
+  border-left: 4px solid transparent;   /* Platz fuer den Fokus-Balken */
+  border-radius: 0;
+  padding: 0.3rem 0 0.3rem 0.9rem;
+  max-width: 62ch;                      /* angenehme Lesebreite */
+  line-height: 1.65;
+  font-size: calc(1.05rem + var(--db-font-offset, 0px));
+}
+
+/* Fokus klar sichtbar (auch bei programmatischem Fokus, daher :focus mit). */
+.db-menu--lesen .db-menu__item:focus,
+.db-menu--lesen .db-menu__item:focus-visible {
+  outline: none;
+  border-left-color: var(--db-accent-blue, #44ddff);
+  background: var(--db-bg-surface, rgba(255, 255, 255, 0.07));
+}
+
+/* Ueberschriften und Kapitel bleiben abgesetzt, bekommen aber Luft davor. */
+.db-menu--lesen .db-menu__item.db-menu__ueberschrift {
+  margin-top: 1.4rem;
+  padding-left: 0.9rem;
+  border-bottom: none;
+}
+.db-menu--lesen .db-menu__item.db-menu__kapitel {
+  margin-top: 2.2rem;
+  padding-left: 0.9rem;
+  border-bottom: 2px solid var(--db-accent-gold, #ffcc44);
+  max-width: 62ch;
+}
+
+/* --- Werteblatt: Charakterbogen wie ein Formular ---
+   Bezeichnung links, Wert rechts buendig untereinander (Tabellenziffern), die
+   Abschnitte durch feine Linien getrennt statt durch Kaesten. */
+.db-menu--blatt .db-menu__list { gap: 0; }
+
+.db-menu--blatt .db-menu__item {
+  background: none;
+  border: none;
+  border-left: 4px solid transparent;
+  border-bottom: 1px solid var(--db-border-medium, #2a2a2a);
+  border-radius: 0;
+  padding: 0.45rem 0.3rem 0.45rem 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  max-width: 62ch;
+  font-size: calc(1.1rem + var(--db-font-offset, 0px));
+}
+
+.db-menu--blatt .db-menu__label { flex: 1 1 auto; }
+
+/* Die Wertespalte: rechtsbuendig, Ziffern in gleicher Breite, damit alle
+   Zahlen sauber untereinander stehen. */
+.db-menu--blatt .db-menu__wert {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Der Hinweis bekommt eine eigene Zeile unter Bezeichnung und Wert. */
+.db-menu--blatt .db-menu__item .db-menu__hint { flex: 1 0 100%; margin-top: 0.15rem; }
+
+.db-menu--blatt .db-menu__item:focus,
+.db-menu--blatt .db-menu__item:focus-visible {
+  outline: none;
+  border-left-color: var(--db-accent-blue, #44ddff);
+  background: var(--db-bg-surface, rgba(255, 255, 255, 0.07));
+}
+
+/* Abschnittsueberschriften im Blatt: kraeftig, mit Luft davor, ohne Wertespalte. */
+.db-menu--blatt .db-menu__item.db-menu__ueberschrift {
+  margin-top: 1.5rem;
+  border-bottom: 2px solid var(--db-accent-blue, #44ddff);
+}
+
+/* --- Lesetext ausserhalb des Menue-Moduls (Meistertexte) ---
+   Die Zeilen dort bauen ihre Barrierefreiheit selbst auf (Widget-Rolle mit
+   unterdruecktem Rollenwort, sichtbarer Text im aria-hidden-Kind). Hier wird
+   AUSSCHLIESSLICH das Aussehen gesetzt — an der Struktur aendert sich nichts. */
+.db-lesetext .db-row {
+  border: none;
+  border-left: 4px solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 0.3rem 0 0.3rem 0.9rem;
+  max-width: 62ch;
+  line-height: 1.65;
+  font-size: calc(1.05rem + var(--db-font-offset, 0px));
+}
+.db-lesetext .db-row:focus,
+.db-lesetext .db-row:focus-visible {
+  outline: none;
+  border-left-color: var(--db-accent-blue, #44ddff);
+  background: var(--db-bg-surface, rgba(255, 255, 255, 0.07));
+}

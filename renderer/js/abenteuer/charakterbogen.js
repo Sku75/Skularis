@@ -122,6 +122,8 @@ export function baueCharakterbogen(char, db, titel = 'Charakterbogen') {
     subtitle: 'Nur zum Ansehen. Oben Filtern für die Schnellauskunft. Strg und Pfeil hoch oder runter '
       + 'springt zwischen den Überschriften. Shift und Pfeil-runter liest Details. Escape zurück.',
     items,
+    stil: 'blatt',   // Werteblatt: Bezeichnung links, Wert rechts (nur Optik)
+   
     filter: true,
   });
 }
