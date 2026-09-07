@@ -4,6 +4,27 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.26, 7. September 2026
+
+
+Geldbörse rechnet selbst um
+
+- Bisher war jede Münzsorte ein eigener Zähler ohne Verbindung. Wer 2 Dukaten hatte
+  und 1 Kreuzer ausgeben wollte, musste alle vier Zeilen von Hand umstellen:
+  Dukaten auf 1, Silber auf 9, Heller auf 9, Kreuzer auf 9.
+- Neu im Inventar unter Geldbörse, ganz oben: Geld ausgeben und Geld erhalten. Du
+  wählst die Münze und die Anzahl, den Rest macht Skularis. Aus 2 Dukaten minus
+  1 Kreuzer werden automatisch 1 Dukat, 9 Silber, 9 Heller, 9 Kreuzer.
+- Beim Ausgeben wird geprüft, ob überhaupt genug Geld da ist. Reicht es nicht, sagt
+  Skularis den vorhandenen Bestand an und ändert nichts.
+- Dazu neu: Münzen wechseln. Räumt die Börse auf und rechnet alles in möglichst
+  große Münzen um (aus 15 Heller und 23 Kreuzer werden 1 Silber, 7 Heller, 3 Kreuzer).
+- Die vier Zeilen zum Verstellen von Hand bleiben darunter erhalten, falls der
+  Meister einen bestimmten Bestand vorgibt. Von Hand wird nie automatisch gewechselt.
+- Zur Stufung: 1 Dukat sind 10 Silbertaler, 100 Heller oder 1000 Kreuzer. Jede
+  Aktion wird angesagt und im Protokoll vermerkt.
+
+
 Version 1.25, 3. September 2026
 
 

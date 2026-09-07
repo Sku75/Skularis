@@ -13,9 +13,10 @@
  */
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
+import * as sounds from '../sounds.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { aktionZeile, infoZeile, abschnittTitel, wertZeile } from '../editor/widgets.js';
-import { textDialog, jaNeinDialog } from '../ui/dialog.js';
+import { textDialog, jaNeinDialog, knopfDialog, zahlDialog } from '../ui/dialog.js';
 import { protokolliere } from '../core/abenteuer.js';
 import { leseInventar, schreibeInventar, ORT_MANN, ORT_RUCKSACK } from '../core/ausruestung.js';
 import { BESCHREIBUNG_FELDER, AUSSEHEN_ZEILEN, HINTERGRUND_ZEILEN } from '../core/character.js';
@@ -29,6 +30,91 @@ function geld() {
   const c = char();
   if (!c.geldboerse) c.geldboerse = { dukaten: 0, silber: 0, heller: 0, kupfer: 0 };
   return c.geldboerse;
+}
+
+// --- Aventurische Muenzen ---------------------------------------------------
+//
+// 1 Dukat = 10 Silbertaler = 100 Heller = 1000 Kreuzer. Damit man beim Ausgeben
+// nicht jede der vier Zeilen von Hand umstellen muss (2 Dukaten minus 1 Kreuzer
+// hiesse sonst: Dukaten auf 1, Silber auf 9, Heller auf 9, Kreuzer auf 9),
+// rechnet Skularis intern in Kreuzer und wechselt automatisch. Die kleinste
+// Muenze heisst im Datenfeld historisch 'kupfer', gemeint sind Kreuzer.
+const MUENZEN = [
+  { key: 'dukaten', name: 'Dukaten', wert: 1000 },
+  { key: 'silber',  name: 'Silber',  wert: 100 },
+  { key: 'heller',  name: 'Heller',  wert: 10 },
+  { key: 'kupfer',  name: 'Kreuzer', wert: 1 },
+];
+
+/** Die ganze Boerse als eine Zahl in Kreuzer (kleinste Einheit). */
+function inKreuzer(g) {
+  return MUENZEN.reduce((s, m) => s + (Math.max(0, g[m.key] || 0)) * m.wert, 0);
+}
+
+/** Eine Kreuzer-Summe wieder in moeglichst grosse Muenzen aufteilen (wechseln). */
+function ausKreuzer(summe, g) {
+  let rest = Math.max(0, Math.round(summe));
+  for (const m of MUENZEN) {
+    g[m.key] = Math.floor(rest / m.wert);
+    rest -= g[m.key] * m.wert;
+  }
+  return g;
+}
+
+/** Lesbarer Stand fuer Ansage und Anzeige. */
+function standText(g) {
+  return MUENZEN.map(m => `${g[m.key] || 0} ${m.name}`).join(', ');
+}
+
+/**
+ * Geld ausgeben oder erhalten: Muenzsorte und Anzahl waehlen, danach wird der
+ * Betrag verrechnet und die Boerse automatisch gewechselt. Beim Ausgeben wird
+ * geprueft, ob ueberhaupt genug da ist.
+ * @param {'aus'|'ein'} richtung
+ */
+async function geldAendern(richtung) {
+  const g = geld();
+  const wort = richtung === 'aus' ? 'ausgeben' : 'erhalten';
+  const sorte = await knopfDialog({
+    titel: `Geld ${wort}`,
+    frage: `Du hast ${standText(g)}. Welche Münze?`,
+    knoepfe: MUENZEN.map(m => ({ label: m.name, wert: m.key })),
+  });
+  if (sorte === null) return;
+  const m = MUENZEN.find(x => x.key === sorte);
+  const anzahl = await zahlDialog({
+    titel: `${m.name} ${wort}`,
+    label: `Wie viele ${m.name}?`,
+    wert: 1, min: 1, max: 100000,
+  });
+  if (anzahl === null || anzahl <= 0) return;
+
+  const betrag = anzahl * m.wert;
+  const vorhanden = inKreuzer(g);
+  if (richtung === 'aus' && betrag > vorhanden) {
+    sounds.playError();
+    sprache.sage(`Nicht genug Geld. Du hast nur ${standText(g)}.`);
+    return;
+  }
+  ausKreuzer(richtung === 'aus' ? vorhanden - betrag : vorhanden + betrag, g);
+  protokolliere(getAbenteuer(), `${anzahl} ${m.name} ${richtung === 'aus' ? 'ausgegeben' : 'erhalten'}.`);
+  await speichere();
+  screen.refresh();
+  sounds.playSpeichern();
+  sprache.sage(`${anzahl} ${m.name} ${richtung === 'aus' ? 'ausgegeben' : 'erhalten'}. Du hast jetzt ${standText(g)}.`);
+}
+
+/** Die Boerse aufraeumen: alles in moeglichst grosse Muenzen umwechseln. */
+async function muenzenWechseln() {
+  const g = geld();
+  const vorher = standText(g);
+  ausKreuzer(inKreuzer(g), g);
+  const nachher = standText(g);
+  if (vorher === nachher) { sprache.sage(`Nichts zu wechseln. Du hast ${nachher}.`); return; }
+  await speichere();
+  screen.refresh();
+  sounds.playSpeichern();
+  sprache.sage(`Gewechselt. Du hast jetzt ${nachher}.`);
 }
 
 function gegenstaende() { return leseInventar(char()).gegenstaende || []; }
@@ -133,6 +219,21 @@ function geldboerseScreen() {
       const wrap = document.createElement('div');
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel('Geldbörse'));
+
+      // Oben die haeufigen Aktionen mit automatischer Umrechnung, darunter die
+      // vier Muenzzeilen zum Verstellen von Hand (Notfall, z. B. wenn der
+      // Meister einen bestimmten Muenzbestand vorgibt).
+      wrap.appendChild(infoZeile(`Du hast: ${standText(g)}`,
+        '1 Dukat sind 10 Silbertaler, 100 Heller oder 1000 Kreuzer. '
+        + 'Ausgeben und Erhalten rechnen automatisch um; die vier Zeilen darunter stellst du bei Bedarf von Hand.'));
+      wrap.appendChild(aktionZeile('Geld ausgeben', () => geldAendern('aus'),
+        'Münze und Anzahl wählen; es wird automatisch gewechselt'));
+      wrap.appendChild(aktionZeile('Geld erhalten', () => geldAendern('ein'),
+        'Münze und Anzahl wählen; es wird automatisch gewechselt'));
+      wrap.appendChild(aktionZeile('Münzen wechseln', () => muenzenWechseln(),
+        'räumt die Börse auf: alles in möglichst große Münzen'));
+
+      wrap.appendChild(abschnittTitel('Von Hand verstellen'));
       const muenze = (key, name) => wertZeile({
         label: name,
         get: () => g[key] || 0,
