@@ -230,7 +230,7 @@ function geldboerseScreen() {
         'Münze und Anzahl wählen; es wird automatisch gewechselt'));
       wrap.appendChild(aktionZeile('Geld erhalten', () => geldAendern('ein'),
         'Münze und Anzahl wählen; es wird automatisch gewechselt'));
-      wrap.appendChild(aktionZeile('Münzen wechseln', () => muenzenWechseln(),
+      wrap.appendChild(aktionZeile('Münzen wechseln/Geldbörse aufräumen', () => muenzenWechseln(),
         'räumt die Börse auf: alles in möglichst große Münzen'));
 
       wrap.appendChild(abschnittTitel('Von Hand verstellen'));

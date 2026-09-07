@@ -4,6 +4,12 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.27, 7. September 2026
+
+
+- Die Schaltfläche in der Geldbörse heißt jetzt Münzen wechseln/Geldbörse aufräumen.
+
+
 Version 1.26, 7. September 2026
 
 
