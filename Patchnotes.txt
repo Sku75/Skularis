@@ -4,6 +4,26 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.28, 9. September 2026
+
+
+Hintergrundklänge kommen endlich laut genug an
+
+- Der Hintergrund-Kanal lief bisher mit nur 10 Prozent in den Sendestrom. Er ist
+  jetzt dreifach so laut (30 Prozent). Der Abspielen-Kanal bleibt bei 100 Prozent,
+  der Hintergrund ist also weiterhin leiser, aber deutlich hörbar.
+- Zweite Ursache, die noch stärker wog: Die Empfangslautstärke beim Spieler
+  startete mit nur 25 Prozent. Wer den eigenen Radio-Regler nie angefasst hatte,
+  hörte den Hintergrund am Ende mit rund 2 Komma 5 Prozent — egal wie laut Windows
+  und Skularis standen. Der Startwert liegt jetzt bei 80 Prozent.
+- Beide Werte bleiben frei einstellbar: Der Meister regelt den Hintergrund unter
+  F12, Lautstärken (Hintergrund-Lautstärke, wie gesendet), der Spieler seinen
+  Empfang unter F12, Radio-Lautstärke.
+- Hinweis für Spieler, die den Radio-Regler früher schon verstellt haben: Ihr
+  gespeicherter Wert bleibt erhalten. Wer es zu leise findet, zieht ihn einmalig
+  unter F12 hoch.
+
+
 Version 1.27, 7. September 2026
 
 

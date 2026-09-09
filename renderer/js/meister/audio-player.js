@@ -15,7 +15,7 @@
  *
  * DREI monophone Kanaele, die der Meister starten kann:
  *   - 'abspielen'    normale Lautstaerke
- *   - 'hintergrund'  leiser (75 Prozent runter), fuer Stimmung unter dem Spiel
+ *   - 'hintergrund'  leiser (Standard 30 Prozent), fuer Stimmung unter dem Spiel
  *   - 'einspielen'   kurzes Darueberlegen; senkt die anderen beiden solange (Ducking)
  * Jeder Kanal steht fuer sich: startet man auf einem Kanal etwas Neues, wird der
  * bisherige Klang DIESES Kanals weich ausgeblendet und der neue eingeblendet
@@ -35,7 +35,13 @@ let _monitor = null;
 let _radioDest = null;
 let _sendeMono = false; // Sendestrom einkanalig (spart Daten); Standard Stereo
 let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
-let _hintergrundVol = 0.10; // Standard: wie laut der Hintergrund-Kanal in den Mix (und damit in den Stream) geht — bewusst deutlich leiser als Abspielen
+// Wie laut der Hintergrund-Kanal in den Mix und damit in den Sendestrom geht.
+// Seit 1.28 DREIFACH (0.10 -> 0.30): Die Spieler berichteten, dass die
+// Hintergründe selbst bei voll aufgedrehtem Skularis zu leise ankamen — der
+// Kanal lief mit nur 10 Prozent in den Stream. Weiterhin leiser als der
+// Abspielen-Kanal (100 Prozent), aber jetzt hörbar. Im Audio-Bereich unter
+// Lautstärken frei einstellbar (0 bis 100).
+let _hintergrundVol = 0.30;
 let _appMaster = 1; // Anwendungslautstaerke (Numblock +/-): skaliert nur den EIGENEN Abhoer-Bus mit, nie den Sendestrom (radioDest haengt VOR dem Monitor)
 
 /** Ziel-Gain des Abhoer-Busses: Abhoer-Lautstaerke × Anwendungslautstaerke.
@@ -135,7 +141,7 @@ function gibFrei(kanal, eintrag) {
  * @param {{pfad:string, name:string}} datei
  * @param {object} [opts]
  * @param {boolean} [opts.loop=false]  in Schleife
- * @param {number}  [opts.pegel=1]     Ziel-Lautstaerke 0..1 (Hintergrund: 0.25)
+ * @param {number}  [opts.pegel=1]     Ziel-Lautstaerke 0..1 (Hintergrund: 0.30)
  * @param {Function}[opts.onEnde]      Aufruf bei NATUERLICHEM Ende (Playlist-Weiter)
  */
 export async function spieleKanal(kanal, datei, opts = {}) {

@@ -29,7 +29,12 @@ let _peer = null;
 let _rolle = null;         // 'sender' | 'hoerer'
 const _calls = new Set();  // Sender: verbundene Hoerer
 let _audioEl = null;       // Hoerer: Wiedergabe-Element
-let _hoererVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
+// Empfangslautstaerke des Spielers. Standard seit 1.28 deutlich hoeher (0.25
+// -> 0.80): Mit einem Viertel als Startwert kam der Tisch selbst bei voll
+// aufgedrehtem System zu leise an, und viele Spieler wussten nicht, dass es
+// dafuer einen eigenen Regler gibt. Wer ihn schon einmal verstellt hat,
+// behaelt seinen gespeicherten Wert (radio_hoerer_vol).
+let _hoererVol = 0.80;
 let _appMaster = 1; // Anwendungslautstaerke (Numblock +/-): skaliert den Radio-EMPFANG mit, nie den eigenen Sendestrom
 
 // Beim Laden am Master in sounds.js anmelden — app.js muss dieses Modul dafuer
