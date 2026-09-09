@@ -41,6 +41,12 @@ async function ladeGrunddaten() {
   if (!_config) {
     try { const r = await ipc.configLesen(); _config = (r && r.config) || {}; } catch { _config = {}; }
     if (_config.audio_monitor_vol != null) player.setMonitorLautstaerke(_config.audio_monitor_vol);
+    // Einmalige Umstellung 1.30: Die Hintergrund-Lautstaerke zaehlt jetzt das,
+    // was auf der Leitung ankommt (vorher der Wert VOR der Sendeverstaerkung).
+    // Ein alter gespeicherter Wert meint in der neuen Zaehlung etwas anderes,
+    // deshalb wird er einmalig auf 50 gesetzt. Danach gilt wieder, was der
+    // Meister unter Lautstaerken einstellt.
+    if (!_config.audio_hg_leitung) { merke('audio_hintergrund_vol', 50); merke('audio_hg_leitung', 1); }
     if (_config.audio_hintergrund_vol != null) player.setHintergrundLautstaerke(_config.audio_hintergrund_vol);
     if (_config.radio_hoerer_vol != null) radio.setHoererLautstaerke(_config.radio_hoerer_vol);
     if (_config.radio_letzter_schluessel) { _schluessel = _config.radio_letzter_schluessel; sitzung.setMeisterCode(_schluessel); }
@@ -781,7 +787,7 @@ function lautstaerkenScreen() {
         label: 'Hintergrund-Lautstärke (wie gesendet)', get: () => player.getHintergrundLautstaerke(),
         set: (v) => { player.setHintergrundLautstaerke(v); merke('audio_hintergrund_vol', v); },
         min: 0, max: 100, ohneTon: true, nurWert: true, stumm: true,
-        detail: 'Wie laut der Hintergrund-Kanal in den Radio-Stream geht. Stell ihn leiser, wenn die Spieler den Hintergrund zu laut finden. Wirkt sofort auf einen laufenden Hintergrund und auf alles Neue.',
+        detail: 'Wie laut der Hintergrund-Kanal bei den Spielern ankommt, gemessen am Abspielen-Kanal mit seinen 100 Prozent. 50 heißt also halb so laut wie Abspielen. Die Sendeverstärkung ist dabei schon herausgerechnet. Wirkt sofort auf einen laufenden Hintergrund und auf alles Neue.',
       }));
       verbindeDetail(wrap);
       rueckKnopf(wrap);

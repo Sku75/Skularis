@@ -49,13 +49,14 @@ let _sendeLimit = null;
 let _sendeVerstaerkung = 3;
 let _sendeMono = false; // Sendestrom einkanalig (spart Daten); Standard Stereo
 let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
-// Wie laut der Hintergrund-Kanal in den Mix und damit in den Sendestrom geht.
-// Seit 1.28 DREIFACH (0.10 -> 0.30): Die Spieler berichteten, dass die
-// Hintergründe selbst bei voll aufgedrehtem Skularis zu leise ankamen — der
-// Kanal lief mit nur 10 Prozent in den Stream. Weiterhin leiser als der
-// Abspielen-Kanal (100 Prozent), aber jetzt hörbar. Im Audio-Bereich unter
-// Lautstärken frei einstellbar (0 bis 100).
-let _hintergrundVol = 0.30;
+// Wie laut der Hintergrund-Kanal AUF DER LEITUNG ankommt, also nach der
+// Sendeverstaerkung. Seit 1.30 zaehlt der Wert genau so, wie ihn der Meister
+// meint: 50 heisst 50 Prozent im Sendestrom. Vorher war es der Wert VOR der
+// Verstaerkung — mit der Dreifach-Verstaerkung aus 1.29 wanderten eingestellte
+// 30 Prozent auf 90 hoch, und die Staffelung gegen den Abspielen-Kanal
+// (100 Prozent) war dahin. Der Kanalpegel wird jetzt zurueckgerechnet, siehe
+// getHintergrundPegel(). Im Audio-Bereich unter Lautstaerken frei einstellbar.
+let _hintergrundVol = 0.50;
 let _appMaster = 1; // Anwendungslautstaerke (Numblock +/-): skaliert nur den EIGENEN Abhoer-Bus mit, nie den Sendestrom (radioDest haengt VOR dem Monitor)
 
 /** Ziel-Gain des Abhoer-Busses: Abhoer-Lautstaerke × Anwendungslautstaerke.
@@ -171,7 +172,7 @@ function gibFrei(kanal, eintrag) {
  * @param {{pfad:string, name:string}} datei
  * @param {object} [opts]
  * @param {boolean} [opts.loop=false]  in Schleife
- * @param {number}  [opts.pegel=1]     Ziel-Lautstaerke 0..1 (Hintergrund: 0.30)
+ * @param {number}  [opts.pegel=1]     Ziel-Lautstaerke 0..1 (Hintergrund: getHintergrundPegel())
  * @param {Function}[opts.onEnde]      Aufruf bei NATUERLICHEM Ende (Playlist-Weiter)
  */
 export async function spieleKanal(kanal, datei, opts = {}) {
@@ -395,11 +396,20 @@ export function stoppePfad(pfad) {
 export function setHintergrundLautstaerke(prozent) {
   _hintergrundVol = Math.max(0, Math.min(1, prozent / 100));
   const e = _kanaele.hintergrund;
-  if (e && !e.gestoppt) { e.pegel = _hintergrundVol; try { rampe(e.gain.gain, Math.max(0.0001, _hintergrundVol), 0.3); } catch { /* egal */ } }
+  const ziel = getHintergrundPegel();
+  if (e && !e.gestoppt) { e.pegel = ziel; try { rampe(e.gain.gain, Math.max(0.0001, ziel), 0.3); } catch { /* egal */ } }
 }
 export function getHintergrundLautstaerke() { return Math.round(_hintergrundVol * 100); }
-/** Aktueller Ziel-Pegel (0..1) fuer neu gestartete Hintergrund-Klaenge. */
-export function getHintergrundPegel() { return _hintergrundVol; }
+
+/** Aktueller Ziel-Pegel (0..1) fuer neu gestartete Hintergrund-Klaenge.
+ *  Zurueckgerechnet: Der eingestellte Wert ist der auf der LEITUNG gewuenschte
+ *  Anteil, der Kanal selbst muss also um die Sendeverstaerkung leiser laufen.
+ *  Beispiel: eingestellt 50, Verstaerkung 3 -> Kanal 16,7 Prozent, nach der
+ *  Verstaerkung wieder 50 Prozent im Sendestrom. */
+export function getHintergrundPegel() {
+  const v = _sendeVerstaerkung > 0 ? _sendeVerstaerkung : 1;
+  return Math.max(0, Math.min(1, _hintergrundVol / v));
+}
 
 /** Eigene Abhoer-Lautstaerke (0 bis 100) — beeinflusst NICHT die Hoerer. */
 export function setMonitorLautstaerke(prozent) {
@@ -486,6 +496,10 @@ export function setSendeMono(mono) {
 export function setSendeVerstaerkung(faktor) {
   _sendeVerstaerkung = Math.max(0.1, Math.min(6, Number(faktor) || 1));
   if (_sendeGain) { try { rampe(_sendeGain.gain, _sendeVerstaerkung, 0.2); } catch { /* egal */ } }
+  // Ein laufender Hintergrund muss mitziehen, sonst stimmt sein Anteil auf der
+  // Leitung nicht mehr (der eingestellte Wert meint ja das Ergebnis).
+  const e = _kanaele.hintergrund;
+  if (e && !e.gestoppt) { const ziel = getHintergrundPegel(); e.pegel = ziel; try { rampe(e.gain.gain, Math.max(0.0001, ziel), 0.2); } catch { /* egal */ } }
 }
 
 /** Aktuelle Sende-Verstaerkung als Faktor. */

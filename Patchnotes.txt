@@ -4,6 +4,27 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.30, 9. September 2026
+
+
+Die Hintergrund-Lautstärke zählt jetzt das, was ankommt
+
+- Der eingestellte Wert war bisher der Pegel VOR der Sendeverstärkung. Mit der
+  Dreifach-Verstärkung aus 1.29 wanderten eingestellte 30 Prozent damit auf 90
+  hoch, und die saubere Staffelung gegen den Abspielen-Kanal mit seinen 100
+  Prozent war dahin.
+- Jetzt meint der Wert das Ergebnis: 50 heißt 50 Prozent im Sendestrom, also halb
+  so laut wie Abspielen. Die Verstärkung wird intern herausgerechnet.
+- Der Startwert steht auf 50 Prozent. Das ist der Kompromiss zwischen der alten,
+  zu leisen Staffelung von 30 und den 90, bei denen Hintergrund und Abspielen
+  fast gleich laut ankamen.
+- Ein früher gespeicherter Wert wird einmalig auf 50 gesetzt, weil er in der
+  neuen Zählung etwas anderes bedeuten würde. Danach gilt wieder, was unter F12,
+  Lautstärken eingestellt wird.
+- Unverändert: Abspielen sendet mit 100 Prozent, Einspielen mit 100 Prozent und
+  senkt Abspielen und Hintergrund für seine Dauer auf die Hälfte.
+
+
 Version 1.29, 9. September 2026
 
 
