@@ -6,12 +6,19 @@
  *
  *   je Klang: BufferSource -> KanalGain --\
  *                                          mixBus --> monitorGain --> Lautsprecher
- *                                             \-----> radioDest (Sendestrom fuers Radio)
+ *                                             \-----> sendeGain --> sendeLimit --> radioDest
  *
  * Der mixBus buendelt alles, was der Meister abspielt. Von dort geht es zum einen
  * ueber monitorGain an die eigenen Lautsprecher (dessen Lautstaerke regelt der
- * Meister fuer sich, ohne die Hoerer zu beeinflussen) und zum anderen in voller
- * Staerke an radioDest — das ist der Strom, den das Radio an die Spieler sendet.
+ * Meister fuer sich, ohne die Hoerer zu beeinflussen) und zum anderen ueber den
+ * Sendeweg an radioDest — das ist der Strom, den das Radio an die Spieler sendet.
+ *
+ * Der Sendeweg hat seit 1.29 eine eigene Verstaerkung (sendeGain, Standard
+ * DREIFACH). Die Spieler berichteten, dass der Mix selbst bei voll aufgedrehtem
+ * Empfangsregler zu leise ankam: der Sendestrom lief vorher unverstaerkt (Faktor
+ * 1) und liess sich beim Hoerer nicht ueber 100 Prozent heben. Dahinter haengt
+ * sendeLimit, ein Begrenzer (DynamicsCompressor als Limiter), damit laute Stellen
+ * durch die Verstaerkung nicht uebersteuern und knacken.
  *
  * DREI monophone Kanaele, die der Meister starten kann:
  *   - 'abspielen'    normale Lautstaerke
@@ -33,6 +40,13 @@ let _ctx = null;
 let _mixBus = null;
 let _monitor = null;
 let _radioDest = null;
+let _sendeGain = null;
+let _sendeLimit = null;
+// Verstaerkung des Sendestroms zu den Spielern. Seit 1.29 dreifach (vorher 1).
+// Der Begrenzer dahinter faengt ab, was dadurch ueber die Vollaussteuerung
+// hinauslaufen wuerde — leise Sachen (Hintergrund) werden also wirklich dreimal
+// so laut, bereits volle Klaenge bleiben sauber.
+let _sendeVerstaerkung = 3;
 let _sendeMono = false; // Sendestrom einkanalig (spart Daten); Standard Stereo
 let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
 // Wie laut der Hintergrund-Kanal in den Mix und damit in den Sendestrom geht.
@@ -66,10 +80,25 @@ function ctx() {
     _monitor = _ctx.createGain();
     _monitor.gain.value = monitorZiel();
     _radioDest = _ctx.createMediaStreamDestination();
+    // Sendeweg: erst verstaerken, dann begrenzen, dann in den Stream.
+    _sendeGain = _ctx.createGain();
+    _sendeGain.gain.value = _sendeVerstaerkung;
+    _sendeLimit = _ctx.createDynamicsCompressor();
+    // Als Limiter eingestellt: greift erst kurz unter Vollaussteuerung, dann aber
+    // hart, mit schnellem Ansprechen und weichem Loslassen (kein Pumpen).
+    try {
+      _sendeLimit.threshold.value = -2;
+      _sendeLimit.knee.value = 0;
+      _sendeLimit.ratio.value = 20;
+      _sendeLimit.attack.value = 0.003;
+      _sendeLimit.release.value = 0.25;
+    } catch { /* aeltere Umgebungen: Standardwerte tun es auch */ }
     anwendeMono(); // Mono/Stereo fuer den Sendestrom nach Einstellung
     _mixBus.connect(_monitor);
     _monitor.connect(_ctx.destination);
-    _mixBus.connect(_radioDest);
+    _mixBus.connect(_sendeGain);
+    _sendeGain.connect(_sendeLimit);
+    _sendeLimit.connect(_radioDest);
   }
   if (_ctx.state === 'suspended') _ctx.resume();
   return _ctx;
@@ -109,6 +138,7 @@ export function entlade() {
   if (_ctx) {
     try { _ctx.close(); } catch { /* egal */ }
     _ctx = null; _mixBus = null; _monitor = null; _radioDest = null;
+    _sendeGain = null; _sendeLimit = null;
   }
 }
 
@@ -450,6 +480,16 @@ export function setSendeMono(mono) {
   _sendeMono = !!mono;
   anwendeMono();
 }
+
+/** Verstaerkung des Sendestroms setzen (1 = unveraendert, 3 = dreifach).
+ *  Wirkt sofort, auch waehrend gesendet wird. */
+export function setSendeVerstaerkung(faktor) {
+  _sendeVerstaerkung = Math.max(0.1, Math.min(6, Number(faktor) || 1));
+  if (_sendeGain) { try { rampe(_sendeGain.gain, _sendeVerstaerkung, 0.2); } catch { /* egal */ } }
+}
+
+/** Aktuelle Sende-Verstaerkung als Faktor. */
+export function getSendeVerstaerkung() { return _sendeVerstaerkung; }
 
 /** Der Sendestrom fuers Radio (ein Audio-Track mit dem gesamten Mix). */
 export function getSendeStrom() {

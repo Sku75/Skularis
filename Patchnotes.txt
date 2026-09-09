@@ -4,6 +4,24 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.29, 9. September 2026
+
+
+Der gesendete Mix ist jetzt dreifach verstärkt
+
+- Der Sendestrom zu den Spielern lief bisher ohne jede Verstärkung, und beim
+  Spieler war bei 100 Prozent Schluss. Lauter ging schlicht nicht. Jetzt sitzt im
+  Sendeweg eine eigene Verstärkung, die den kompletten Mix dreifach hebt:
+  Hintergrund, Abspielen und Einspielen gemeinsam.
+- Dahinter arbeitet ein Begrenzer. Er fängt die lauten Stellen ab, damit die
+  Verstärkung nicht übersteuert oder knackt. Leise Klänge werden also wirklich
+  dreimal so laut, bereits volle Klänge bleiben sauber.
+- Der Meister hört sich selbst unverändert ab. Die Verstärkung hängt nur im
+  Sendeweg, sein eigener Abhörregler bleibt davon unberührt.
+- Am Empfangsregler der Spieler ändert sich nichts weiter. Wer ihn schon oben
+  hatte, sollte ihn nach dem Update eher wieder etwas zurücknehmen.
+
+
 Version 1.28, 9. September 2026
 
 
