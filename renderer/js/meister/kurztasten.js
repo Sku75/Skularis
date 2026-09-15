@@ -247,6 +247,56 @@ export function pausenZuruecksetzen() {
 
 let _handlerInstalliert = false;
 
+// Welche Strg-Kombinationen die Seite zuletzt ganz normal bekommen hat. Der
+// zweite Empfangsweg aus dem Hauptprozess (before-input-event) meldet JEDEN
+// Strg-Druck; hier steht, welche davon ohnehin schon angekommen sind. Nur was
+// fehlt, wird nachtraeglich ausgeloest.
+const _nativGesehen = new Map();
+const NACHZUEGLER_FENSTER_MS = 400;
+let _nachzueglerLaeuft = false;
+
+function schluessel(e) {
+  return [e.code || '', e.ctrlKey ? 'c' : '', e.shiftKey ? 's' : '', e.altKey ? 'a' : ''].join('|');
+}
+
+/**
+ * Den zweiten Empfangsweg anmelden. Der Hauptprozess sieht Tastendruecke eine
+ * Ebene frueher als die Seite. Kommt ein Druck dort an, aber nicht hier, dann
+ * hat ihn etwas dazwischen verschluckt — dann loesen wir ihn hier von Hand aus.
+ * Kam er normal an, wird die Meldung verworfen, damit nichts doppelt spielt.
+ */
+function installiereNachzuegler() {
+  if (_nachzueglerLaeuft) return;
+  const ipc = window.skularis && window.skularis.ipc;
+  if (!ipc || typeof ipc.onTasteRoh !== 'function') return;
+  _nachzueglerLaeuft = true;
+  ipc.onTasteRoh((d) => {
+    if (!d || !d.ctrl) return;
+    const e = { code: d.code, key: d.key, ctrlKey: !!d.ctrl, shiftKey: !!d.shift, altKey: !!d.alt };
+    const k = schluessel(e);
+    const wann = _nativGesehen.get(k);
+    if (wann && (Date.now() - wann) < NACHZUEGLER_FENSTER_MS) return; // war schon da
+    // Dieselben Waechter wie beim normalen Weg.
+    if (aktiverBereich() !== 'meister') return;
+    if (!getMeister()) return;
+    if (document.querySelector('dialog[open]')) return;
+    const t = document.activeElement;
+    if (t && (t.isContentEditable || t.tagName === 'TEXTAREA'
+      || (t.tagName === 'INPUT' && !['checkbox', 'radio', 'range', 'button'].includes((t.type || 'text').toLowerCase())))) return;
+    const nr = trefferNr(e);
+    if (!nr) return;
+    const dd = slotDaten(nr - 1);
+    if (!istBelegt(dd)) return;
+    spiele(nr - 1);
+  });
+}
+
+/** Hat die Seite diese Kombination zuletzt selbst gesehen? Nur fuer den Tastentest. */
+export function nativGesehen(e) {
+  const wann = _nativGesehen.get(schluessel(e));
+  return Boolean(wann && (Date.now() - wann) < NACHZUEGLER_FENSTER_MS);
+}
+
 /**
  * Den globalen Handler installieren. Er reagiert NUR, wenn ein Meister-Hub offen
  * ist und ein Meisterabenteuer geladen ist. Damit stoert er an keiner anderen
@@ -257,7 +307,9 @@ let _handlerInstalliert = false;
 export function initHandler() {
   if (_handlerInstalliert) return;
   _handlerInstalliert = true;
+  installiereNachzuegler();
   document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey) _nativGesehen.set(schluessel(e), Date.now()); // fuer den Nachzuegler-Abgleich
     if (aktiverBereich() !== 'meister') return;   // nur am Meistertisch
     if (!getMeister()) return;
     if (document.querySelector('dialog[open]')) return; // kein Abfangen bei offenem Dialog

@@ -4,6 +4,31 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.36, 15. September 2026
+
+
+Zweiter Empfangsweg für die Schnelltasten
+
+- Auf manchen Rechnern erreicht eine einzelne Tastenkombination die Anzeige
+  nicht, obwohl Windows und der Screenreader sie sehen. Irgendeine Schicht
+  dazwischen verschluckt sie.
+- Skularis greift solche Kombinationen jetzt eine Ebene früher ab, direkt im
+  Fenster, und reicht sie an die Anzeige weiter. Fehlte der Druck dort, springt
+  dieser zweite Weg ein und löst die Schnelltaste trotzdem aus.
+- Kam der Druck ganz normal an, wird der Nachzügler verworfen. Es spielt also
+  nichts doppelt.
+- Mitgelesen werden nur Kombinationen mit Strg. Beim normalen Tippen läuft
+  keine einzige Meldung mit.
+
+
+Der Tastentest sagt jetzt auch den Weg an
+
+- Kommt ein Druck nur über den zweiten Weg herein, meldet der Tastentest das
+  ausdrücklich: "Nur über den zweiten Weg angekommen."
+- Damit hört man sofort, ob eine Kombination unterwegs verschluckt wird und der
+  Ersatzweg sie aufgefangen hat.
+
+
 Version 1.35, 15. September 2026
 
 
