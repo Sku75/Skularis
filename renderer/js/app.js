@@ -65,7 +65,7 @@ async function init() {
   // Reiter-Tasten der Tische (pro Tisch, mit Menünamen) — umbelegbar in den Optionen.
   const reiterBelegung = (await einstellungen.get('reiter_tasten')) || {};
   reiterTasten.setOverrides(reiterBelegung, (obj) => einstellungen.setWert('reiter_tasten', obj));
-  // Audio-Schnelltasten (Strg+1 bis Strg+´) — Belegung global, in den Optionen umbelegbar.
+  // Audio-Schnelltasten (Strg und AltGr auf der oberen Zahlenreihe) — Belegung global, in den Optionen umbelegbar.
   const kurzBelegung = (await einstellungen.get('kurztasten_belegung')) || {};
   kurztasten.setOverrides(kurzBelegung, (obj) => einstellungen.setWert('kurztasten_belegung', obj));
 

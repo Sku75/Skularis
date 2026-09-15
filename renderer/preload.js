@@ -54,7 +54,6 @@ contextBridge.exposeInMainWorld('skularis', {
     onMenuAktion:       (cb) => ipcRenderer.on('skularis:menu-aktion', (_e, d) => cb(d)),
     onDateiVonCli:      (cb) => ipcRenderer.on('skularis:datei-von-cli', (_e, d) => cb(d)),
     onVorSchliessen:    (cb) => ipcRenderer.on('skularis:vor-schliessen', () => cb()),
-    onTasteRoh:         (cb) => ipcRenderer.on('skularis:taste-roh', (_e, d) => cb(d)),
     antworteSchliessen: (ok) => ipcRenderer.send('skularis:schliessen-antwort', ok),
   },
 });

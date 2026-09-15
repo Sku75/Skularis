@@ -1,11 +1,12 @@
 /**
- * Skularis — Audio-Schnelltasten des Meistertisches (Strg+1 bis Strg+´).
+ * Skularis — Audio-Schnelltasten des Meistertisches (Strg bzw. AltGr und die obere Zahlenreihe).
  *
  * Zwei getrennte Dinge:
  *   1. Die TASTENBELEGUNG (welche physische Taste welchen Platz ausloest) ist
  *      GLOBAL fuers Programm und in den Optionen umbelegbar. Standard sind die
- *      zwoelf Tasten der oberen Zahlenreihe mit Strg: Strg+1 bis Strg+0, Strg+ß,
- *      Strg+´. Gespeichert in den Einstellungen ('kurztasten_belegung').
+ *      zwoelf Tasten der oberen Zahlenreihe mit Strg (Plaetze 1 bis 12) und
+ *      dieselben zwoelf mit AltGr (Plaetze 13 bis 24). Gespeichert in den
+ *      Einstellungen ('kurztasten_belegung').
  *   2. Die BELEGUNG MIT EINER AUDIODATEI (Datei, Modus, Schleife, Lautstaerke)
  *      gehoert zum EINZELNEN Meisterabenteuer (getMeister().kurztasten). Ein neues
  *      Abenteuer startet mit leeren Schnelltasten.
@@ -21,17 +22,23 @@ import * as sprache from '../sprache.js';
 
 // Feste Reihenfolge der Plaetze mit Standard-Kombination. Die Nummer bleibt
 // stabil, auch wenn die Taste umbelegt wird. Zwei Bloecke der oberen Zahlenreihe
-// (Zeichen 1..0, ß, ´): Block 1 mit Strg (Plaetze 1..12), Block 2 mit Strg+Shift
+// (Zeichen 1..0, ß, ´): Block 1 mit Strg (Plaetze 1..12), Block 2 mit AltGr
 // (Plaetze 13..24).
+//
+// Block 2 lag bis 1.36 auf Strg+Shift. Auf mindestens einem Rechner erreichte
+// Strg+Shift+0 die Anwendung ueberhaupt nicht — irgendetwas zwischen Treiber und
+// Fenster verschluckte genau diese Kombination. AltGr ist auf der deutschen
+// Tastatur eine einzige Taste und damit auch bequemer zu greifen. Windows meldet
+// AltGr als Strg plus Alt, deshalb pruefen wir beides.
 const ZEICHEN = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'ß', '´'];
 const SLOTS = [];
 for (let i = 0; i < ZEICHEN.length; i++) SLOTS.push({ nr: i + 1, std: `Strg+${ZEICHEN[i]}` });
-for (let i = 0; i < ZEICHEN.length; i++) SLOTS.push({ nr: i + 13, std: `Strg+Shift+${ZEICHEN[i]}` });
+for (let i = 0; i < ZEICHEN.length; i++) SLOTS.push({ nr: i + 13, std: `Strg+Alt+${ZEICHEN[i]}` });
 
 // Physische Tastencodes der oberen Zahlenreihe -> Position 1..12. Robust auch fuer
 // die ß- und ´-Taste (´ ist auf deutscher Tastatur eine Tot-Taste, deren e.key
 // nicht verlaesslich ist) — deshalb erkennen wir die Standardbelegung ueber den
-// layout-unabhaengigen e.code. Mit Shift verschiebt sich die Position in den
+// layout-unabhaengigen e.code. Mit AltGr verschiebt sich die Position in den
 // zweiten Block (Position + 12).
 const CODE_ZU_POS = {
   Digit1: 1, Digit2: 2, Digit3: 3, Digit4: 4, Digit5: 5, Digit6: 6,
@@ -95,6 +102,14 @@ export function reset(nr) {
  *  Nur zum Nachsehen — loest nichts aus. Der Tastentest in den Optionen nutzt das. */
 export function platzFuer(e) { return trefferNr(e); }
 
+// AltGr erkennen. Windows meldet die Taste als Strg plus Alt; manche Umgebungen
+// setzen zusaetzlich den Modifier AltGraph. Beides gilt.
+function istAltGr(e) {
+  if (e.altKey && e.ctrlKey) return true;
+  try { return Boolean(e.altKey && e.getModifierState && e.getModifierState('AltGraph')); }
+  catch { return false; }
+}
+
 function trefferNr(e) {
   // 1) Umbelegte (und passende Standard-) Kombinationen ueber die Taste selbst.
   const combo = comboAusEvent(e);
@@ -103,12 +118,17 @@ function trefferNr(e) {
     for (const s of SLOTS) if (norm(comboFuer(s.nr)) === c) return s.nr;
   }
   // 2) Standard der Zahlenreihe ueber den physischen Code (deckt ß und ´ sicher
-  //    ab). Ohne Shift Block 1 (Position), mit Shift Block 2 (Position + 12).
-  if (e.ctrlKey && !e.altKey) {
+  //    ab). Mit Strg Block 1 (Position), mit AltGr Block 2 (Position + 12).
+  if (e.ctrlKey || istAltGr(e)) {
     const pos = CODE_ZU_POS[e.code];
     if (pos) {
-      const nr = e.shiftKey ? pos + 12 : pos;
-      if (istStandard(nr)) return nr;
+      // AltGr (Strg+Alt) ist Block 2, Strg allein Block 1. Mit Umschalt gehoert
+      // der Druck zu keinem Platz — sonst wuerde Strg+Umschalt+5 den Platz 5
+      // ausloesen, obwohl der Nutzer etwas anderes wollte.
+      let nr = 0;
+      if (istAltGr(e)) nr = pos + 12;
+      else if (!e.altKey && !e.shiftKey) nr = pos;
+      if (nr && istStandard(nr)) return nr;
     }
   }
   return null;
@@ -168,7 +188,7 @@ export async function spiele(index) {
   }
 
   // Hintergrund-Reihe aus der Platznummer: Plaetze 1 bis 12 (Index 0 bis 11,
-  // mit Strg) sind Reihe 1, Plaetze 13 bis 24 (mit Strg+Shift) sind Reihe 2.
+  // mit Strg) sind Reihe 1, Plaetze 13 bis 24 (mit AltGr) sind Reihe 2.
   // Bewusst an der NUMMER festgemacht und nicht an der Taste, denn die Tasten
   // sind umbelegbar. Fuer den Nutzer heisst beides weiterhin nur Hintergrund.
   const kanal = d.modus === 'hintergrund' ? (index < 12 ? 'hintergrund' : 'hintergrund2') : 'abspielen';
@@ -247,55 +267,6 @@ export function pausenZuruecksetzen() {
 
 let _handlerInstalliert = false;
 
-// Welche Strg-Kombinationen die Seite zuletzt ganz normal bekommen hat. Der
-// zweite Empfangsweg aus dem Hauptprozess (before-input-event) meldet JEDEN
-// Strg-Druck; hier steht, welche davon ohnehin schon angekommen sind. Nur was
-// fehlt, wird nachtraeglich ausgeloest.
-const _nativGesehen = new Map();
-const NACHZUEGLER_FENSTER_MS = 400;
-let _nachzueglerLaeuft = false;
-
-function schluessel(e) {
-  return [e.code || '', e.ctrlKey ? 'c' : '', e.shiftKey ? 's' : '', e.altKey ? 'a' : ''].join('|');
-}
-
-/**
- * Den zweiten Empfangsweg anmelden. Der Hauptprozess sieht Tastendruecke eine
- * Ebene frueher als die Seite. Kommt ein Druck dort an, aber nicht hier, dann
- * hat ihn etwas dazwischen verschluckt — dann loesen wir ihn hier von Hand aus.
- * Kam er normal an, wird die Meldung verworfen, damit nichts doppelt spielt.
- */
-function installiereNachzuegler() {
-  if (_nachzueglerLaeuft) return;
-  const ipc = window.skularis && window.skularis.ipc;
-  if (!ipc || typeof ipc.onTasteRoh !== 'function') return;
-  _nachzueglerLaeuft = true;
-  ipc.onTasteRoh((d) => {
-    if (!d || !d.ctrl) return;
-    const e = { code: d.code, key: d.key, ctrlKey: !!d.ctrl, shiftKey: !!d.shift, altKey: !!d.alt };
-    const k = schluessel(e);
-    const wann = _nativGesehen.get(k);
-    if (wann && (Date.now() - wann) < NACHZUEGLER_FENSTER_MS) return; // war schon da
-    // Dieselben Waechter wie beim normalen Weg.
-    if (aktiverBereich() !== 'meister') return;
-    if (!getMeister()) return;
-    if (document.querySelector('dialog[open]')) return;
-    const t = document.activeElement;
-    if (t && (t.isContentEditable || t.tagName === 'TEXTAREA'
-      || (t.tagName === 'INPUT' && !['checkbox', 'radio', 'range', 'button'].includes((t.type || 'text').toLowerCase())))) return;
-    const nr = trefferNr(e);
-    if (!nr) return;
-    const dd = slotDaten(nr - 1);
-    if (!istBelegt(dd)) return;
-    spiele(nr - 1);
-  });
-}
-
-/** Hat die Seite diese Kombination zuletzt selbst gesehen? Nur fuer den Tastentest. */
-export function nativGesehen(e) {
-  const wann = _nativGesehen.get(schluessel(e));
-  return Boolean(wann && (Date.now() - wann) < NACHZUEGLER_FENSTER_MS);
-}
 
 /**
  * Den globalen Handler installieren. Er reagiert NUR, wenn ein Meister-Hub offen
@@ -307,9 +278,7 @@ export function nativGesehen(e) {
 export function initHandler() {
   if (_handlerInstalliert) return;
   _handlerInstalliert = true;
-  installiereNachzuegler();
   document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey) _nativGesehen.set(schluessel(e), Date.now()); // fuer den Nachzuegler-Abgleich
     if (aktiverBereich() !== 'meister') return;   // nur am Meistertisch
     if (!getMeister()) return;
     if (document.querySelector('dialog[open]')) return; // kein Abfangen bei offenem Dialog

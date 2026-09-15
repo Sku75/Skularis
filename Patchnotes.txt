@@ -4,6 +4,36 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.37, 15. September 2026
+
+
+Der zweite Schnelltasten-Block liegt jetzt auf AltGr
+
+- Die Plätze 13 bis 24 lagen bisher auf Strg Umschalt und der oberen
+  Zahlenreihe. Sie liegen jetzt auf AltGr und derselben Zahlenreihe: AltGr 1 bis
+  AltGr 0, AltGr ß, AltGr Akut.
+- Die Plätze 1 bis 12 bleiben unverändert auf Strg 1 bis Strg Akut.
+- Grund: Auf mindestens einem Rechner erreichte Strg Umschalt 0 die Anwendung
+  überhaupt nicht. Windows und der Screenreader sahen die Taste, Skularis nicht.
+  Zwischen Treiber und Fenster verschluckte etwas genau diese Kombination, und
+  von innen ließ sich das nicht beheben.
+- AltGr ist außerdem eine einzige Taste statt zweier und damit bequemer zu
+  greifen. Windows meldet AltGr als Strg plus Alt, Skularis erkennt beides.
+- Die Belegung der Plätze mit Dateien bleibt vollständig erhalten. Es ändert
+  sich nur, mit welcher Taste ein Platz ausgelöst wird.
+- Wer einen Platz selbst umbelegt hatte, behält seine eigene Kombination.
+- Jeder Platz bleibt frei umbelegbar unter Optionen, Meistertisch,
+  Audio-Schnelltasten.
+
+
+Der zweite Empfangsweg aus 1.36 ist wieder entfernt
+
+- Er hat nichts gebracht: Die fehlende Kombination kam auch im Fenster nicht an.
+  Also fliegt er wieder raus, statt als toter Ballast mitzulaufen.
+- Der Tastentest bleibt. Er hat seinen Zweck erfüllt und ist weiterhin die
+  schnellste Art herauszufinden, ob eine Taste überhaupt ankommt.
+
+
 Version 1.36, 15. September 2026
 
 

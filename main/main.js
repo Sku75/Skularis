@@ -5,7 +5,7 @@ const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron')
 const path = require('path');
 const fs = require('fs');
 
-const VERSION = 'Skularis 1.36';
+const VERSION = 'Skularis 1.37';
 let mainWindow = null;
 
 // Single Instance Lock
@@ -250,27 +250,6 @@ function createWindow() {
   Menu.setApplicationMenu(null);
 
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
-
-  // Zweiter Empfangsweg fuer Tastenkombinationen mit Strg.
-  //
-  // Hintergrund: Auf manchen Rechnern erreicht eine bestimmte Kombination die
-  // Seite nicht, obwohl sie beim Betriebssystem und beim Screenreader ankommt —
-  // irgendeine Schicht dazwischen verschluckt sie. before-input-event greift die
-  // Taste eine Ebene frueher ab, direkt im Fenster, und reicht sie an die Seite
-  // weiter. Die Seite verwirft den Nachzuegler, wenn sie den Druck ohnehin
-  // normal bekommen hat; nur wenn er fehlte, springt dieser Weg ein.
-  //
-  // Bewusst nur mit Strg: Alle Schnelltasten haben Strg, und so laeuft beim
-  // normalen Tippen keine einzige Nachricht mit.
-  mainWindow.webContents.on('before-input-event', (_e, input) => {
-    if (!input || input.type !== 'keyDown' || !input.control) return;
-    try {
-      mainWindow.webContents.send('skularis:taste-roh', {
-        code: input.code, key: input.key,
-        ctrl: !!input.control, shift: !!input.shift, alt: !!input.alt,
-      });
-    } catch { /* Fenster schliesst gerade */ }
-  });
 
   mainWindow.webContents.on('console-message', (_e, level, msg, line, source) => {
     if (level >= 2) console.error(`[Renderer] ${source}:${line} — ${msg}`);

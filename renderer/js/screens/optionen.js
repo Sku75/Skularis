@@ -147,38 +147,6 @@ function tastenName(code) {
   return feste[code] || `Taste ${code}`;
 }
 
-// Laeuft gerade ein Tastentest? Dann sammelt er hier, was die Seite selbst
-// gesehen hat, und kann so melden, wenn ein Druck NUR ueber den zweiten Weg aus
-// dem Hauptprozess hereinkam — das ist genau der Fall, in dem eine Kombination
-// unterwegs verschluckt wird.
-let _testLaeuft = null;
-let _testRohAngemeldet = false;
-
-function testSchluessel(code, ctrl, shift, alt) {
-  return [code || '', ctrl ? 'c' : '', shift ? 's' : '', alt ? 'a' : ''].join('|');
-}
-
-function testRohAnmelden() {
-  if (_testRohAngemeldet) return;
-  const ipc = window.skularis && window.skularis.ipc;
-  if (!ipc || typeof ipc.onTasteRoh !== 'function') return;
-  _testRohAngemeldet = true;
-  ipc.onTasteRoh((d) => {
-    if (!_testLaeuft || !d) return;
-    const k = testSchluessel(d.code, d.ctrl, d.shift, d.alt);
-    // Kurz warten: Der normale Weg ist schneller, der Nachzuegler kommt hinterher.
-    setTimeout(() => {
-      if (!_testLaeuft || _testLaeuft.gesehen.has(k)) return;
-      const teile = [];
-      if (d.ctrl) teile.push('Strg');
-      if (d.shift) teile.push('Umschalt');
-      if (d.alt) teile.push('Alt');
-      teile.push(tastenName(d.code));
-      _testLaeuft.sage(`Nur ueber den zweiten Weg angekommen: ${teile.join(', ')}. Die Seite selbst hat diesen Druck nicht bekommen.`);
-    }, 200);
-  });
-}
-
 /** Modal: jeden Tastendruck ansagen, bis Escape. Zeigt, was bei Skularis ankommt.
  *  Gedacht für den Fall, dass eine Tastenkombination nichts auslöst — kommt gar
  *  keine Ansage, dann erreicht der Tastendruck Skularis nicht, und die Ursache
@@ -198,15 +166,12 @@ function tastentestDialog() {
     dlg.appendChild(live);
     document.body.appendChild(dlg);
     const ansagen = (t) => { live.textContent = ''; requestAnimationFrame(() => { live.textContent = t; }); };
-    testRohAnmelden();
-    _testLaeuft = { gesehen: new Set(), sage: ansagen };
-    const fertig = () => { _testLaeuft = null; try { dlg.close(); } catch { /* egal */ } dlg.remove(); resolve(); };
+    const fertig = () => { try { dlg.close(); } catch { /* egal */ } dlg.remove(); resolve(); };
     dlg.addEventListener('keydown', (e) => {
       e.preventDefault(); e.stopPropagation();
       if (e.key === 'Escape') { fertig(); return; }
       const k = (e.key || '').toLowerCase();
       if (k === 'control' || k === 'shift' || k === 'alt' || k === 'meta') return; // reiner Modifier: weiter warten
-      if (_testLaeuft) _testLaeuft.gesehen.add(testSchluessel(e.code, e.ctrlKey, e.shiftKey, e.altKey));
       const teile = [];
       if (e.ctrlKey) teile.push('Strg');
       if (e.shiftKey) teile.push('Umschalt');
@@ -506,7 +471,7 @@ function meistertischScreen() {
     build() {
       const items = [
         { label: 'Reiter-Tasten (F1 bis F12)', hint: 'jede Reiter-Funktion einzeln umbelegen', onSelect: () => screen.push(reiterBereichScreen('meister')) },
-        { label: 'Audio-Schnelltasten', hint: 'Strg 1 bis Strg Akzent und mit Umschalt, frei umbelegbar', onSelect: () => screen.push(kurztastenBelegungScreen()) },
+        { label: 'Audio-Schnelltasten', hint: 'Strg 1 bis Strg Akzent und dieselben mit AltGr, frei umbelegbar', onSelect: () => screen.push(kurztastenBelegungScreen()) },
       ];
       for (const k of shortcuts.belegbareListe('meister')) items.push(kuerzelEintrag(k));
       items.push({ label: 'Übertragungseinstellungen', hint: 'Qualität und Stereo/Mono für das Meister-Radio (spart Daten)', onSelect: () => screen.push(uebertragungScreen()) });
