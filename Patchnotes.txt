@@ -4,6 +4,19 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.38, 15. September 2026
+
+
+Der Tastentest ist wieder aus dem Menü verschwunden
+
+- Er war ein Werkzeug zur Fehlersuche und hat seinen Zweck erfüllt. Im Alltag
+  braucht ihn niemand, deshalb steht er nicht länger im Weg.
+- Unter Optionen, Meistertisch, Audio-Schnelltasten stehen damit wieder direkt
+  die 24 Plätze.
+- Entfernt wurde alles, was dazugehörte. Es läuft nichts davon im Hintergrund
+  weiter.
+
+
 Version 1.37, 15. September 2026
 
 

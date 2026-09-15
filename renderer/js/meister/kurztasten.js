@@ -98,10 +98,6 @@ export function reset(nr) {
 }
 
 /** Welchen Platz loest ein Tastendruck aus? (Nummer 1..12 oder null) */
-/** Welcher Schnelltasten-Platz wuerde dieser Tastendruck ausloesen? (1..24 oder null)
- *  Nur zum Nachsehen — loest nichts aus. Der Tastentest in den Optionen nutzt das. */
-export function platzFuer(e) { return trefferNr(e); }
-
 // AltGr erkennen. Windows meldet die Taste als Strg plus Alt; manche Umgebungen
 // setzen zusaetzlich den Modifier AltGraph. Beides gilt.
 function istAltGr(e) {
