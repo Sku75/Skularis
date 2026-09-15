@@ -91,6 +91,10 @@ export function reset(nr) {
 }
 
 /** Welchen Platz loest ein Tastendruck aus? (Nummer 1..12 oder null) */
+/** Welcher Schnelltasten-Platz wuerde dieser Tastendruck ausloesen? (1..24 oder null)
+ *  Nur zum Nachsehen — loest nichts aus. Der Tastentest in den Optionen nutzt das. */
+export function platzFuer(e) { return trefferNr(e); }
+
 function trefferNr(e) {
   // 1) Umbelegte (und passende Standard-) Kombinationen ueber die Taste selbst.
   const combo = comboAusEvent(e);

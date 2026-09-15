@@ -125,6 +125,71 @@ function erfasseKombination() {
   });
 }
 
+// Aus dem physischen Tastencode einen Namen machen, den man vorgelesen versteht.
+// Der Code sagt, WELCHE Taste gedrueckt wurde, unabhaengig vom Zeichen, das dabei
+// herauskommt. Auf der deutschen Tastatur liefert etwa Umschalt und 0 ein
+// Gleichheitszeichen, der Code bleibt aber "Digit0".
+function tastenName(code) {
+  if (!code) return 'unbekannte Taste';
+  let m = /^Digit(\d)$/.exec(code);
+  if (m) return `Zifferntaste ${m[1]}`;
+  m = /^Key([A-Z])$/.exec(code);
+  if (m) return `Buchstabe ${m[1]}`;
+  m = /^Numpad(.+)$/.exec(code);
+  if (m) return `Ziffernblock ${m[1]}`;
+  if (/^F\d+$/.test(code)) return `Taste ${code}`;
+  const feste = {
+    Minus: 'Taste ß', Equal: 'Taste Akut', BracketLeft: 'Taste ü', BracketRight: 'Taste Plus',
+    Semicolon: 'Taste ö', Quote: 'Taste ä', Backquote: 'Taste Zirkumflex',
+    Backslash: 'Taste Raute', Comma: 'Taste Komma', Period: 'Taste Punkt', Slash: 'Taste Minus',
+    Space: 'Leertaste', Enter: 'Eingabetaste', Tab: 'Tabulator', Backspace: 'Rücktaste',
+  };
+  return feste[code] || `Taste ${code}`;
+}
+
+/** Modal: jeden Tastendruck ansagen, bis Escape. Zeigt, was bei Skularis ankommt.
+ *  Gedacht für den Fall, dass eine Tastenkombination nichts auslöst — kommt gar
+ *  keine Ansage, dann erreicht der Tastendruck Skularis nicht, und die Ursache
+ *  liegt außerhalb (Windows, Screenreader, ein Hilfsprogramm). */
+function tastentestDialog() {
+  return new Promise((resolve) => {
+    const dlg = document.createElement('dialog');
+    dlg.className = 'db-dialog';
+    dlg.setAttribute('role', 'dialog');
+    dlg.setAttribute('aria-modal', 'true');
+    dlg.setAttribute('aria-label', 'Tastentest');
+    dlg.insertAdjacentHTML('beforeend',
+      '<div class="db-dialog__header" aria-hidden="true"><span class="db-dialog__title">Tastentest</span></div>'
+      + '<div class="db-dialog__body"><p class="db-dialog__label">Druecke eine beliebige Taste oder Tastenkombination. Skularis sagt an, was angekommen ist. Escape beendet den Test.</p></div>');
+    const live = document.createElement('div');
+    live.className = 'sr-only'; live.setAttribute('aria-live', 'assertive');
+    dlg.appendChild(live);
+    document.body.appendChild(dlg);
+    const fertig = () => { try { dlg.close(); } catch { /* egal */ } dlg.remove(); resolve(); };
+    dlg.addEventListener('keydown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === 'Escape') { fertig(); return; }
+      const k = (e.key || '').toLowerCase();
+      if (k === 'control' || k === 'shift' || k === 'alt' || k === 'meta') return; // reiner Modifier: weiter warten
+      const teile = [];
+      if (e.ctrlKey) teile.push('Strg');
+      if (e.shiftKey) teile.push('Umschalt');
+      if (e.altKey) teile.push('Alt');
+      teile.push(tastenName(e.code));
+      let text = teile.join(', ');
+      if (e.key && e.key.length === 1) text += `. Zeichen ${e.key}`;
+      let nr = null;
+      try { nr = kurztasten.platzFuer(e); } catch { /* egal */ }
+      text += nr ? `. Schnelltaste ${nr}.` : '. Keiner Schnelltaste zugeordnet.';
+      // Immer neu setzen, damit auch dieselbe Taste zweimal angesagt wird.
+      live.textContent = '';
+      requestAnimationFrame(() => { live.textContent = text; });
+    }, true);
+    dlg.showModal();
+    requestAnimationFrame(() => { live.textContent = 'Tastentest. Druecke eine Taste. Escape beendet.'; });
+  });
+}
+
 /** Menü-Eintrag für EIN umbelegbares Kürzel aus der Registry (mit Konfliktprüfung). */
 function kuerzelEintrag(k) {
   return {
@@ -287,7 +352,15 @@ function kurztastenBelegungScreen() {
   return {
     title: 'Audio-Schnelltasten',
     build() {
-      const items = kurztasten.liste().map(k => ({
+      // Ganz oben das Messgerät: Löst eine Kombination nichts aus, zeigt der
+      // Tastentest, ob der Tastendruck bei Skularis überhaupt ankommt.
+      const items = [{
+        label: 'Tastentest',
+        hint: 'Enter: prüfen, was bei Skularis ankommt',
+        detail: 'Drücke danach eine beliebige Taste oder Tastenkombination. Skularis sagt an, welche Taste angekommen ist und welcher Schnelltaste sie entspricht. Kommt gar keine Ansage, dann erreicht der Tastendruck Skularis nicht — die Ursache liegt dann außerhalb, etwa bei Windows, beim Screenreader oder bei einem anderen Programm. Escape beendet den Test.',
+        onSelect: async () => { await tastentestDialog(); sprache.sage('Tastentest beendet.'); },
+      }];
+      kurztasten.liste().forEach(k => items.push({
         label: `Schnelltaste ${k.nr}: ${shortcuts.kuerzelText(k.combo)}`,
         hint: 'Enter: neu belegen oder auf Standard zurücksetzen',
         onSelect: async () => {

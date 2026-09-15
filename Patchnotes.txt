@@ -4,6 +4,25 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.35, 15. September 2026
+
+
+Neuer Tastentest bei den Audio-Schnelltasten
+
+- In den Optionen, unter Audio-Schnelltasten, steht jetzt ganz oben der
+  Tastentest.
+- Drücke darin eine beliebige Taste oder Tastenkombination. Skularis sagt an,
+  welche Taste angekommen ist, welches Zeichen sie erzeugt und welcher
+  Schnelltaste sie entspricht. Zum Beispiel: "Strg, Umschalt, Zifferntaste 0.
+  Zeichen Gleich. Schnelltaste 22."
+- Kommt gar keine Ansage, dann erreicht der Tastendruck Skularis überhaupt
+  nicht. Die Ursache liegt dann außerhalb: bei Windows, beim Screenreader oder
+  bei einem anderen Programm, das die Kombination vorher abfängt.
+- Escape beendet den Test.
+- Gedacht für den Fall, dass eine Schnelltaste nichts auslöst, obwohl sie belegt
+  ist. Statt zu raten, hört man in fünf Sekunden, wo das Problem liegt.
+
+
 Version 1.34, 15. September 2026
 
 
