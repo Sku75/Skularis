@@ -235,7 +235,12 @@ export function pausiereKanal(kanal) {
   if (!isFinite(pos) || pos < 0) pos = 0;
   e.gestoppt = true;
   _kanaele[kanal] = null;
-  try { rampe(e.gain.gain, 0, 0.12); e.source.stop(c.currentTime + 0.16); } catch { /* schon gestoppt */ }
+  // Seit 1.34 blendet die Pause genauso weich aus wie das Stoppen (FADE_AUS) —
+  // vorher waren es 0,12 Sekunden, also praktisch ein Schnitt, waehrend eine
+  // Schleife ueber 4,8 Sekunden eingeblendet hatte. Die gemerkte Stelle wird zum
+  // Zeitpunkt des Tastendrucks genommen, beim Weiterspielen ueberlappt das
+  // Ausblenden also um diese Zeit. Das faellt nicht auf und klingt sauberer.
+  try { rampe(e.gain.gain, 0, FADE_AUS); e.source.stop(c.currentTime + FADE_AUS + 0.05); } catch { /* schon gestoppt */ }
   _pausiert[kanal] = { pfad: e.pfad, name: e.name, pegel: e.pegel, loop: e.loop, pos: pos };
   return true;
 }

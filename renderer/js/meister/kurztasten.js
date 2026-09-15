@@ -195,6 +195,7 @@ export async function spiele(index) {
   try {
     const mod = await import('./audio-bereich.js');
     if (mod.stopPlaylistWiedergabe) mod.stopPlaylistWiedergabe();
+    if (mod.panikZuruecksetzen) mod.panikZuruecksetzen(); // die Strg-F12-Leiter beginnt neu
   } catch { /* egal */ }
   try {
     const zielPegel = pegel != null ? pegel : (kanal === 'abspielen' ? 1 : player.getHintergrundPegel());

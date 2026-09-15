@@ -36,6 +36,7 @@ let _playlists = null;       // { auto:bool, listen:[{name, sounds:[{name,pfad}]
 let _autoWeiter = false;     // Playlist: automatisch zum nächsten Titel
 let _plToken = 0;            // laufende Playlist-Wiedergabe (Abbruch-Marke)
 let _kurzPlaylist = null;    // { name, kanal } der ueber eine Schnelltaste laufenden Playlist
+let _panikStand = 0;         // wie weit Strg+F12 schon aufgeraeumt hat (0 bis 3)
 
 async function ladeGrunddaten() {
   if (!_config) {
@@ -84,6 +85,7 @@ const HINTERGRUND_PEGEL = 0.25;
 
 // Abspielen-Kanal (normale Lautstärke). Neues blendet das Alte dieses Kanals über.
 async function tuAbspielen(d, loop = false) {
+  _panikStand = 0;
   try {
     player.stoppeHintergruende(); // Abspielen beendet beide Hintergrund-Reihen (kein störendes Parallellaufen), weiches Ausblenden
     await player.spieleKanal('abspielen', d, { loop });
@@ -93,6 +95,7 @@ async function tuAbspielen(d, loop = false) {
 
 // Hintergrund-Kanal (leiser). Eigener Kanal, überblendet ebenfalls sein Vorheriges.
 async function tuHintergrund(d, loop = false) {
+  _panikStand = 0;
   try {
     await player.spieleKanal('hintergrund', d, { loop, pegel: player.getHintergrundPegel() });
     sprache.sage(loop ? `${d.name} läuft leise als Hintergrund in Schleife.` : `${d.name} als Hintergrund, leise.`);
@@ -115,6 +118,7 @@ async function tuVorhoeren(d) {
 }
 
 async function tuEinspielen(d) {
+  _panikStand = 0;
   try { await player.spieleEin(d); sprache.sage(`${d.name} wird eingespielt, die laufende Musik ist solange leiser.`); }
   catch (e) { console.error('Einspielen:', e); sprache.sage('Einspielen nicht möglich.'); }
 }
@@ -350,18 +354,29 @@ export function klaengeStoppen() {
  * @returns {Promise<number>} die Stufe, die ausgeloest wurde (1, 2 oder 3)
  */
 export async function panikStufe() {
-  try { if (player.istVorhoeren()) { player.beendeVorhoeren(); return 1; } } catch { /* egal */ }
-  let laeuft = false;
-  try { laeuft = player.istAktiv(); } catch { /* egal */ }
-  if (laeuft || _kurzPlaylist) {
+  // Stufe 1 wird uebersprungen, wenn gar nichts vorgehoert wird. Stufe 3 dagegen
+  // ist NIE mit einem einzigen Druck erreichbar: Sie verwirft die gemerkten
+  // Stellen, und das darf nicht aus Versehen passieren. Dafuer merkt sich
+  // _panikStand, wie weit der Meister schon aufgeraeumt hat. Sobald wieder etwas
+  // startet, faengt die Leiter von vorne an (panikZuruecksetzen).
+  try {
+    if (player.istVorhoeren()) { player.beendeVorhoeren(); _panikStand = 1; return 1; }
+  } catch { /* egal */ }
+  if (_panikStand < 2) {
     _plToken += 1;
     _kurzPlaylist = null;
     try { player.stoppeAlles(); } catch { /* egal */ }
+    _panikStand = 2;
     return 2;
   }
   try { const kt = await import('./kurztasten.js'); kt.pausenZuruecksetzen(); } catch { /* egal */ }
+  _panikStand = 3;
   return 3;
 }
+
+/** Die Strg-F12-Leiter zuruecksetzen. Wird gerufen, sobald wieder etwas startet:
+ *  Danach beginnt das Aufraeumen erneut bei Stufe 1 bzw. 2. */
+export function panikZuruecksetzen() { _panikStand = 0; }
 
 // Einen Sound zu einer Playlist hinzufügen (nur ein Verweis auf die Datei).
 async function zuPlaylistHinzufuegen(d) {
@@ -409,6 +424,7 @@ function playlistTitelAbspielen(pl, sIndex) {
 // über). loop: nach dem letzten Titel wieder von vorn. kanal/pegel wie bei den
 // Einzeltiteln (Abspielen normal, Hintergrund leiser).
 function spielePlaylistGesamt(pl, { kanal = 'abspielen', loop = false, pegel } = {}) {
+  _panikStand = 0;
   const liste = pl.sounds || [];
   if (!liste.length) { sprache.sage('Diese Playlist ist leer.'); return; }
   const token = ++_plToken;

@@ -4,6 +4,31 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.34, 15. September 2026
+
+
+Pausieren blendet jetzt weich aus
+
+- Drückt man eine Schnelltaste ein zweites Mal, wurde der Klang bisher in 0,12
+  Sekunden abgewürgt, also praktisch abgeschnitten. Dabei hatte er beim Starten
+  über 4,8 Sekunden weich eingeblendet.
+- Jetzt blendet die Pause genauso weich aus wie das Stoppen, über 4,8 Sekunden.
+- Die gemerkte Stelle wird zum Zeitpunkt des Tastendrucks genommen. Beim
+  Weiterspielen überlappt das Ausblenden also um diese Zeit. Das fällt nicht auf
+  und klingt sauberer.
+
+
+Strg F12 verwirft die gemerkten Stellen nicht mehr aus Versehen
+
+- Stufe 3 setzt die gemerkten Stellen aller Schnelltasten zurück. Bisher war sie
+  schon mit einem einzigen Druck erreichbar, sobald gerade nichts lief. Wer
+  zwischendurch aufgeräumt hat, verlor damit unbemerkt alle Positionen.
+- Jetzt ist es eine echte Leiter. Jeder Druck geht genau eine Stufe weiter, und
+  Stufe 3 braucht immer einen vorangegangenen Druck.
+- Stufe 1 wird weiterhin übersprungen, wenn gar nichts vorgehört wird.
+- Sobald wieder etwas startet, beginnt die Leiter von vorn.
+
+
 Version 1.33, 15. September 2026
 
 
