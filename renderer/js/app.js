@@ -134,7 +134,16 @@ function registriereAudioTaste() {
     if (document.querySelector('dialog[open]')) return;
     e.preventDefault();
     import('./meister/audio-bereich.js')
-      .then(m => { try { m.klaengeStoppen(); } catch { /* egal */ } sprache.sage('Klaenge gestoppt.'); })
+      .then(async (m) => {
+        // Seit 1.31 dreistufig: 1 Vorhoeren, 2 gesendete Klaenge, 3 gemerkte
+        // Stellen. Die ausgeloeste Stufe wird angesagt, damit der Meister hoert,
+        // wie weit er schon aufgeraeumt hat. Das Radio bleibt immer verbunden.
+        let stufe = 2;
+        try { stufe = await m.panikStufe(); } catch { try { m.klaengeStoppen(); } catch { /* egal */ } }
+        if (stufe === 1) sprache.sage('Stufe 1, Vorhören beendet.');
+        else if (stufe === 3) sprache.sage('Stufe 3, gemerkte Stellen zurückgesetzt.');
+        else sprache.sage('Stufe 2, Klänge gestoppt.');
+      })
       .catch(() => { /* Modul nicht ladbar: nichts zu stoppen */ });
   }, true);
 }

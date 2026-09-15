@@ -4,6 +4,63 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.31, 15. September 2026
+
+
+Zwei Hintergrund-Reihen: Stimmungen lassen sich jetzt schichten
+
+- Die 24 Schnelltasten bilden zwei Reihen. Die Plätze 1 bis 12 (Strg 1 bis
+  Strg ´) sind Reihe 1, die Plätze 13 bis 24 (Strg Shift 1 bis Strg Shift ´)
+  sind Reihe 2.
+- Startest du einen Hintergrund, löst er nur den Hintergrund SEINER Reihe ab.
+  Über die Reihen hinweg laufen beide gleichzeitig. So kannst du Regen und
+  Tavernenlärm übereinanderlegen und eine der beiden Schichten austauschen,
+  ohne die andere anzufassen.
+- Für die Bedienung ändert sich nichts. Es heißt weiter nur Hintergrund, und
+  deine bereits belegten Tasten laufen unverändert weiter. Die Reihe hängt an
+  der Platznummer, nicht an der Taste — wer eine Taste umbelegt, behält also
+  seine Reihe.
+- Abspielen beendet weiterhin beide Hintergrund-Reihen, jetzt mit weichem
+  Ausblenden statt hartem Schnitt. Ein laufendes Einspielen lässt es in Ruhe,
+  das ist ohnehin gleich vorbei.
+- Einspielen senkt jetzt alle laufenden Kanäle auf die Hälfte, also auch beide
+  Hintergrund-Reihen.
+
+
+Hintergrund-Lautstärke auf 35 Prozent
+
+- Zwei Hintergründe zu je 50 Prozent wären zusammen so laut wie ein Abspielen
+  gewesen. Mit 35 je Reihe bleibt eine einzelne Schicht deutlich hörbar, und
+  zwei Schichten zusammen liegen weiterhin unter dem Abspielen.
+- Der Wert gilt für beide Reihen gemeinsam, für den Stream und damit für die
+  Spieler. Es gibt bewusst keine zusätzlichen Regler.
+
+
+Strg F12 räumt jetzt in drei Stufen auf
+
+- Erster Druck: Das Vorhören wird beendet, falls eines läuft. Ansage
+  "Stufe 1, Vorhören beendet".
+- Zweiter Druck: Alle gesendeten Klänge und eine laufende Playlist werden weich
+  ausgeblendet. Ansage "Stufe 2, Klänge gestoppt".
+- Dritter Druck: Die gemerkten Stellen der Schnelltasten werden verworfen, jeder
+  Platz startet wieder am Anfang seiner Datei. Ansage "Stufe 3, gemerkte Stellen
+  zurückgesetzt".
+- Läuft kein Vorhören, fängt es sofort bei Stufe 2 an. Es wird also immer die
+  Stufe ausgelöst, die gerade etwas zu tun hat.
+- In jeder Stufe bleibt das Radio verbunden. Es wird nur nichts mehr gesendet,
+  damit du in Ruhe neu aufbauen kannst.
+
+
+Du hörst jetzt dasselbe wie deine Spieler
+
+- Dein Abhörton zweigte bisher vor der Sendeverstärkung und dem Begrenzer ab.
+  Das Verhältnis der Kanäle, das du gehört hast, war deshalb nicht das, was bei
+  den Spielern ankam.
+- Jetzt hängt dein Ton hinter beidem. Du hörst dieselbe Mischung und dasselbe
+  Verhältnis wie im Radio, nur mit deinem eigenen Lautstärkeregler.
+- Das Vorhören überblendet diesen Ton weiterhin, genau wie vorher.
+
+
 Version 1.30, 9. September 2026
 
 

@@ -56,7 +56,7 @@ let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeiche
 // 30 Prozent auf 90 hoch, und die Staffelung gegen den Abspielen-Kanal
 // (100 Prozent) war dahin. Der Kanalpegel wird jetzt zurueckgerechnet, siehe
 // getHintergrundPegel(). Im Audio-Bereich unter Lautstaerken frei einstellbar.
-let _hintergrundVol = 0.50;
+let _hintergrundVol = 0.35;
 let _appMaster = 1; // Anwendungslautstaerke (Numblock +/-): skaliert nur den EIGENEN Abhoer-Bus mit, nie den Sendestrom (radioDest haengt VOR dem Monitor)
 
 /** Ziel-Gain des Abhoer-Busses: Abhoer-Lautstaerke × Anwendungslautstaerke.
@@ -65,12 +65,21 @@ function monitorZiel() {
   return Math.max(0.0001, _monitorVol * _appMaster);
 }
 
-// Die drei Kanaele. Je Kanal genau EIN laufender Klang (oder null).
-const _kanaele = { abspielen: null, hintergrund: null, einspielen: null };
-const KANAELE = ['abspielen', 'hintergrund', 'einspielen'];
+// Die Kanaele. Je Kanal genau EIN laufender Klang (oder null).
+// Seit 1.31 gibt es ZWEI Hintergrund-Reihen, damit sich Stimmungen schichten
+// lassen (etwa Regen und Tavernenlaerm gleichzeitig). Welche Reihe eine
+// Schnelltaste bedient, ergibt sich aus ihrer Platznummer: Plaetze 1 bis 12
+// (Strg) sind Reihe 1, Plaetze 13 bis 24 (Strg+Shift) sind Reihe 2. Innerhalb
+// einer Reihe loest ein neuer Klang den alten ab, ueber die Reihen hinweg
+// laufen beide. Der Name 'hintergrund' bleibt Reihe 1, damit alle bisherigen
+// Aufrufer unveraendert weiterlaufen.
+const _kanaele = { abspielen: null, hintergrund: null, hintergrund2: null, einspielen: null };
+const KANAELE = ['abspielen', 'hintergrund', 'hintergrund2', 'einspielen'];
+/** Die beiden Hintergrund-Reihen (Reihe 1, Reihe 2). */
+export const HINTERGRUND_KANAELE = ['hintergrund', 'hintergrund2'];
 // Pausierte Klaenge je Kanal (fuer Pause/Weiter der Schnelltasten). Merkt sich die
 // Stelle im Track, damit ein zweiter Tastendruck an genau dieser Stelle weiterspielt.
-const _pausiert = { abspielen: null, hintergrund: null, einspielen: null };
+const _pausiert = { abspielen: null, hintergrund: null, hintergrund2: null, einspielen: null };
 const _decodeCache = new Map(); // pfad -> AudioBuffer
 
 function ctx() {
@@ -95,11 +104,15 @@ function ctx() {
       _sendeLimit.release.value = 0.25;
     } catch { /* aeltere Umgebungen: Standardwerte tun es auch */ }
     anwendeMono(); // Mono/Stereo fuer den Sendestrom nach Einstellung
-    _mixBus.connect(_monitor);
+    // Seit 1.31 haengt der eigene Abhoerweg HINTER Verstaerkung und Begrenzer.
+    // Damit hoert der Meister genau die Mischung, die auch gesendet wird — nur
+    // mit eigenem Lautstaerkeregler. Vorher zweigte er vor der Verstaerkung ab
+    // und log deshalb ueber das Verhaeltnis der Kanaele.
     _monitor.connect(_ctx.destination);
     _mixBus.connect(_sendeGain);
     _sendeGain.connect(_sendeLimit);
     _sendeLimit.connect(_radioDest);
+    _sendeLimit.connect(_monitor);
   }
   if (_ctx.state === 'suspended') _ctx.resume();
   return _ctx;
@@ -135,7 +148,7 @@ export function entlade() {
   try { stoppeAlles(); } catch { /* egal */ }
   try { beendeVorhoeren(); } catch { /* egal */ }
   _decodeCache.clear();
-  _pausiert.abspielen = null; _pausiert.hintergrund = null; _pausiert.einspielen = null;
+  for (const k of KANAELE) _pausiert[k] = null;
   if (_ctx) {
     try { _ctx.close(); } catch { /* egal */ }
     _ctx = null; _mixBus = null; _monitor = null; _radioDest = null;
@@ -307,7 +320,7 @@ export async function spieleEin(datei, opts = {}) {
   if (altEin) { altEin.gestoppt = true; try { rampe(altEin.gain.gain, 0, 0.25); altEin.source.stop(c.currentTime + 0.3); } catch { /* egal */ } }
 
   // Die beiden anderen Kanaele ducken (auf die Haelfte ihres eigenen Pegels).
-  const loops = ['abspielen', 'hintergrund'].map(k => _kanaele[k]).filter(Boolean);
+  const loops = ['abspielen', ...HINTERGRUND_KANAELE].map(k => _kanaele[k]).filter(Boolean);
   for (const l of loops) rampe(l.gain.gain, Math.max(0.0001, (l.pegel || 1) * 0.5), ein);
 
   const source = c.createBufferSource();
@@ -360,6 +373,12 @@ export function stoppeKanal(kanal) {
 export function stoppeAlles() {
   for (const k of KANAELE) stoppeKanal(k);
   beendeVorhoeren();
+}
+
+/** Beide Hintergrund-Reihen weich ausblenden. Nutzt "Abspielen", das den
+ *  Hintergrund ersetzt, statt sich darueberzulegen. */
+export function stoppeHintergruende() {
+  for (const k of HINTERGRUND_KANAELE) stoppeKanal(k);
 }
 
 /** Was laeuft gerade in einem Kanal? (Name oder null) */
@@ -513,7 +532,7 @@ export function getSendeStrom() {
 
 /** Laeuft gerade irgendetwas? */
 export function istAktiv() {
-  return Boolean(_kanaele.abspielen || _kanaele.hintergrund || _kanaele.einspielen);
+  return KANAELE.some(k => Boolean(_kanaele[k]));
 }
 
 // Beim Laden am Anwendungs-Master in sounds.js anmelden (seit 1.20; app.js laedt

@@ -88,7 +88,7 @@ const HINTERGRUND_PEGEL = 0.25;
 // Abspielen-Kanal (normale Lautstärke). Neues blendet das Alte dieses Kanals über.
 async function tuAbspielen(d, loop = false) {
   try {
-    player.stoppeKanal('hintergrund'); // Abspielen beendet den Hintergrund (kein störendes Parallellaufen), weiches Ausblenden
+    player.stoppeHintergruende(); // Abspielen beendet beide Hintergrund-Reihen (kein störendes Parallellaufen), weiches Ausblenden
     await player.spieleKanal('abspielen', d, { loop });
     sprache.sage(loop ? `${d.name} läuft in Schleife.` : `${d.name} abgespielt.`);
   } catch (e) { console.error('Audio abspielen:', e); sprache.sage('Konnte nicht abgespielt werden.'); }
@@ -341,6 +341,31 @@ export function klaengeStoppen() {
   try { if (player.istVorhoeren()) player.beendeVorhoeren(); } catch { /* egal */ }
 }
 
+/**
+ * Strg und F12 in drei Stufen. Jeder Druck raeumt genau eine Ebene ab, von der
+ * harmlosesten zur gruendlichsten. Das Radio bleibt in jeder Stufe verbunden —
+ * es wird nur nichts mehr gesendet, damit der Meister neu aufbauen kann.
+ *
+ *   Stufe 1  Vorhoeren beenden (nur wenn es laeuft)
+ *   Stufe 2  alle gesendeten Klaenge und eine laufende Playlist stoppen
+ *   Stufe 3  die gemerkten Stellen der Schnelltasten verwerfen
+ *
+ * @returns {Promise<number>} die Stufe, die ausgeloest wurde (1, 2 oder 3)
+ */
+export async function panikStufe() {
+  try { if (player.istVorhoeren()) { player.beendeVorhoeren(); return 1; } } catch { /* egal */ }
+  let laeuft = false;
+  try { laeuft = player.istAktiv(); } catch { /* egal */ }
+  if (laeuft || _kurzPlaylist) {
+    _plToken += 1;
+    _kurzPlaylist = null;
+    try { player.stoppeAlles(); } catch { /* egal */ }
+    return 2;
+  }
+  try { const kt = await import('./kurztasten.js'); kt.pausenZuruecksetzen(); } catch { /* egal */ }
+  return 3;
+}
+
 // Einen Sound zu einer Playlist hinzufügen (nur ein Verweis auf die Datei).
 async function zuPlaylistHinzufuegen(d) {
   await ladePlaylists();
@@ -443,7 +468,7 @@ async function oeffnePlaylistGesamtDialog(pl) {
   else if (wahl === 'abschleife') { spielePlaylistGesamt(pl, { kanal: 'abspielen', loop: true }); sprache.sage(`${pl.name} läuft in Schleife.`); }
   else if (wahl === 'hg') { spielePlaylistGesamt(pl, { kanal: 'hintergrund', loop: false }); sprache.sage(`${pl.name} läuft leise als Hintergrund.`); }
   else if (wahl === 'hgschleife') { spielePlaylistGesamt(pl, { kanal: 'hintergrund', loop: true }); sprache.sage(`${pl.name} läuft leise als Hintergrund in Schleife.`); }
-  else if (wahl === 'stop') { _plToken += 1; player.stoppeKanal('abspielen'); player.stoppeKanal('hintergrund'); sprache.sage('Playlist gestoppt.'); }
+  else if (wahl === 'stop') { _plToken += 1; player.stoppeKanal('abspielen'); player.stoppeHintergruende(); sprache.sage('Playlist gestoppt.'); }
 }
 
 // Kleiner Zurück-Knopf (nur für die Maus; Blinde nutzen Escape).

@@ -163,7 +163,11 @@ export async function spiele(index) {
     return true;
   }
 
-  const kanal = d.modus === 'hintergrund' ? 'hintergrund' : 'abspielen';
+  // Hintergrund-Reihe aus der Platznummer: Plaetze 1 bis 12 (Index 0 bis 11,
+  // mit Strg) sind Reihe 1, Plaetze 13 bis 24 (mit Strg+Shift) sind Reihe 2.
+  // Bewusst an der NUMMER festgemacht und nicht an der Taste, denn die Tasten
+  // sind umbelegbar. Fuer den Nutzer heisst beides weiterhin nur Hintergrund.
+  const kanal = d.modus === 'hintergrund' ? (index < 12 ? 'hintergrund' : 'hintergrund2') : 'abspielen';
 
   // Laeuft gerade (auf IRGENDEINEM Kanal) -> pausieren. Wichtig: den TATSAECHLICH
   // laufenden Kanal pausieren (nicht den aus dem Modus abgeleiteten), sonst greift
@@ -193,7 +197,7 @@ export async function spiele(index) {
     if (mod.stopPlaylistWiedergabe) mod.stopPlaylistWiedergabe();
   } catch { /* egal */ }
   try {
-    const zielPegel = pegel != null ? pegel : (kanal === 'hintergrund' ? player.getHintergrundPegel() : 1);
+    const zielPegel = pegel != null ? pegel : (kanal === 'abspielen' ? 1 : player.getHintergrundPegel());
     // Gespeicherte Pause-Stelle aus einer frueheren Sitzung EINMAL fortsetzen,
     // danach gilt wieder "von vorne". So laeuft nach dem Neuoeffnen nicht alles
     // bei 0 los, sondern an der pausierten Stelle weiter.
@@ -202,7 +206,7 @@ export async function spiele(index) {
     // "Abspielen" beendet einen laufenden Hintergrund-Klang (weiches Ausblenden),
     // damit beide nicht störend parallel laufen. Der Hintergrund wird dabei sanft
     // ausgeblendet, während der neue Klang gleichzeitig einblendet (Überblenden).
-    if (kanal === 'abspielen') player.stoppeKanal('hintergrund');
+    if (kanal === 'abspielen') player.stoppeHintergruende();
     await player.spieleKanal(kanal, datei, { loop: !!d.loop, pegel: zielPegel, offset: startOffset });
   } catch (err) {
     console.error('Kurztaste abspielen:', err);
@@ -214,6 +218,25 @@ export async function spiele(index) {
 // Den aktuellen Stand des Meisterabenteuers speichern (Pausepositionen der
 // Schnelltasten). Absichtlich ohne await/Fehleranzeige — es ist ein Nebenspeichern.
 function merkePause() { try { speichere(); } catch { /* egal */ } }
+
+/**
+ * Alle gemerkten Stellen der Schnelltasten verwerfen (Stufe 3 von Strg+F12).
+ * Danach startet jeder Platz wieder am Anfang seiner Datei.
+ */
+export function pausenZuruecksetzen() {
+  const a = getMeister();
+  const k = (a && a.kurztasten) || null;
+  let geaendert = false;
+  if (k) {
+    for (const i of Object.keys(k)) {
+      const d = k[i];
+      if (d && typeof d.pausePos === 'number' && d.pausePos !== 0) { d.pausePos = 0; geaendert = true; }
+    }
+  }
+  for (const i of Object.keys(_pauseZeit)) delete _pauseZeit[i];
+  if (geaendert) merkePause();
+  return geaendert;
+}
 
 // --- Globaler Tastendruck-Handler ---------------------------------------
 
