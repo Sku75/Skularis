@@ -6,19 +6,28 @@
  *
  *   je Klang: BufferSource -> KanalGain --\
  *                                          mixBus --> monitorGain --> Lautsprecher
- *                                             \-----> sendeGain --> sendeLimit --> radioDest
+ *                                             \-----> sendeLimit --> radioDest (und zurueck zum Monitor)
  *
  * Der mixBus buendelt alles, was der Meister abspielt. Von dort geht es zum einen
  * ueber monitorGain an die eigenen Lautsprecher (dessen Lautstaerke regelt der
  * Meister fuer sich, ohne die Hoerer zu beeinflussen) und zum anderen ueber den
  * Sendeweg an radioDest — das ist der Strom, den das Radio an die Spieler sendet.
  *
- * Der Sendeweg hat seit 1.29 eine eigene Verstaerkung (sendeGain, Standard
- * DREIFACH). Die Spieler berichteten, dass der Mix selbst bei voll aufgedrehtem
- * Empfangsregler zu leise ankam: der Sendestrom lief vorher unverstaerkt (Faktor
- * 1) und liess sich beim Hoerer nicht ueber 100 Prozent heben. Dahinter haengt
- * sendeLimit, ein Begrenzer (DynamicsCompressor als Limiter), damit laute Stellen
- * durch die Verstaerkung nicht uebersteuern und knacken.
+ * Im Sendeweg sitzt nur noch sendeLimit, ein Begrenzer als reine SICHERUNG.
+ * Er faengt ab, wenn zu viel zusammenkommt — zwei Hintergrund-Reihen zu je 35
+ * Prozent plus ein Einspieler mit 100 ergeben zusammen 170 Prozent. Im
+ * Normalbetrieb springt er nicht an.
+ *
+ * Die Sendeverstaerkung mal 3 aus 1.29 ist seit 1.32 WEG. Sie hob sich mit der
+ * Rueckrechnung aus 1.30 gegenseitig auf, und beim Abspielen frass sie der
+ * Begrenzer ohnehin wieder auf, weil eine fertige Datei schon an der
+ * Vollaussteuerung liegt. Uebrig blieb nur, dass der Begrenzer dauerhaft mit
+ * rund zehn Dezibel arbeitete und die Musik flachdrueckte.
+ *
+ * Seit 1.32 gibt es auch KEINE eigene Abhoer-Lautstaerke des Meisters mehr. Er
+ * hoert genau den Sendemix, wie jeder Hoerer im Radio, geregelt allein ueber die
+ * Anwendungslautstaerke. Bedien-Toene haben ihren eigenen Regler in sounds.js
+ * und sind davon unberuehrt.
  *
  * DREI monophone Kanaele, die der Meister starten kann:
  *   - 'abspielen'    normale Lautstaerke
@@ -40,29 +49,27 @@ let _ctx = null;
 let _mixBus = null;
 let _monitor = null;
 let _radioDest = null;
-let _sendeGain = null;
 let _sendeLimit = null;
-// Verstaerkung des Sendestroms zu den Spielern. Seit 1.29 dreifach (vorher 1).
-// Der Begrenzer dahinter faengt ab, was dadurch ueber die Vollaussteuerung
-// hinauslaufen wuerde — leise Sachen (Hintergrund) werden also wirklich dreimal
-// so laut, bereits volle Klaenge bleiben sauber.
-let _sendeVerstaerkung = 3;
 let _sendeMono = false; // Sendestrom einkanalig (spart Daten); Standard Stereo
-let _monitorVol = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)
-// Wie laut der Hintergrund-Kanal AUF DER LEITUNG ankommt, also nach der
-// Sendeverstaerkung. Seit 1.30 zaehlt der Wert genau so, wie ihn der Meister
-// meint: 50 heisst 50 Prozent im Sendestrom. Vorher war es der Wert VOR der
-// Verstaerkung — mit der Dreifach-Verstaerkung aus 1.29 wanderten eingestellte
-// 30 Prozent auf 90 hoch, und die Staffelung gegen den Abspielen-Kanal
-// (100 Prozent) war dahin. Der Kanalpegel wird jetzt zurueckgerechnet, siehe
-// getHintergrundPegel(). Im Audio-Bereich unter Lautstaerken frei einstellbar.
-let _hintergrundVol = 0.35;
-let _appMaster = 1; // Anwendungslautstaerke (Numblock +/-): skaliert nur den EIGENEN Abhoer-Bus mit, nie den Sendestrom (radioDest haengt VOR dem Monitor)
 
-/** Ziel-Gain des Abhoer-Busses: Abhoer-Lautstaerke × Anwendungslautstaerke.
- *  Der Sendestrom an die Spieler (radioDest) bleibt davon unberuehrt. */
+// Wie laut eine Hintergrund-Reihe laeuft, gemessen am Abspielen-Kanal mit
+// seinen 100 Prozent. Seit 1.32 ist das wieder schlicht der Kanalpegel, ohne
+// jede Umrechnung: 0.35 heisst 35 Prozent, im Mix, im Sendestrom und im Ohr.
+// 35 statt 50, weil sich zwei Reihen addieren koennen. Im Audio-Bereich unter
+// Lautstaerken einstellbar.
+let _hintergrundVol = 0.35;
+let _appMaster = 1; // Anwendungslautstaerke (Numblock +/-): regelt NUR, was der Meister selbst hoert, nie den Sendestrom
+
+// Waehrend des Vorhoerens weicht der mitlaufende Sendemix zurueck, genau wie bei
+// den Hoerern, wenn der Meister etwas einspielt.
+const VORHOER_DUCK = 0.5;
+
+/** Ziel-Gain des Abhoer-Busses. Seit 1.32 allein die Anwendungslautstaerke —
+ *  der Meister hoert damit denselben Mix wie die Spieler. Laeuft ein Vorhoeren,
+ *  weicht der Sendemix auf die Haelfte zurueck (Autoduck), statt wie frueher
+ *  ganz zu verstummen. */
 function monitorZiel() {
-  return Math.max(0.0001, _monitorVol * _appMaster);
+  return Math.max(0.0001, _appMaster * (_preview ? VORHOER_DUCK : 1));
 }
 
 // Die Kanaele. Je Kanal genau EIN laufender Klang (oder null).
@@ -90,14 +97,12 @@ function ctx() {
     _monitor = _ctx.createGain();
     _monitor.gain.value = monitorZiel();
     _radioDest = _ctx.createMediaStreamDestination();
-    // Sendeweg: erst verstaerken, dann begrenzen, dann in den Stream.
-    _sendeGain = _ctx.createGain();
-    _sendeGain.gain.value = _sendeVerstaerkung;
+    // Sendeweg: nur noch eine Sicherung vor der Uebersteuerung.
     _sendeLimit = _ctx.createDynamicsCompressor();
-    // Als Limiter eingestellt: greift erst kurz unter Vollaussteuerung, dann aber
-    // hart, mit schnellem Ansprechen und weichem Loslassen (kein Pumpen).
+    // Als Limiter eingestellt: greift erst dicht unter der Vollaussteuerung,
+    // dann aber hart, mit schnellem Ansprechen und weichem Loslassen.
     try {
-      _sendeLimit.threshold.value = -2;
+      _sendeLimit.threshold.value = -1;
       _sendeLimit.knee.value = 0;
       _sendeLimit.ratio.value = 20;
       _sendeLimit.attack.value = 0.003;
@@ -109,8 +114,7 @@ function ctx() {
     // mit eigenem Lautstaerkeregler. Vorher zweigte er vor der Verstaerkung ab
     // und log deshalb ueber das Verhaeltnis der Kanaele.
     _monitor.connect(_ctx.destination);
-    _mixBus.connect(_sendeGain);
-    _sendeGain.connect(_sendeLimit);
+    _mixBus.connect(_sendeLimit);
     _sendeLimit.connect(_radioDest);
     _sendeLimit.connect(_monitor);
   }
@@ -152,7 +156,7 @@ export function entlade() {
   if (_ctx) {
     try { _ctx.close(); } catch { /* egal */ }
     _ctx = null; _mixBus = null; _monitor = null; _radioDest = null;
-    _sendeGain = null; _sendeLimit = null;
+    _sendeLimit = null;
   }
 }
 
@@ -414,47 +418,34 @@ export function stoppePfad(pfad) {
  */
 export function setHintergrundLautstaerke(prozent) {
   _hintergrundVol = Math.max(0, Math.min(1, prozent / 100));
-  const e = _kanaele.hintergrund;
-  const ziel = getHintergrundPegel();
-  if (e && !e.gestoppt) { e.pegel = ziel; try { rampe(e.gain.gain, Math.max(0.0001, ziel), 0.3); } catch { /* egal */ } }
+  for (const k of HINTERGRUND_KANAELE) {
+    const e = _kanaele[k];
+    if (e && !e.gestoppt) { e.pegel = _hintergrundVol; try { rampe(e.gain.gain, Math.max(0.0001, _hintergrundVol), 0.3); } catch { /* egal */ } }
+  }
 }
 export function getHintergrundLautstaerke() { return Math.round(_hintergrundVol * 100); }
 
-/** Aktueller Ziel-Pegel (0..1) fuer neu gestartete Hintergrund-Klaenge.
- *  Zurueckgerechnet: Der eingestellte Wert ist der auf der LEITUNG gewuenschte
- *  Anteil, der Kanal selbst muss also um die Sendeverstaerkung leiser laufen.
- *  Beispiel: eingestellt 50, Verstaerkung 3 -> Kanal 16,7 Prozent, nach der
- *  Verstaerkung wieder 50 Prozent im Sendestrom. */
-export function getHintergrundPegel() {
-  const v = _sendeVerstaerkung > 0 ? _sendeVerstaerkung : 1;
-  return Math.max(0, Math.min(1, _hintergrundVol / v));
-}
+/** Aktueller Ziel-Pegel (0..1) fuer neu gestartete Hintergrund-Klaenge. */
+export function getHintergrundPegel() { return _hintergrundVol; }
 
-/** Eigene Abhoer-Lautstaerke (0 bis 100) — beeinflusst NICHT die Hoerer. */
-export function setMonitorLautstaerke(prozent) {
-  _monitorVol = Math.max(0, Math.min(1, prozent / 100));
-  // Beim Vorhoeren bleibt der Live-Mix fuer den Meister stumm; die Lautstaerke
-  // wirkt dann auf das Vorhoeren. Sonst regelt sie den Live-Mix.
-  if (_preview) rampe(_preview.gain.gain, monitorZiel(), 0.15);
-  else if (_monitor) rampe(_monitor.gain, monitorZiel(), 0.15);
-}
-
-/** Anwendungslautstaerke (Numblock +/-) fuer den eigenen Player-Mix. Skaliert die
- *  Abhoer-Lautstaerke mit; der Sendestrom an die Spieler bleibt unberuehrt. Die
- *  Persistenz (app_master_vol) uebernimmt der Numblock-Handler. */
+/** Anwendungslautstaerke (Numblock +/-) fuer alles, was der Meister selbst hoert.
+ *  Der Sendestrom an die Spieler bleibt unberuehrt. Die Persistenz
+ *  (app_master_vol) uebernimmt der Numblock-Handler. */
 export function setAnwendungsLautstaerke(prozent) {
   _appMaster = Math.max(0, Math.min(1, prozent / 100));
-  if (_preview) rampe(_preview.gain.gain, monitorZiel(), 0.15);
-  else if (_monitor) rampe(_monitor.gain, monitorZiel(), 0.15);
+  if (_monitor) rampe(_monitor.gain, monitorZiel(), 0.15);
+  if (_preview) rampe(_preview.gain.gain, Math.max(0.0001, _appMaster), 0.15);
 }
 export function getAnwendungsLautstaerke() { return Math.round(_appMaster * 100); }
 
 // --- Vorhoeren (Probehoeren, nur fuer den Meister) -----------------------
 //
-// Der Meister kann eine Datei privat vorhoeren: sein Live-Mix wird ausgeblendet
-// und die Datei laeuft nur auf seinen Boxen (nicht ins Radio, radioDest bleibt
-// unangetastet). Die Spieler hoeren den Stream unveraendert weiter. Beim Beenden
-// blendet der Live-Mix fuer den Meister wieder ein.
+// Der Meister kann eine Datei privat vorhoeren. Sie laeuft nur auf seinen Boxen
+// (nicht ins Radio, radioDest bleibt unangetastet). Der Sendemix verschwindet
+// dabei seit 1.32 nicht mehr, sondern weicht auf die Haelfte zurueck — genau so,
+// wie es bei den Hoerern klingt, wenn der Meister etwas einspielt. Er hoert also
+// weiter, was gerade laeuft, und die Probe liegt gut hoerbar darueber. Beim
+// Beenden kommt der Sendemix wieder auf volle Lautstaerke.
 let _preview = null;
 
 function stoppeVorschau() {
@@ -469,7 +460,6 @@ export async function starteVorhoeren(datei) {
   const puffer = await ladePuffer(datei.pfad);
   const c = ctx();
   stoppeVorschau();
-  rampe(_monitor.gain, 0, 0.4); // Meister hoert den Live-Mix nicht mehr
   const source = c.createBufferSource();
   source.buffer = puffer;
   source.loop = true;
@@ -478,22 +468,21 @@ export async function starteVorhoeren(datei) {
   source.connect(gain);
   gain.connect(c.destination); // NUR zu den Boxen, nicht ins Radio
   source.start();
-  rampe(gain.gain, monitorZiel(), 0.4);
   _preview = { source, gain, pfad: datei.pfad, name: datei.name };
+  rampe(gain.gain, Math.max(0.0001, _appMaster), 0.4);
+  rampe(_monitor.gain, monitorZiel(), 0.4); // Sendemix weicht zurueck (Autoduck)
 }
 
 /** Vorhoeren beenden und den Live-Mix fuer den Meister wieder einblenden. */
 export function beendeVorhoeren() {
-  stoppeVorschau();
+  stoppeVorschau(); // setzt _preview auf null, damit monitorZiel() wieder voll ist
   if (_monitor) rampe(_monitor.gain, monitorZiel(), 0.4);
 }
 
 export function istVorhoeren() { return Boolean(_preview); }
 export function vorhoerenPfad() { return _preview ? _preview.pfad : null; }
 
-export function getMonitorLautstaerke() {
-  return Math.round(_monitorVol * 100);
-}
+
 
 /** Mono/Stereo am Sende-Ausgang anwenden (channelCount des MediaStreamDestination). */
 function anwendeMono() {
@@ -509,20 +498,6 @@ export function setSendeMono(mono) {
   _sendeMono = !!mono;
   anwendeMono();
 }
-
-/** Verstaerkung des Sendestroms setzen (1 = unveraendert, 3 = dreifach).
- *  Wirkt sofort, auch waehrend gesendet wird. */
-export function setSendeVerstaerkung(faktor) {
-  _sendeVerstaerkung = Math.max(0.1, Math.min(6, Number(faktor) || 1));
-  if (_sendeGain) { try { rampe(_sendeGain.gain, _sendeVerstaerkung, 0.2); } catch { /* egal */ } }
-  // Ein laufender Hintergrund muss mitziehen, sonst stimmt sein Anteil auf der
-  // Leitung nicht mehr (der eingestellte Wert meint ja das Ergebnis).
-  const e = _kanaele.hintergrund;
-  if (e && !e.gestoppt) { const ziel = getHintergrundPegel(); e.pegel = ziel; try { rampe(e.gain.gain, Math.max(0.0001, ziel), 0.2); } catch { /* egal */ } }
-}
-
-/** Aktuelle Sende-Verstaerkung als Faktor. */
-export function getSendeVerstaerkung() { return _sendeVerstaerkung; }
 
 /** Der Sendestrom fuers Radio (ein Audio-Track mit dem gesamten Mix). */
 export function getSendeStrom() {

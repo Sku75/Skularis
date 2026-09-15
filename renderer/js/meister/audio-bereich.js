@@ -40,13 +40,10 @@ let _kurzPlaylist = null;    // { name, kanal } der ueber eine Schnelltaste lauf
 async function ladeGrunddaten() {
   if (!_config) {
     try { const r = await ipc.configLesen(); _config = (r && r.config) || {}; } catch { _config = {}; }
-    if (_config.audio_monitor_vol != null) player.setMonitorLautstaerke(_config.audio_monitor_vol);
-    // Einmalige Umstellung 1.30: Die Hintergrund-Lautstaerke zaehlt jetzt das,
-    // was auf der Leitung ankommt (vorher der Wert VOR der Sendeverstaerkung).
-    // Ein alter gespeicherter Wert meint in der neuen Zaehlung etwas anderes,
-    // deshalb wird er einmalig auf 50 gesetzt. Danach gilt wieder, was der
-    // Meister unter Lautstaerken einstellt.
-    if (!_config.audio_hg_leitung) { merke('audio_hintergrund_vol', 50); merke('audio_hg_leitung', 1); }
+    // Einmalige Umstellung 1.32: Es gibt zwei Hintergrund-Reihen, die sich
+    // addieren koennen, deshalb 35 statt 50. Ein alter gespeicherter Wert stammt
+    // noch aus der Zeit mit Sendeverstaerkung und passt nicht mehr.
+    if (!_config.audio_hg_35) { merke('audio_hintergrund_vol', 35); merke('audio_hg_35', 1); }
     if (_config.audio_hintergrund_vol != null) player.setHintergrundLautstaerke(_config.audio_hintergrund_vol);
     if (_config.radio_hoerer_vol != null) radio.setHoererLautstaerke(_config.radio_hoerer_vol);
     if (_config.radio_letzter_schluessel) { _schluessel = _config.radio_letzter_schluessel; sitzung.setMeisterCode(_schluessel); }
@@ -112,8 +109,8 @@ function tuStop(d) {
 
 async function tuVorhoeren(d) {
   try {
-    if (player.vorhoerenPfad() === d.pfad) { player.beendeVorhoeren(); sprache.sage('Vorhören beendet. Dein Live-Ton ist wieder da.'); }
-    else { await player.starteVorhoeren(d); sprache.sage(`Vorhören ${d.name}. Nur du hörst das, die Spieler hören den Stream weiter.`); }
+    if (player.vorhoerenPfad() === d.pfad) { player.beendeVorhoeren(); sprache.sage('Vorhören beendet.'); }
+    else { await player.starteVorhoeren(d); sprache.sage(`Vorhören ${d.name}. Nur du hörst das, der Sendeton läuft leiser weiter.`); }
   } catch (e) { console.error('Vorhören:', e); sprache.sage('Vorhören nicht möglich.'); }
 }
 
@@ -800,19 +797,13 @@ function lautstaerkenScreen() {
         label: 'Anwendungslautstärke', get: () => player.getAnwendungsLautstaerke(),
         set: (v) => { sounds.setAnwendungsLautstaerke(v); player.setAnwendungsLautstaerke(v); radio.setAnwendungsLautstaerke(v); merke('app_master_vol', v); },
         min: 0, max: 100, ohneTon: true, nurWert: true, stumm: true,
-        detail: 'Wie laut Skularis insgesamt bei dir klingt — alle Töne zusammen. Damit stellst du schnell deine Hörlautstärke und die Balance zu Discord ein. Am Ziffernblock regeln das Plus und Minus überall. Verschiebt NICHT das Verhältnis von Hintergrund und Abhören und ändert NICHT, wie laut die Spieler hören.',
+        detail: 'Wie laut Skularis insgesamt bei dir klingt — alle Töne zusammen. Damit stellst du schnell deine Hörlautstärke und die Balance zu Discord ein. Am Ziffernblock regeln das Plus und Minus überall. Ändert NICHT, wie laut die Spieler hören. Die Bedien-Töne haben zusätzlich ihren eigenen Regler unter Strg Shift Bild hoch und Bild runter.',
       }));
       wrap.appendChild(wertZeile({
-        label: 'Meine Audio-Lautstärke', get: () => player.getMonitorLautstaerke(),
-        set: (v) => { player.setMonitorLautstaerke(v); merke('audio_monitor_vol', v); },
-        min: 0, max: 100, ohneTon: true, nurWert: true, stumm: true,
-        detail: 'Wie laut du die Klänge selbst hörst. Ändert nicht, wie laut die Spieler hören. Am Ziffernblock regeln Plus und Minus das überall.',
-      }));
-      wrap.appendChild(wertZeile({
-        label: 'Hintergrund-Lautstärke (wie gesendet)', get: () => player.getHintergrundLautstaerke(),
+        label: 'Hintergrund-Lautstärke', get: () => player.getHintergrundLautstaerke(),
         set: (v) => { player.setHintergrundLautstaerke(v); merke('audio_hintergrund_vol', v); },
         min: 0, max: 100, ohneTon: true, nurWert: true, stumm: true,
-        detail: 'Wie laut der Hintergrund-Kanal bei den Spielern ankommt, gemessen am Abspielen-Kanal mit seinen 100 Prozent. 50 heißt also halb so laut wie Abspielen. Die Sendeverstärkung ist dabei schon herausgerechnet. Wirkt sofort auf einen laufenden Hintergrund und auf alles Neue.',
+        detail: 'Wie laut ein Hintergrund läuft, gemessen am Abspielen-Kanal mit seinen 100 Prozent. 35 heißt also gut ein Drittel davon. Gilt für beide Hintergrund-Reihen, für dich und für die Spieler gleichermaßen. Wirkt sofort auf laufende Hintergründe und auf alles Neue.',
       }));
       verbindeDetail(wrap);
       rueckKnopf(wrap);

@@ -4,6 +4,48 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.32, 15. September 2026
+
+
+Die Lautstärkekette ist aufgeräumt
+
+- Die Sendeverstärkung mal 3 ist weg, und mit ihr die Rückrechnung geteilt
+  durch 3 beim Hintergrund. Beide hoben sich gegenseitig auf. Beim Abspielen
+  fraß der Begrenzer die Verstärkung ohnehin wieder auf, weil eine fertige
+  Datei schon an der Vollaussteuerung liegt. Übrig blieb nur, dass der
+  Begrenzer dauerhaft mit rund zehn Dezibel arbeitete und die Musik
+  flachdrückte. Die Dynamik ist jetzt zurück.
+- Der Begrenzer selbst bleibt, aber als reine Sicherung dicht unter der
+  Vollaussteuerung. Er springt nur noch an, wenn wirklich zu viel
+  zusammenkommt — zwei Hintergründe plus ein Einspieler ergeben zusammen
+  170 Prozent.
+- Die Prozentzahlen bedeuten damit überall dasselbe: Abspielen 100,
+  Hintergrund 35, Einspielen 100. Im Mix, im Sendestrom und im Ohr.
+
+
+Der Meister hört jetzt einfach Radio
+
+- Die eigene Abhör-Lautstärke des Meisters ist entfallen. Sie war der einzige
+  Faktor, der deinen Ton von dem der Spieler unterschieden hat.
+- Du hörst jetzt genau den Sendemix, wie jeder Hörer im Radio. Geregelt wird er
+  allein über die Anwendungslautstärke am Ziffernblock.
+- Die Bedien-Töne sind davon nicht betroffen. Sie haben ihren eigenen Regler,
+  er heißt Lautstärke und läuft über Strg Shift Bild hoch und Bild runter.
+- Wichtig beim ersten Start: Wer vorher eine niedrige Abhör-Lautstärke stehen
+  hatte, hört den Ton jetzt entsprechend lauter. Einmal die
+  Anwendungslautstärke nachziehen, dann passt es.
+
+
+Vorhören läuft jetzt über den Sendeton statt gegen ihn
+
+- Bisher verstummte dein Sendeton komplett, sobald du eine Datei vorgehört
+  hast. Jetzt weicht er nur auf die Hälfte zurück, genau so, wie es bei den
+  Spielern klingt, wenn du etwas einspielst.
+- Du hörst also weiter, was gerade läuft, und die Probe liegt gut hörbar
+  darüber. Die Spieler bekommen vom Vorhören weiterhin nichts mit.
+- Ein Druck auf Strg F12 beendet das Vorhören, das ist dort Stufe 1.
+
+
 Version 1.31, 15. September 2026
 
 
