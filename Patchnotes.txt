@@ -4,6 +4,40 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.33, 15. September 2026
+
+
+Playlists füllen, ohne sie zu verlassen
+
+- Im Untermenü einer Playlist steht jetzt ganz oben "Audio hinzufügen". Dahinter
+  öffnet sich die Audio-Struktur mit allen Ordnern.
+- Enter auf einer Datei legt sie in die Playlist. Der Fokus bleibt genau dort
+  stehen, wo er war, du kannst also mehrere Dateien nacheinander bestätigen und
+  eine Playlist in einem Durchgang füllen.
+- Nach jedem Hinzufügen wird der neue Stand angesagt, etwa "Kaminfeuer
+  hinzugefügt, 4 Titel".
+- Ein Titel, der schon in der Playlist liegt, wird nicht doppelt aufgenommen. Es
+  kommt dann nur der Hinweis, dass er schon drin ist.
+- Escape führt zurück, am Ende wieder in die Playlist. Dort stehen die Titel wie
+  gewohnt.
+- Der bisherige Weg über die Bibliothek und "Zu Playlist hinzufügen" bleibt
+  erhalten.
+
+
+Die Bedien-Töne sind doppelt so laut
+
+- Alle Menü- und Bedien-Töne wurden verdoppelt: das Klicken beim Auswählen, die
+  Navigationstöne, die Ebenen-Töne, der Anschlag am Listenrand und die Töne beim
+  Öffnen und Schließen.
+- Die Verkleinerung aus 1.24 war im Zusammenspiel mit den neuen Lautstärken zu
+  weit gegangen. Bei 80 Prozent Gesamtlautstärke waren die Töne kaum noch zu
+  hören.
+- Das Verhältnis der Töne untereinander bleibt unverändert, es wurde alles im
+  gleichen Maß angehoben.
+- Die Ereignistöne für Nachrichteneingang und Pop-ups bleiben, wie sie waren.
+  Sie waren nie reduziert und liegen schon dicht an der Vollaussteuerung.
+
+
 Version 1.32, 15. September 2026
 
 

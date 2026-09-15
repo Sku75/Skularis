@@ -80,12 +80,12 @@ const FALLBACK_BEEPS = {
 // laut normalisiert (loudnorm). Sie bekommen deshalb EINEN einheitlichen Faktor,
 // damit sich alles gleich laut anfuehlt und zusammenpasst. tab/schliessen/click
 // stammen noch aus dem alten Satz und behalten ihre eigenen Werte.
-const BEDIEN_PEGEL = 0.45;
+const BEDIEN_PEGEL = 0.90;
 // Bewusst leiser als die uebrigen Bedientoene: das staendige Pfeil-hoch-runter
 // und die Textfeld-Toene sollen dezent im Hintergrund bleiben. Seit 1.24 noch
 // einmal um die Haelfte reduziert (Nutzerwunsch: die Menue-Klickgeraeusche bei
 // Pfeil, Eingabetaste und Escape sind auf Dauer zu praesent).
-const BEDIEN_LEISE = 0.12;
+const BEDIEN_LEISE = 0.24;
 const VOLUME_MAP = {
   navigation: BEDIEN_LEISE,   // Pfeil-Navigation zwischen Zeilen (leiser)
   buch_auf:   BEDIEN_PEGEL,   // Info-Fenster oeffnet (Tooltip)
@@ -100,10 +100,10 @@ const VOLUME_MAP = {
   ap_bezahlen: BEDIEN_PEGEL,  // EP ausgeben
   ap_zurueck:  BEDIEN_PEGEL,  // EP erstatten
   ep_hinzu:    BEDIEN_PEGEL,  // Gesamt-EP hinzugefuegt (Erfolg)
-  tab:        0.30,   // Ebenenwechsel vor — NICHT reduziert (zeigt die Ebene an)
-  schliessen: 0.30,   // Ebenenwechsel zurueck — NICHT reduziert (zeigt die Ebene an)
-  click:      0.15,   // Menuepunkt auswaehlen (Eingabetaste) — seit 1.24 halbiert
-  grenze:     0.30,   // Anschlag am Listenrand
+  tab:        0.60,   // Ebenenwechsel vor — NICHT reduziert (zeigt die Ebene an)
+  schliessen: 0.60,   // Ebenenwechsel zurueck — NICHT reduziert (zeigt die Ebene an)
+  click:      0.30,   // Menuepunkt auswaehlen (Eingabetaste)
+  grenze:     0.60,   // Anschlag am Listenrand
   post:       0.85,   // Nachrichteneingang: bewusst auffaellig (30 Prozent lauter als zuvor)
   popup:      0.7,    // Pop-up: noch etwas praesenter
 };
@@ -113,7 +113,7 @@ const DEFAULT_VOLUME_FACTOR = 0.55;  // Ereignistoene (Wuerfeln, Speichern, Fehl
 // gekoppelt. Dieser Ton zeigt ueber seine steigende bzw. fallende Tonhoehe an,
 // auf welcher Menueebene man gelandet ist — er traegt also INFORMATION und wird
 // deshalb bewusst NICHT mitreduziert (Nutzerwunsch 1.25).
-const EBENE_VOLUME = 0.16;
+const EBENE_VOLUME = 0.32;
 
 let _soundAn = true;
 let _globalVolume = 0.25; // Standard beim ersten Start (danach gilt der gespeicherte Wert)

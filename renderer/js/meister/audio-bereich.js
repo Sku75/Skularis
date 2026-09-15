@@ -870,7 +870,7 @@ function playlistsScreen() {
       }, 'eine neue Zusammenstellung anlegen'));
       const listen = (_playlists && _playlists.listen) || [];
       if (!listen.length) {
-        wrap.appendChild(infoZeile('Noch keine Playlists.', 'Lege oben eine an, oder füge in der Bibliothek Sounds über "Zu Playlist hinzufügen" hinzu.'));
+        wrap.appendChild(infoZeile('Noch keine Playlists.', 'Lege oben eine an und fülle sie dann über "Audio hinzufügen".'));
       }
       listen.forEach((pl, i) => {
         wrap.appendChild(aktionZeile(`${pl.name}, ${pl.sounds.length} Titel`, () => screen.push(playlistScreen(i)), 'öffnen'));
@@ -880,6 +880,78 @@ function playlistsScreen() {
       return wrap;
     },
     onShow() { if (!_playlists) { ladePlaylists().then(() => screen.refresh()); } sprache.sage('Playlists.'); },
+  };
+  return scr;
+}
+
+// Titel aus der Bibliothek in eine Playlist legen: den Audio-Baum oeffnen und
+// darin bleiben. Jedes Enter auf einer Datei haengt sie an die Playlist an und
+// sagt den neuen Stand an — ohne die Ansicht neu zu bauen, damit der Fokus genau
+// dort stehen bleibt, wo er war. So laesst sich eine Playlist in einem Durchgang
+// fuellen. Escape geht eine Ebene zurueck, am Ende wieder in die Playlist.
+function playlistAudioWaehlen(plIndex) {
+  const start = (_wurzeln && _wurzeln.audioDaten) ? _wurzeln.audioDaten : null;
+  if (!start) { sprache.sage('Die Audio-Bibliothek ist noch nicht geladen.'); return; }
+  screen.push(playlistOrdnerScreen(start, 'Audio hinzufügen', plIndex));
+}
+
+function playlistOrdnerScreen(pfad, titel, plIndex) {
+  const scr = {
+    title: titel,
+    _inhalt: null,
+    __filter: '',
+    async lade() {
+      try { scr._inhalt = await ipc.audioInhalt(pfad); }
+      catch { scr._inhalt = { ordner: [], dateien: [] }; }
+      screen.refresh();
+    },
+    build() {
+      const pl = _playlists && _playlists.listen[plIndex];
+      if (!pl) { screen.pop(); return document.createElement('div'); }
+      const inhalt = scr._inhalt || { ordner: [], dateien: [] };
+      const q = (scr.__filter || '').toLowerCase();
+      const dateien = q ? inhalt.dateien.filter(d => d.name.toLowerCase().includes(q)) : inhalt.dateien;
+      const wrap = document.createElement('div');
+      wrap.className = 'db-menu ed-bereich';
+      wrap.appendChild(abschnittTitel(scr.__filter ? `${titel}, Filter ${scr.__filter}, ${dateien.length} Treffer` : titel));
+      wrap.appendChild(infoZeile(`Playlist ${pl.name}, ${pl.sounds.length} Titel.`,
+        'Enter auf einer Datei legt sie in die Playlist. Der Fokus bleibt stehen, du kannst also mehrere nacheinander bestätigen. Ordner öffnen ihre Unterordner. Escape zurück.'));
+      if (inhalt.dateien.length > 0) {
+        if (!scr.__filter) {
+          wrap.appendChild(aktionZeile('Filtern', async () => {
+            const e = await textDialog({ titel: 'Filtern', label: 'Suchbegriff eingeben, dann Eingabetaste' });
+            if (e === null) return; scr.__filter = e.trim(); screen.refresh();
+          }, 'die Liste durchsuchen'));
+        } else {
+          wrap.appendChild(aktionZeile('Filter aufheben', () => { scr.__filter = ''; screen.refresh(); }, `zeigt wieder alle ${inhalt.dateien.length}`));
+        }
+      }
+      for (const o of inhalt.ordner) {
+        wrap.appendChild(aktionZeile(`${o.name} (Ordner)`, () => screen.push(playlistOrdnerScreen(o.pfad, o.name, plIndex)), 'Ordner öffnen'));
+      }
+      for (const d of dateien) {
+        wrap.appendChild(aktionZeile(d.name, () => {
+          const liste = _playlists.listen[plIndex];
+          if (!liste) return;
+          liste.sounds = liste.sounds || [];
+          // Denselben Titel nicht zweimal: ein versehentliches zweites Enter soll
+          // die Playlist nicht doppelt fuellen.
+          if (liste.sounds.some(x => x.pfad === d.pfad)) { sprache.sage(`${d.name} ist schon in der Playlist.`); return; }
+          liste.sounds.push({ name: d.name, pfad: d.pfad });
+          speicherePlaylists();
+          sprache.sage(`${d.name} hinzugefügt, ${liste.sounds.length} Titel.`);
+        }, 'in die Playlist legen'));
+      }
+      if (!inhalt.ordner.length && !inhalt.dateien.length) {
+        wrap.appendChild(infoZeile('Dieser Ordner ist leer.', 'Lege Audio-Dateien hinein oder wähle einen anderen Ordner.'));
+      } else if (scr.__filter && !dateien.length) {
+        wrap.appendChild(infoZeile('Keine Treffer.', 'Filter mit "Filter aufheben" zurücksetzen.'));
+      }
+      verbindeDetail(wrap);
+      rueckKnopf(wrap);
+      return wrap;
+    },
+    onShow() { if (scr._inhalt === null) scr.lade(); },
   };
   return scr;
 }
@@ -896,6 +968,12 @@ function playlistScreen(index) {
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel(pl.name));
       wrap.appendChild(infoZeile(`Auto abspielen: ${_autoWeiter ? 'an' : 'aus'}`, 'Umschalten in der Playlist-Übersicht. An: der nächste Titel folgt von selbst.'));
+
+      // Erster Menuepunkt: Titel aus der Bibliothek dazuholen, ohne die Playlist
+      // zu verlassen. Der Baum bleibt offen, bis der Meister mit Escape herausgeht.
+      wrap.appendChild(aktionZeile('Audio hinzufügen', () => playlistAudioWaehlen(index),
+        'Titel aus der Bibliothek in diese Playlist legen',
+        'Öffnet die Audio-Struktur. Enter auf einer Datei legt sie in die Playlist, der Fokus bleibt in der Liste — du kannst also mehrere nacheinander bestätigen. Escape führt zurück zur Playlist.'));
 
       // Ganz oben: die komplette Playlist starten — wie bei einem einzelnen Titel,
       // nur auf die ganze Liste bezogen (Abspielen, Schleife, Hintergrund, Stop).
@@ -920,7 +998,7 @@ function playlistScreen(index) {
       }
 
       treffer.forEach((x) => wrap.appendChild(bauePlaylistZeile(pl, index, x.si)));
-      if (!pl.sounds.length) wrap.appendChild(infoZeile('Diese Playlist ist leer.', 'Füge in der Bibliothek Sounds über "Zu Playlist hinzufügen" hinzu.'));
+      if (!pl.sounds.length) wrap.appendChild(infoZeile('Diese Playlist ist leer.', 'Wähle oben "Audio hinzufügen" und lege Titel aus der Bibliothek hinein.'));
       else if (scr.__filter && !treffer.length) wrap.appendChild(infoZeile('Keine Treffer.', 'Filter mit "Filter aufheben" zurücksetzen.'));
       wrap.appendChild(aktionZeile('Playlist umbenennen', async () => {
         const v = await textDialog({ titel: 'Playlist umbenennen', label: 'Name', wert: pl.name });
