@@ -16,6 +16,8 @@ const SOUND_MAP = {
   tab:            'ebene-vor.wav',
   schliessen:     'ebene-zurueck.wav',
   wuerfel:        'wuerfel.wav',
+  triumph:        'triumph.ogg',   // gewertete 20 (Kenney powerUp1, CC0)
+  patzer:         'patzer.ogg',    // gewertete 1 (Kenney powerUp3, CC0)
   // Info-Fenster (Tooltip mit Shift und Pfeil-runter, Strg und I): neue Tooltip-Toene.
   buch_auf:       'tooltip-auf.ogg',
   buch_zu:        'tooltip-zu.ogg',
@@ -296,41 +298,11 @@ function _ton(ctx, freq, start, dauer, vol, freqEnde) {
  * @param {number} tiefe     Stapel-Tiefe der ERREICHTEN Ebene (1 = Hauptebene)
  * @param {'vor'|'zurueck'} [richtung]
  */
-// Triumph und Patzer (seit 1.39): zwei klar unterscheidbare Tonfolgen, kurz nach
-// dem Wuerfelgeraeusch, damit sie nicht darin untergehen. Triumph steigt hell auf,
-// Patzer faellt dunkel ab.
-const KENNUNG_VOLUME = 0.45;
-const KENNUNG_VERZOEGERUNG = 0.35; // Sekunden nach dem Wuerfeln
-
-function _kennungsCtx() {
-  if (!_soundAn) return null;
-  if (!_audioCtx) _audioCtx = new AudioContext();
-  if (_audioCtx.state === 'suspended') _audioCtx.resume();
-  return _audioCtx;
-}
-
-export function playTriumph() {
-  try {
-    const ctx = _kennungsCtx(); if (!ctx) return;
-    const t0 = ctx.currentTime + KENNUNG_VERZOEGERUNG;
-    const vol = _globalVolume * _appMaster * KENNUNG_VOLUME;
-    _ton(ctx, 523, t0, 0.14, vol);        // C
-    _ton(ctx, 659, t0 + 0.09, 0.14, vol); // E
-    _ton(ctx, 784, t0 + 0.18, 0.14, vol); // G
-    _ton(ctx, 1047, t0 + 0.27, 0.45, vol); // hohes C, lang ausklingend
-  } catch { /* Audio nicht verfuegbar */ }
-}
-
-export function playPatzer() {
-  try {
-    const ctx = _kennungsCtx(); if (!ctx) return;
-    const t0 = ctx.currentTime + KENNUNG_VERZOEGERUNG;
-    const vol = _globalVolume * _appMaster * KENNUNG_VOLUME;
-    _ton(ctx, 392, t0, 0.16, vol);             // G
-    _ton(ctx, 311, t0 + 0.13, 0.16, vol);      // Es
-    _ton(ctx, 233, t0 + 0.26, 0.55, vol, 165); // B, rutscht nach unten weg
-  } catch { /* Audio nicht verfuegbar */ }
-}
+// Triumph und Patzer: eigene Klaenge (seit 1.40 Dateien statt Tonfolgen), kurz
+// nach dem Wuerfelgeraeusch, damit sie nicht darin untergehen.
+const KENNUNG_VERZOEGERUNG_MS = 350;
+export function playTriumph() { setTimeout(() => play('triumph'), KENNUNG_VERZOEGERUNG_MS); }
+export function playPatzer()  { setTimeout(() => play('patzer'), KENNUNG_VERZOEGERUNG_MS); }
 
 export function playEbene(tiefe, richtung) {
   if (!_soundAn) return;

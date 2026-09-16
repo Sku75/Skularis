@@ -4,6 +4,20 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.40, 16. September 2026
+
+
+Triumph und Patzer haben jetzt eigene Klänge
+
+- Die Tonfolgen aus 1.39 sind durch richtige Klänge ersetzt: "powerUp1" beim
+  Triumph, also bei einer gewerteten 20, und "powerUp3" beim Patzer, also bei
+  einer gewerteten 1.
+- Die Klänge sind fest in Skularis eingebaut. Die Spieler hören sie also auch,
+  ohne dass sie die Audio-Bibliothek des Meisters brauchen.
+- Sie kommen weiterhin kurz nach dem Würfelgeräusch, damit sie nicht darin
+  untergehen.
+
+
 Version 1.39, 16. September 2026
 
 
