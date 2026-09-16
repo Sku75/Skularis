@@ -4,6 +4,49 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.39, 16. September 2026
+
+
+Triumph und Patzer werden angezeigt und angesagt
+
+- Zeigt der gewertete Würfel eine 20, steht das Wort direkt hinter dem Ergebnis:
+  "Ergebnis Triumph 24". Bei einer gewerteten 1 heißt es entsprechend
+  "Ergebnis Patzer 5".
+- Gewertet ist bei drei W20 der mittlere Würfel, bei einem W20 der eine.
+- Dazu gibt es einen eigenen Ton, kurz nach dem Würfelgeräusch: Beim Triumph
+  steigt eine helle Tonfolge auf, beim Patzer fällt eine dunkle ab.
+- Nach Ilaris zählt ein Triumph nur bei einer gelungenen Probe und ein Patzer
+  nur bei einer misslungenen. Ist die Schwierigkeit bekannt, prüft Skularis das.
+  Kennt sie nur der Meister, wird die Kennung angesagt und er entscheidet.
+- Gilt für alle Proben am Abenteuertisch (Fertigkeiten, Kampf, Zauber) und für
+  die verdeckten Proben des Meisters (Gegner, Gruppenrecherche, Spieltisch).
+
+
+Das Mausrad blättert jetzt durch die Menüs
+
+- Eine Raste am Mausrad wirkt wie Pfeil hoch oder Pfeil runter: Der Fokus
+  wandert, die Zeile wird vorgelesen, der Navigationston kommt, und am Listenrand
+  gibt es den Anschlag.
+- Über einem mehrzeiligen Textfeld und in offenen Dialogen bleibt das Rad beim
+  normalen Verhalten.
+
+
+Die Lautstärkeregler folgen jetzt dem Gehör
+
+- Bisher regelten die Regler linear. Die ersten Schritte änderten fast alles, die
+  obere Hälfte kaum noch etwas. Bei lauten Hintergrunddateien landeten Spieler
+  und Meister deshalb im winzigen Bereich zwischen 1 und 5.
+- Jetzt ist es umgekehrt: Die obere Hälfte regelt kräftig herunter. Bei 50 ist die
+  Lautstärke schon auf ein Viertel gesunken, die untere Hälfte teilt sich das
+  letzte Viertel. Was vorher bei 1 bis 5 lag, liegt jetzt etwa zwischen 10 und 22
+  und lässt sich viel feiner einstellen.
+- Betroffen sind die Anwendungslautstärke am Ziffernblock und die
+  Radio-Lautstärke der Spieler.
+- Beim ersten Start werden gespeicherte Werte so umgerechnet, dass alles genauso
+  laut klingt wie vorher. Nur die Zahl am Regler ändert sich, etwa von 15 auf 39.
+- Der Regler für die Bedien-Töne bleibt, wie er war.
+
+
 Version 1.38, 15. September 2026
 
 

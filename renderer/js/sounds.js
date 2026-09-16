@@ -120,7 +120,30 @@ let _globalVolume = 0.25; // Standard beim ersten Start (danach gilt der gespeic
 // Anwendungslautstaerke (Numblock +/-): ein Master ueber ALLES, was der Nutzer
 // hoert (Bedien-Toene, Player-Audio, Radio-Empfang). Verschiebt NICHT die Balance
 // der Kanaele (Hintergrund/Abhoer) und NICHT die Sende-Lautstaerke an die Spieler.
-let _appMaster = 1;
+let _appMaster = 1;          // wirksamer Faktor (nach der Kurve)
+let _appMasterProzent = 100; // was der Regler anzeigt
+
+/**
+ * Lautstaerkekurve aller Hoer-Regler (seit 1.39): Reglerwert -> Faktor.
+ *
+ * Das Ohr hoert Lautstaerke nicht linear. Bei einem linearen Regler aendern die
+ * ersten Schritte fast alles und die obere Haelfte kaum noch etwas — bei lauten
+ * Dateien landete man deshalb im Bereich 1 bis 5. Mit der quadratischen Kurve
+ * ist die Haelfte (50) schon auf ein Viertel (25 Prozent) herunter, und der
+ * leise Bereich wird entsprechend feiner: Was vorher bei 1 bis 5 lag, liegt
+ * jetzt etwa bei 10 bis 22.
+ */
+export function lautstaerkeKurve(prozent) {
+  const x = Math.max(0, Math.min(100, Number(prozent) || 0)) / 100;
+  return x * x;
+}
+
+/** Umkehrung der Kurve: aus einem frueher LINEAR gespeicherten Wert den
+ *  Reglerwert machen, der genauso laut klingt. Nur fuer die einmalige Umstellung. */
+export function lautstaerkeAusLinear(prozent) {
+  const x = Math.max(0, Math.min(100, Number(prozent) || 0)) / 100;
+  return Math.round(Math.sqrt(x) * 100);
+}
 const _audioCache = {};
 let _audioCtx = null;
 
@@ -128,8 +151,21 @@ export async function init() {
   _soundAn = await einstellungen.get('sound_an') !== false;
   const vol = await einstellungen.get('lautstaerke');
   if (vol != null) _globalVolume = Math.max(0, Math.min(1, vol / 100));
+  // Einmalige Umstellung auf die Lautstaerkekurve (1.39): Gespeicherte Regler-
+  // werte waren linear gemeint. Sie werden so umgerechnet, dass nach dem Update
+  // alles genauso laut klingt wie vorher — nur die Zahl am Regler aendert sich.
+  if (!(await einstellungen.get('lautstaerke_kurve'))) {
+    for (const key of ['app_master_vol', 'radio_hoerer_vol']) {
+      const alt = await einstellungen.get(key);
+      if (typeof alt === 'number') await einstellungen.setWert(key, lautstaerkeAusLinear(alt));
+    }
+    await einstellungen.setWert('lautstaerke_kurve', 1);
+  }
   const master = await einstellungen.get('app_master_vol');
-  if (master != null) _appMaster = Math.max(0, Math.min(1, master / 100));
+  if (master != null) {
+    _appMasterProzent = Math.max(0, Math.min(100, Math.round(master)));
+    _appMaster = lautstaerkeKurve(_appMasterProzent);
+  }
   _preload();
 }
 
@@ -164,12 +200,13 @@ export function onAnwendungsLautstaerke(fn) {
   if (typeof fn === 'function') _masterHooks.push(fn);
 }
 export function setAnwendungsLautstaerke(prozent) {
-  _appMaster = Math.max(0, Math.min(1, prozent / 100));
-  const v = Math.round(_appMaster * 100);
-  for (const fn of _masterHooks) { try { fn(v); } catch { /* egal */ } }
+  _appMasterProzent = Math.max(0, Math.min(100, Math.round(Number(prozent) || 0)));
+  _appMaster = lautstaerkeKurve(_appMasterProzent);
+  // Die angemeldeten Module bekommen den REGLERWERT und wenden die Kurve selbst an.
+  for (const fn of _masterHooks) { try { fn(_appMasterProzent); } catch { /* egal */ } }
 }
 export function getAnwendungsLautstaerke() {
-  return Math.round(_appMaster * 100);
+  return _appMasterProzent;
 }
 
 /**
@@ -259,6 +296,42 @@ function _ton(ctx, freq, start, dauer, vol, freqEnde) {
  * @param {number} tiefe     Stapel-Tiefe der ERREICHTEN Ebene (1 = Hauptebene)
  * @param {'vor'|'zurueck'} [richtung]
  */
+// Triumph und Patzer (seit 1.39): zwei klar unterscheidbare Tonfolgen, kurz nach
+// dem Wuerfelgeraeusch, damit sie nicht darin untergehen. Triumph steigt hell auf,
+// Patzer faellt dunkel ab.
+const KENNUNG_VOLUME = 0.45;
+const KENNUNG_VERZOEGERUNG = 0.35; // Sekunden nach dem Wuerfeln
+
+function _kennungsCtx() {
+  if (!_soundAn) return null;
+  if (!_audioCtx) _audioCtx = new AudioContext();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+export function playTriumph() {
+  try {
+    const ctx = _kennungsCtx(); if (!ctx) return;
+    const t0 = ctx.currentTime + KENNUNG_VERZOEGERUNG;
+    const vol = _globalVolume * _appMaster * KENNUNG_VOLUME;
+    _ton(ctx, 523, t0, 0.14, vol);        // C
+    _ton(ctx, 659, t0 + 0.09, 0.14, vol); // E
+    _ton(ctx, 784, t0 + 0.18, 0.14, vol); // G
+    _ton(ctx, 1047, t0 + 0.27, 0.45, vol); // hohes C, lang ausklingend
+  } catch { /* Audio nicht verfuegbar */ }
+}
+
+export function playPatzer() {
+  try {
+    const ctx = _kennungsCtx(); if (!ctx) return;
+    const t0 = ctx.currentTime + KENNUNG_VERZOEGERUNG;
+    const vol = _globalVolume * _appMaster * KENNUNG_VOLUME;
+    _ton(ctx, 392, t0, 0.16, vol);             // G
+    _ton(ctx, 311, t0 + 0.13, 0.16, vol);      // Es
+    _ton(ctx, 233, t0 + 0.26, 0.55, vol, 165); // B, rutscht nach unten weg
+  } catch { /* Audio nicht verfuegbar */ }
+}
+
 export function playEbene(tiefe, richtung) {
   if (!_soundAn) return;
   try {

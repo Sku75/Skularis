@@ -9,6 +9,7 @@ import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { getMeister, speichere } from './state.js';
 import { protokolliere } from '../core/meister-abenteuer.js';
+import { wurfKennung, kennungsTon, mitKennung } from '../core/triumph.js';
 
 function mittel3(w) { const s = [...w].sort((a, b) => a - b); return s[1]; }
 
@@ -40,11 +41,15 @@ export function verdeckteProbe(o) {
     gelungen = ew >= o.schwierigkeit;
     erfolg = ` Gegen Schwierigkeit ${o.schwierigkeit}: ${gelungen ? 'gelungen' : 'misslungen'}.`;
   }
-  const ansage = `Verdeckt. Probenergebnis ${ew}.${erfolg} ${o.wer}, ${o.was}, Probenwert ${o.probenwert}, ${wtext}.`;
-  merke(`Verdeckte Probe, ${o.wer}, ${o.was}: ${wtext}, Probenwert ${o.probenwert}, Ergebnis ${ew}.${erfolg}`);
+  // Triumph (gewertete 20) oder Patzer (gewertete 1) direkt hinter "Ergebnis".
+  const kennung = wurfKennung(wert, gelungen);
+  const ergebnisText = mitKennung(kennung, ew);
+  if (!o.stumm) kennungsTon(kennung);
+  const ansage = `Verdeckt. Probenergebnis ${ergebnisText}.${erfolg} ${o.wer}, ${o.was}, Probenwert ${o.probenwert}, ${wtext}.`;
+  merke(`Verdeckte Probe, ${o.wer}, ${o.was}: ${wtext}, Probenwert ${o.probenwert}, Ergebnis ${ergebnisText}.${erfolg}`);
   // stumm: der Aufrufer sagt selbst an (z. B. auf dem Spielbrett mit Kartennamen zuerst).
   if (!o.stumm) sprache.sage(ansage);
-  return { ew, wuerfe, gelungen, ansage };
+  return { ew, wuerfe, gelungen, ansage, kennung };
 }
 
 /** Freier verdeckter Wurf (Anzahl, Seiten, Modifikator). stumm: Aufrufer sagt selbst an. */

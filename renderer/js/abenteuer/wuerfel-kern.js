@@ -18,6 +18,7 @@ import { protokolliere } from '../core/abenteuer.js';
 import { wundabzug } from '../core/regeln.js';
 import { getAbenteuer, speichere } from './state.js';
 import * as post from '../net/post.js';
+import { wurfKennung, kennungsTon, mitKennung } from '../core/triumph.js';
 
 /**
  * Pauschaler Abzug aus den Einschraenkungen (Wunden plus Erschoepfung, Ilaris:
@@ -285,31 +286,36 @@ export async function kampfProbe(o) {
   if (typeof o.schwierigkeit === 'number') {
     erfolgText = ` Gegen Schwierigkeit ${o.schwierigkeit}: ${ew >= o.schwierigkeit ? 'gelungen' : 'misslungen'}.`;
   }
+  // Triumph (gewertete 20) oder Patzer (gewertete 1): steht direkt hinter
+  // "Ergebnis", also "Ergebnis Triumph 24", und bekommt einen eigenen Ton.
+  const kennung = wurfKennung(wert, typeof o.schwierigkeit === 'number' ? ew >= o.schwierigkeit : null);
+  const ergebnisText = mitKennung(kennung, ew);
+  kennungsTon(kennung);
   const zusatzText = o.zusatz ? ` ${o.zusatz}` : '';
   // Das Probenergebnis steht bewusst ganz vorn — das ist beim Würfeln die
   // wichtigste Zahl. Danach Erfolg/Misserfolg, dann Herkunft (Titel, Würfel,
   // Werte) und zuletzt die Zusätze (Kosten usw.).
-  const ansage = `${vd()}Probenergebnis ${ew}.${erfolgText} ${o.titel}, ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${einschrText}${erschText}.${zusatzText}${modNamenText}`;
+  const ansage = `${vd()}Probenergebnis ${ergebnisText}.${erfolgText} ${o.titel}, ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${einschrText}${erschText}.${zusatzText}${modNamenText}`;
 
   // Letzten Wurf mehrzeilig fuer den Tooltip merken (bleibt die Sitzung ueber).
   _letzterWurf[o.id] = [
     'Letzter Wurf:',
-    `Probenergebnis ${ew}${typeof o.schwierigkeit === 'number' ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : ''}`,
+    `Probenergebnis ${ergebnisText}${typeof o.schwierigkeit === 'number' ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : ''}`,
     anzahl === 3 ? `Wurf drei W20 ${wuerfe.join(', ')}` : `Wurf ein W20 ${wuerfe[0]}`,
     anzahl === 3 ? `Mittlerer Wurf zaehlt ${wert}` : null,
     `Dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}`,
     einschr ? `Einschränkungen minus ${einschr} (Wunden und Erschöpfung)` : null,
   ].filter(Boolean);
 
-  protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${einschrText}${erschText}, Ergebnis ${ew}.${erfolgText}${modNamenText}`);
+  protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${einschrText}${erschText}, Ergebnis ${ergebnisText}.${erfolgText}${modNamenText}`);
   speichere();
-  zeigeErgebnis(o.id, `Ergebnis ${ew}`, `Letztes Probenergebnis ${ew}${typeof o.schwierigkeit === 'number' ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : ''}`);
+  zeigeErgebnis(o.id, `Ergebnis ${ergebnisText}`, `Letztes Probenergebnis ${ergebnisText}${typeof o.schwierigkeit === 'number' ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : ''}`);
   // Fokus liegt nach dem Schließen der Dialoge schon wieder auf dem Schalter
   // (das ergibt keinen Fokuswechsel und damit keine Vorlesung), deshalb die
   // Ansage zuverlässig per aria-live. Der Schalter trägt das Ergebnis danach.
   fokusAufZiel(o.id);
   sprache.sage(ansage);
-  protokolliereWurf(o.titel || o.vokabel || 'Probe', `Probenergebnis ${ew}`, ansage);
+  protokolliereWurf(o.titel || o.vokabel || 'Probe', `Probenergebnis ${ergebnisText}`, ansage);
 }
 
 /**

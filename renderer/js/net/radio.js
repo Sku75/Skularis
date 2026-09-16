@@ -34,7 +34,12 @@ let _audioEl = null;       // Hoerer: Wiedergabe-Element
 // aufgedrehtem System zu leise an, und viele Spieler wussten nicht, dass es
 // dafuer einen eigenen Regler gibt. Wer ihn schon einmal verstellt hat,
 // behaelt seinen gespeicherten Wert (radio_hoerer_vol).
-let _hoererVol = 0.80;
+// Seit 1.39 laufen beide Regler ueber die Lautstaerkekurve aus sounds.js. Hier
+// stehen die Reglerwerte; die Faktoren werden bei jeder Aenderung neu berechnet.
+// 90 am Regler klingt etwa so laut wie frueher 80.
+let _hoererProzent = 90;
+let _hoererVol = 0.81;
+let _appMasterProzent = 100;
 let _appMaster = 1; // Anwendungslautstaerke (Numblock +/-): skaliert den Radio-EMPFANG mit, nie den eigenen Sendestrom
 
 // Beim Laden am Master in sounds.js anmelden — app.js muss dieses Modul dafuer
@@ -252,22 +257,24 @@ function spieleEmpfang(remote) {
 
 /** Hoerer-Lautstaerke (0 bis 100), getrennt von allen anderen Toenen. */
 export function setHoererLautstaerke(prozent) {
-  _hoererVol = Math.max(0, Math.min(1, prozent / 100));
+  _hoererProzent = Math.max(0, Math.min(100, Math.round(Number(prozent) || 0)));
+  _hoererVol = sounds.lautstaerkeKurve(_hoererProzent);
   if (_audioEl) _audioEl.volume = Math.max(0, Math.min(1, _hoererVol * _appMaster));
 }
 
 export function getHoererLautstaerke() {
-  return Math.round(_hoererVol * 100);
+  return _hoererProzent;
 }
 
 /** Anwendungslautstaerke (Numblock +/-) fuer den Radio-Empfang. Skaliert nur, was
  *  DU hoerst; der eigene Sendestrom an die Spieler bleibt unberuehrt. Die
  *  Persistenz (app_master_vol) uebernimmt der Numblock-Handler. */
 export function setAnwendungsLautstaerke(prozent) {
-  _appMaster = Math.max(0, Math.min(1, prozent / 100));
+  _appMasterProzent = Math.max(0, Math.min(100, Math.round(Number(prozent) || 0)));
+  _appMaster = sounds.lautstaerkeKurve(_appMasterProzent);
   if (_audioEl) _audioEl.volume = Math.max(0, Math.min(1, _hoererVol * _appMaster));
 }
-export function getAnwendungsLautstaerke() { return Math.round(_appMaster * 100); }
+export function getAnwendungsLautstaerke() { return _appMasterProzent; }
 
 /** Anzahl aktuell verbundener Hoerer (nur beim Sender sinnvoll). */
 export function hoererAnzahl() {

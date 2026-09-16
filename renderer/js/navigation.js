@@ -27,12 +27,46 @@ let _letzterImPanel = null;
 
 export function init() {
   document.addEventListener('keydown', _onKeyDown);
+  // Mausrad (seit 1.39): wirkt im Menue wie Pfeil hoch und runter.
+  document.addEventListener('wheel', _onWheel, { passive: false });
   // Den zuletzt besuchten Punkt im Bildschirm merken. Von der
   // Barrierefreiheits-Box in der Kopfzeile führt Pfeil hoch/runter dorthin
   // zurück, statt ins Leere zu laufen.
   document.addEventListener('focusin', (e) => {
     if (_aktivesPanel && _aktivesPanel.contains(e.target)) _letzterImPanel = e.target;
   });
+}
+
+// Mausrad im aktiven Bildschirm: jede Raste ist ein Schritt, genau wie Pfeil hoch
+// oder runter — mit Fokuswechsel, Vorlesen, Navigationston und Anschlag am Rand.
+// Touchpads liefern viele kleine Schritte; die werden gesammelt, bis sie einer
+// Raste entsprechen. Ueber einem mehrzeiligen Textfeld, bei offenem Dialog oder
+// ausserhalb des Bildschirms (Kopfzeile, Info-Fenster) bleibt das Rad unberuehrt.
+const RAD_SCHWELLE = 40;
+let _radSumme = 0;
+
+function _onWheel(e) {
+  if (!_aktivesPanel) return;
+  if (e.ctrlKey) return; // Strg und Rad bleibt frei (etwa zum Zoomen)
+  if (document.querySelector('dialog[open]')) return;
+  const ziel = e.target;
+  if (!ziel || !ziel.closest || !_aktivesPanel.contains(ziel)) return;
+  if (ziel.closest('textarea')) return;
+
+  e.preventDefault();
+  // Zeilen- oder Seiten-Modus zaehlt pro Ereignis als ganze Raste.
+  const delta = e.deltaMode === 0 ? e.deltaY : Math.sign(e.deltaY) * RAD_SCHWELLE;
+  _radSumme += delta;
+  if (Math.abs(_radSumme) < RAD_SCHWELLE) return;
+  const richtung = _radSumme > 0 ? 1 : -1;
+  _radSumme = 0;
+
+  if (!_aktivesPanel.contains(document.activeElement)) { zurueckInsPanel(); return; }
+  const el = _naechstesElement(richtung);
+  if (!el) { anschlag(); return; }
+  const eingabe = el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search');
+  _fokussiere(el);
+  _navTon(eingabe);
 }
 
 export function setAktivesPanel(panel) {

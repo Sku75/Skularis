@@ -436,12 +436,14 @@ export function getHintergrundPegel() { return _hintergrundVol; }
 /** Anwendungslautstaerke (Numblock +/-) fuer alles, was der Meister selbst hoert.
  *  Der Sendestrom an die Spieler bleibt unberuehrt. Die Persistenz
  *  (app_master_vol) uebernimmt der Numblock-Handler. */
+let _appMasterProzent = 100; // Reglerwert; _appMaster ist der Faktor nach der Kurve
 export function setAnwendungsLautstaerke(prozent) {
-  _appMaster = Math.max(0, Math.min(1, prozent / 100));
+  _appMasterProzent = Math.max(0, Math.min(100, Math.round(Number(prozent) || 0)));
+  _appMaster = __sounds.lautstaerkeKurve(_appMasterProzent);
   if (_monitor) rampe(_monitor.gain, monitorZiel(), 0.15);
   if (_preview) rampe(_preview.gain.gain, Math.max(0.0001, _appMaster), 0.15);
 }
-export function getAnwendungsLautstaerke() { return Math.round(_appMaster * 100); }
+export function getAnwendungsLautstaerke() { return _appMasterProzent; }
 
 // --- Vorhoeren (Probehoeren, nur fuer den Meister) -----------------------
 //
