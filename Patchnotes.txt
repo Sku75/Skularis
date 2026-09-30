@@ -4,6 +4,45 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.42, 30. September 2026
+
+
+Die Würfelbox nennt jetzt, worauf gewürfelt wurde
+
+- Zeile 1 lautet zum Beispiel "Würfelergebnis: 28, gelungen (Probe Schwimmen)".
+  In der Klammer steht die Herkunft: Probe, Zauber, Ritual, Attacke oder Parade,
+  jeweils mit Namen.
+- Der Schadenswurf nennt die Waffe ohne Klammer: "Schaden: 11 Langdolch".
+- Jede Angabe belegt genau eine Zeile. Ist ein Name zu lang, wird hinten mit
+  drei Punkten abgeschnitten — der Anfang genügt zum Erkennen, und die Box
+  behält dadurch immer ihre Größe.
+
+
+Rechts ist jetzt eine Spalte mit zwei Fächern
+
+- Die Würfelbox ist genau so breit wie das Info-Fenster darüber und sitzt an
+  derselben Kante. Oben die Erklärung, unten das Ergebnis.
+- Das Info-Fenster endet über der Box, statt dahinter zu laufen. Damit ist auch
+  seine Rollleiste nicht mehr verdeckt.
+- Die Box hat eine feste Höhe für vier Textzeilen. Stellt man die Schrift
+  größer, werden die Zeilen höher und die Box wächst mit — die Zeilenzahl bleibt
+  gleich, die Box springt also bei keinem Wurf.
+- Sie steht von Anfang an da und trägt bis zum ersten Wurf die Aufschrift
+  "Würfelbox".
+- Sie bleibt stehen, egal ob das Info-Fenster ein- oder ausgeschaltet ist.
+- Platz macht das Info-Fenster nur dort, wo es die Box wirklich gibt. Im
+  Charaktereditor behält es die volle Höhe.
+
+
+Die Würfelbox gibt es jetzt auch am Meistertisch
+
+- Auch der Meister würfelt. Seine verdeckten Proben für Gegner und Figuren
+  stehen jetzt an derselben festen Stelle, ebenso Schnellwürfe und der freie
+  Wurf. Schadenswürfe landen im unteren Block.
+- Die Gruppenprobe bleibt ausgenommen. Dort fallen viele Würfe auf einmal, und
+  die Ergebnisse stehen ohnehin direkt unter dem Wurf.
+
+
 Version 1.41, 30. September 2026
 
 

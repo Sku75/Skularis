@@ -110,4 +110,19 @@
      grosser Schrift ein Haar. */
   --db-rahmen: calc(2px + var(--db-font-offset, 0px) * 0.25);
   --db-rahmen-stark: calc(3px + var(--db-font-offset, 0px) * 0.3);
+
+  /* === Würfelbox ===
+     Feste Höhe für genau vier Textzeilen: eine große Ergebniszeile und drei
+     normale. Skaliert die Schrift hoch, werden die Zeilen höher und damit die
+     Box — die Anzahl der Zeilen bleibt aber gleich, die Box springt also nie.
+     Das Info-Fenster darüber verkürzt sich um genau diesen Wert. */
+  --db-wurf-zeile-gross: calc((1.6rem + var(--db-font-offset, 0px)) * 1.3);
+  --db-wurf-zeile: calc((1.1rem + var(--db-font-offset, 0px)) * 1.3);
+  --db-wurf-hoehe: calc(
+    var(--db-wurf-zeile-gross) * 2
+    + var(--db-wurf-zeile) * 2
+    + 1.2rem
+    + var(--db-rahmen-stark) * 2
+  );
+  --db-wurf-rand: 0.7rem;
 }

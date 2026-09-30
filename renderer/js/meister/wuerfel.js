@@ -10,6 +10,7 @@ import * as sounds from '../sounds.js';
 import { getMeister, speichere } from './state.js';
 import { protokolliere } from '../core/meister-abenteuer.js';
 import { wurfKennung, kennungsTon, mitKennung } from '../core/triumph.js';
+import { zeigeProbenwurf, zeigeSchadenswurf, mitProbeWort } from '../ui/wurf-anzeige.js';
 
 function mittel3(w) { const s = [...w].sort((a, b) => a - b); return s[1]; }
 
@@ -48,6 +49,15 @@ export function verdeckteProbe(o) {
   const ansage = `Verdeckt. Probenergebnis ${ergebnisText}.${erfolg} ${o.wer}, ${o.was}, Probenwert ${o.probenwert}, ${wtext}.`;
   merke(`Verdeckte Probe, ${o.wer}, ${o.was}: ${wtext}, Probenwert ${o.probenwert}, Ergebnis ${ergebnisText}.${erfolg}`);
   // stumm: der Aufrufer sagt selbst an (z. B. auf dem Spielbrett mit Kartennamen zuerst).
+  // Würfelbox unten rechts. Die Gruppenprobe läuft über verdeckteProbeStumm und
+  // kommt hier absichtlich nicht vorbei: Ihre vielen Einzelergebnisse stehen
+  // ohnehin direkt unter dem Wurf.
+  try {
+    zeigeProbenwurf(
+      `Würfelergebnis: ${ergebnisText}${erfolg ? (gelungen ? ', gelungen' : ', misslungen') : ''} (${mitProbeWort(o.was)}, ${o.wer})`,
+      `${wtext}, Probenwert ${o.probenwert}`,
+    );
+  } catch { /* Anzeige ist nur optisch */ }
   if (!o.stumm) sprache.sage(ansage);
   return { ew, wuerfe, gelungen, ansage, kennung };
 }
@@ -61,6 +71,12 @@ export function verdeckterWurf(anzahl, seiten, mod = 0, was = 'Meister-Wurf', st
   const bez = `${anzahl} W ${seiten}${mod ? (mod > 0 ? ` plus ${mod}` : ` minus ${-mod}`) : ''}`;
   const ansage = `Verdeckt. ${was}, ${bez}, Ergebnis ${wuerfe.join(', ')}${mod ? `, Summe ${summe}` : ''}.`;
   merke(`Verdeckter Wurf, ${bez}: ${wuerfe.join(', ')}${mod ? `, Summe ${summe}` : ''}.`);
+  // Schadenswürfe kommen in den unteren Block, alles andere (Schnellwürfe,
+  // freier Wurf) in den oberen.
+  try {
+    if (/^Schaden/i.test(String(was || ''))) zeigeSchadenswurf(`Schaden: ${summe} ${String(was).replace(/^Schaden\s*/i, '')}`, `${bez}: ${wuerfe.join(', ')}`);
+    else zeigeProbenwurf(`Würfelergebnis: ${summe} (${mitProbeWort(was)})`, `${bez}: ${wuerfe.join(', ')}`);
+  } catch { /* Anzeige ist nur optisch */ }
   if (!stumm) sprache.sage(ansage);
   return { summe, wuerfe, ansage };
 }

@@ -19,7 +19,7 @@ import { wundabzug } from '../core/regeln.js';
 import { getAbenteuer, speichere } from './state.js';
 import * as post from '../net/post.js';
 import { wurfKennung, kennungsTon, mitKennung } from '../core/triumph.js';
-import { zeigeProbenwurf, zeigeSchadenswurf } from '../ui/wurf-anzeige.js';
+import { zeigeProbenwurf, zeigeSchadenswurf, mitProbeWort } from '../ui/wurf-anzeige.js';
 
 /**
  * Pauschaler Abzug aus den Einschraenkungen (Wunden plus Erschoepfung, Ilaris:
@@ -133,7 +133,7 @@ export function wuerfeln(anzahl, seiten, mod, id, stumm) {
   // Auch einfache Wuerfe (Schnellwuerfe, freier Wurf) fuers Tooltip merken.
   if (id) _letzterWurf[id] = ['Letzter Wurf:', `${bez}: ${wuerfe.join(', ')}${summeText}`];
   zeigeErgebnis(id, mod ? `${wuerfe.join(' ')} = ${summe}` : wuerfe.join(' '), `Letzter Wurf ${wuerfe.join(', ')}${summeText}`);
-  try { zeigeProbenwurf(`Ergebnis: ${mod ? summe : wuerfe.join(', ')}`, `${bez}: ${wuerfe.join(', ')}${summeText}`); }
+  try { zeigeProbenwurf(`Würfelergebnis: ${mod ? summe : wuerfe.join(', ')} (Wurf ${bez})`, `${bez}: ${wuerfe.join(', ')}${summeText}`); }
   catch { /* Anzeige ist nur optisch */ }
   if (!stumm) { sprache.sage(ansage); protokolliereWurf(`Wurf ${bez}`, `${wuerfe.join(', ')}${summeText}`, ansage); }
 }
@@ -321,7 +321,7 @@ export async function kampfProbe(o) {
     const erfolgKurz = typeof o.schwierigkeit === 'number'
       ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : '';
     zeigeProbenwurf(
-      `Ergebnis: ${ergebnisText}${erfolgKurz}`,
+      `Würfelergebnis: ${ergebnisText}${erfolgKurz} (${mitProbeWort(o.titel || o.vokabel)})`,
       `${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${einschrText}${erschText}`,
     );
   } catch { /* Anzeige ist nur optisch */ }
@@ -354,7 +354,7 @@ export function schadenWurf(o) {
   speichere();
   zeigeErgebnis(o.id, `Schaden ${summe}`, `Letzter Schaden ${summe}`);
   // Eigener Block in der Würfelbox, unter dem Probenergebnis.
-  try { zeigeSchadenswurf(`Schaden: ${summe}`, `${o.name}: ${wuerfelText}${bText}${zusatz}`); }
+  try { zeigeSchadenswurf(`Schaden: ${summe} ${o.name}`, `${wuerfelText}${bText}${zusatz}`); }
   catch { /* Anzeige ist nur optisch */ }
   sprache.sage(ansage);
   protokolliereWurf(`Schaden ${o.name}`, `Schaden ${summe}`, ansage);

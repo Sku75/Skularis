@@ -34,6 +34,7 @@ import { meisterNotizenScreen } from '../meister/notizen.js';
 import { audioBereichScreen } from '../meister/audio-bereich.js';
 import { regelnMenuScreen } from './regeln-menu.js';
 import { versteckeEP } from '../ui/ep-anzeige.js';
+import { zeigeWurfAnzeige, versteckeWurfAnzeige } from '../ui/wurf-anzeige.js';
 
 const ipc = window.skularis?.ipc;
 
@@ -215,6 +216,12 @@ function oeffneHub() {
   // frueher sendete das Radio aus dem Hauptmenue weiter (nur die Post wurde
   // gestoppt). Ein Ausgang fuer alle Wege (Escape, Speichern, Strg Q, Fenster-X).
   modul.betreteModul('meister');
+  // Würfelbox unten rechts: Auch der Meister würfelt, und sein Ergebnis soll an
+  // derselben festen Stelle stehen wie bei den Spielern.
+  try { zeigeWurfAnzeige(); } catch { /* egal */ }
+  modul.dienstRegistrieren('wurfbox-aufraeumen', () => {
+    try { versteckeWurfAnzeige(); } catch { /* egal */ }
+  });
   // Info-Fenster rechts dauerhaft mitlaufen lassen (per Strg und I abschaltbar).
   import('../app.js').then(m => m.begleiterStarten && m.begleiterStarten()).catch(() => {});
   modul.dienstRegistrieren('meister-aufraeumen', () => {

@@ -128,6 +128,16 @@
 .ii-overlay.ii-info .ii-zeile { cursor: pointer; }
 .ii-overlay.ii-info .ii-zeile:hover { background: var(--db-bg-hover, #1f1f1f); }
 
+/* Steht unten die Würfelbox, endet das Info-Fenster darüber (1.42). Sonst läge
+   die Box über dem Textende und über der Rollleiste. Die Marke setzt die
+   Würfelanzeige selbst, sie gilt also nur an den Tischen. */
+.wurf-platz .ii-overlay {
+  height: calc(100vh - var(--db-wurf-hoehe) - var(--db-wurf-rand) - 0.6rem);
+}
+.wurf-platz .ii-fenster {
+  max-height: calc(100vh - var(--db-wurf-hoehe) - var(--db-wurf-rand) - 4vh);
+}
+
 /* Weniger Bewegung, wenn das System es wünscht. */
 @media (prefers-reduced-motion: reduce) {
   .ii-fenster { transition: opacity 0.2s ease-out; transform: scaleY(1); }

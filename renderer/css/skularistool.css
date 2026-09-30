@@ -340,22 +340,33 @@
 .wurf-anzeige.sichtbar {
   display: block;
   position: fixed;
-  bottom: 0.7rem;
-  right: 0.9rem;
+  /* Untere Hälfte der rechten Spalte: genau so breit wie das Info-Fenster
+     darüber (40vw abzüglich seiner Ränder von je 2vw) und an derselben Kante.
+     Damit stehen beide sauber übereinander, und die Rollleiste des
+     Info-Fensters bleibt frei. */
+  bottom: var(--db-wurf-rand);
+  right: 2vw;
+  width: calc(40vw - 4vw);
+  height: var(--db-wurf-hoehe);
+  box-sizing: border-box;
   z-index: 50;
-  max-width: 36vw;
   padding: 0.6rem 1.1rem;
   border: var(--db-rahmen-stark) solid var(--db-border-white, #ffffff);
   border-radius: 0.6rem;
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(0, 0, 0, 0.88);
   color: #ffffff;
   box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
   pointer-events: none;
+  overflow: hidden;
 }
+/* Jede Angabe genau eine Zeile: kein Umbruch, hinten drei Punkte. Der Anfang
+   genügt zum Erkennen, und die Box behält dadurch ihre Größe. */
 .wurf-anzeige__zeile {
   font-size: calc(1.1rem + var(--db-font-offset, 0px));
   line-height: 1.3;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .wurf-anzeige__haupt {
   font-size: calc(1.6rem + var(--db-font-offset, 0px));
@@ -363,8 +374,6 @@
   font-variant-numeric: tabular-nums;
 }
 .wurf-anzeige__haupt:not(:first-child) {
-  margin-top: 0.35rem;
-  padding-top: 0.35rem;
   border-top: var(--db-rahmen) solid rgba(255, 255, 255, 0.55);
 }
 
