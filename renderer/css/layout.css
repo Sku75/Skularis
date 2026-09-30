@@ -3,7 +3,7 @@
 /* === Header === */
 .db-header {
   background: var(--db-header-bg);
-  border-bottom: 1px solid var(--db-border-medium);
+  border-bottom: var(--db-rahmen) solid var(--db-border-medium);
   padding: var(--db-space-sm) var(--db-space-lg);
   display: flex;
   align-items: center;
@@ -55,7 +55,7 @@
 .db-header__btn {
   background: var(--db-bg-primary);
   color: var(--db-text-primary);
-  border: 1px solid var(--db-border-medium);
+  border: var(--db-rahmen) solid var(--db-border-medium);
   border-radius: var(--db-radius-sm);
   padding: var(--db-space-xs) var(--db-space-sm);
   font-size: calc(var(--db-font-size-sm) + var(--db-font-offset));
@@ -80,7 +80,7 @@
 /* === Footer === */
 .db-footer {
   background: var(--db-footer-bg);
-  border-top: 1px solid var(--db-border-subtle);
+  border-top: var(--db-rahmen) solid var(--db-border-subtle);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -89,5 +89,5 @@
   padding: var(--db-space-xs) var(--db-space-lg);
   font-size: calc(var(--db-font-size-xs) + var(--db-font-offset));
   color: var(--db-text-secondary);
-  border-top: 1px solid var(--db-border-subtle);
+  border-top: var(--db-rahmen) solid var(--db-border-subtle);
 }

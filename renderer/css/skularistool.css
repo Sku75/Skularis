@@ -8,9 +8,13 @@
 }
 
 .db-menu {
-  max-width: 720px;
+  /* Drei Fünftel der Bildschirmbreite (1.41). Die anderen zwei Fünftel gehören
+     dem Info-Fenster, das jetzt dauerhaft rechts mitläuft. Vorher waren es
+     feste 720 Pixel — auf einem großen Bildschirm blieb links viel Fläche
+     ungenutzt, während das Info-Fenster die halbe Breite nahm. */
+  max-width: 60vw;
   /* Linksbündig statt zentriert (1.22): Das Info-Fenster belegt die rechte
-     Bildschirmhälfte. Stand der Inhalt mittig, verdeckte es ihn — jetzt bleibt
+     Bildschirmseite. Stand der Inhalt mittig, verdeckte es ihn — jetzt bleibt
      rechts Platz, und man kann das Info-Fenster dauerhaft offen lassen. */
   margin: 0 auto 0 0;
   padding: 2rem 1.5rem 3rem;
@@ -48,6 +52,39 @@
   line-height: 1.35;
   /* Lange Namen (Zauber, Talente) umbrechen, statt rechts aus dem Bild zu laufen. */
   overflow-wrap: anywhere;
+}
+
+/* Kürzung mit Auslassungspunkten (1.41).
+   Lange Beschriftungen und Hinweise blähten die Zeile auf, bis sie den Rest der
+   Liste aus dem Bild schob. Jetzt behält jede Zeile ihre Größe: höchstens zwei
+   Zeilen Beschriftung, höchstens zwei Zeilen Hinweis, dahinter drei Punkte.
+   Der vollständige Text bleibt erreichbar — er steht als Überschrift im
+   Info-Fenster rechts, und für den Screenreader ist ohnehin nichts gekürzt. */
+.db-menu__label,
+.db-menu__item .db-menu__hint {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Infozeilen (Übersichten im Editor) dürfen drei Zeilen hoch werden. */
+.db-row.ed-info {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+/* Regelwerk, Meistertexte und Charakterbogen zeigen Prosa — dort wird nichts
+   gekürzt, sonst kann man nicht mehr lesen. */
+.db-menu--lesen .db-menu__label,
+.db-menu--lesen .db-menu__item .db-menu__hint,
+.db-lesetext .db-menu__label,
+.db-lesetext .db-row.ed-info {
+  display: block;
+  -webkit-line-clamp: none;
+  overflow: visible;
 }
 
 /* Ergebnisanzeige (z. B. Würfelwurf) in einer EIGENEN Zeile unter der
@@ -176,7 +213,7 @@
 .ed-detail {
   margin-top: 1rem;
   padding: 0.85rem 1rem;
-  border: 1px solid currentColor;
+  border: var(--db-rahmen) solid currentColor;
   border-radius: 8px;
   opacity: 0.9;
   font-size: calc(1.05rem + var(--db-font-offset, 0px));
@@ -224,7 +261,7 @@
   font-weight: 700;
   font-size: calc(1.35rem + var(--db-font-offset, 0px));
   color: var(--db-accent-blue, #44ddff);
-  border-bottom: 1px solid var(--db-border-medium, #2a2a2a);
+  border-bottom: var(--db-rahmen) solid var(--db-border-medium, #2a2a2a);
   margin-top: 0.6rem;
 }
 
@@ -262,7 +299,7 @@
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border: 1px solid var(--db-border, #3a3f4a);
+  border: var(--db-rahmen) solid var(--db-border, #3a3f4a);
   border-radius: 0.4rem;
   background: var(--db-panel, #1c1f28);
   color: var(--db-text, #f2f4f8);
@@ -292,6 +329,43 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
   pointer-events: none;
   white-space: nowrap;
+}
+
+/* Feste Würfelanzeige unten rechts am Abenteuertisch (1.41).
+   Weißer Rahmen, weiße Schrift, groß und immer an derselben Stelle. Sie tritt
+   dort an die Stelle der EP-Anzeige. */
+.wurf-anzeige {
+  display: none;
+}
+.wurf-anzeige.sichtbar {
+  display: block;
+  position: fixed;
+  bottom: 0.7rem;
+  right: 0.9rem;
+  z-index: 50;
+  max-width: 36vw;
+  padding: 0.6rem 1.1rem;
+  border: var(--db-rahmen-stark) solid var(--db-border-white, #ffffff);
+  border-radius: 0.6rem;
+  background: rgba(0, 0, 0, 0.82);
+  color: #ffffff;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+.wurf-anzeige__zeile {
+  font-size: calc(1.1rem + var(--db-font-offset, 0px));
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.wurf-anzeige__haupt {
+  font-size: calc(1.6rem + var(--db-font-offset, 0px));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.wurf-anzeige__haupt:not(:first-child) {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: var(--db-rahmen) solid rgba(255, 255, 255, 0.55);
 }
 
 /* Beispiel hinter einem Eingabefeld (Aussehen usw.): dezent, nach dem Wert. */
@@ -356,7 +430,7 @@
   background: none;
   border: none;
   border-left: 4px solid transparent;
-  border-bottom: 1px solid var(--db-border-medium, #2a2a2a);
+  border-bottom: var(--db-rahmen) solid var(--db-border-medium, #2a2a2a);
   border-radius: 0;
   padding: 0.45rem 0.3rem 0.45rem 0.9rem;
   display: flex;

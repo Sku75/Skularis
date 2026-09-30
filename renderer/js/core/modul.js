@@ -55,6 +55,8 @@ export function dienstAbmelden(name) {
  * aktive Modul. Mehrfachaufrufe sind harmlos.
  */
 export function verlasseModul() {
+  // Das dauerhafte Info-Fenster gehoert zu den Modulen, nicht zum Hauptmenue.
+  import('../app.js').then(m => m.begleiterBeenden && m.begleiterBeenden()).catch(() => {});
   const alte = _dienste;
   _dienste = [];
   for (let i = alte.length - 1; i >= 0; i--) {

@@ -271,7 +271,38 @@ export function zauberVorhanden(char, db) {
 /** Menü-Beschriftung für die Zauber-Kategorie (dynamisch mit Tradition). */
 export function zauberKategorieLabel(char, db) {
   const trad = traditionName(char, db);
-  return trad ? `Zauber und Rituale, ${trad}` : 'Zauber und Rituale';
+  return trad ? `Zauber, ${trad}` : 'Zauber';
+}
+
+/** Menü-Beschriftung für die Ritual-Kategorie. */
+export function ritualKategorieLabel(char, db) {
+  const trad = traditionName(char, db);
+  return trad ? `Rituale, ${trad}` : 'Rituale';
+}
+
+/**
+ * Was kann man in der eigenen Initiative-Phase wirken und was nicht?
+ *
+ * Passiv: Talente, die "(passiv)" im Namen tragen. Sie haben gar keine Probe,
+ * sie wirken einfach. In einer Wurfliste haben sie nichts zu suchen.
+ *
+ * Ritual: Die Vorbereitungszeit ist in Minuten, Stunden, Tagen oder Wochen
+ * angegeben, also weit jenseits einer Kampfrunde. "Bindung des Stabs" braucht
+ * etwa 8 Stunden. Solche Talente sind echte Würfe, gehören aber in eine eigene
+ * Liste, damit sie die Zauberliste am Tisch nicht zumüllen.
+ *
+ * Alles andere (Vorbereitungszeit in Aktionen, unbestimmt wie "frei wählbar",
+ * oder ohne Angabe) bleibt bei den Zaubern.
+ */
+export function istPassiv(name) {
+  return /\(passiv\)/i.test(String(name || ''));
+}
+
+export function istRitual(felder) {
+  const v = String((felder && felder['Vorbereitungszeit']) || '');
+  if (!v) return false;
+  if (/Aktion/i.test(v)) return false;
+  return /Minute|Stunde|Tag|Woche/i.test(v);
 }
 
 // Feste Wertelabels im Zaubertext. Der Text vor dem ersten Label ist die Wirkung.
@@ -324,7 +355,12 @@ function zauberTooltip(def, pw, felder, beschreibung) {
   return bauInfo(abschnitte);
 }
 
-export function zauberScreen() {
+/**
+ * Gemeinsamer Aufbau für Zauber und Rituale. art 'zauber' nimmt alles, was in
+ * einer Initiative-Phase gewirkt werden kann, art 'ritual' den Rest mit langer
+ * Vorbereitungszeit. Passive Talente kommen in keiner der beiden Listen vor.
+ */
+function zauberArtScreen(art) {
   const a = getAbenteuer();
   const char = a.charakter;
   const db = getDb();
@@ -339,36 +375,71 @@ export function zauberScreen() {
       if (!vor || g.pw > vor.pw) proZauber.set(name, { name, pw: g.pw, fertigkeit: g.uname });
     }
   }
-  const liste = [...proZauber.values()].sort((x, y) => x.name.localeCompare(y.name, 'de'));
+  // Passive Talente fliegen raus, der Rest wird nach Art getrennt.
+  const liste = [...proZauber.values()]
+    .filter(s => !istPassiv(s.name))
+    .map((s) => {
+      const def = db.talentByName[s.name] || { name: s.name };
+      const zerlegt = parseZauberText(def.text);
+      return { ...s, def, zerlegt };
+    })
+    .filter(s => (art === 'ritual') === istRitual(s.zerlegt.felder))
+    .sort((x, y) => x.name.localeCompare(y.name, 'de'));
 
   let idx = 0;
   const items = liste.map((s) => {
-    const id = `zauber-${idx++}`;
-    const def = db.talentByName[s.name] || { name: s.name };
-    const { beschreibung, felder } = parseZauberText(def.text);
+    const id = `${art}-${idx++}`;
+    const def = s.def;
+    const { beschreibung, felder } = s.zerlegt;
     const schwierRaw = (felder['Probenschwierigkeit'] || '').trim();
     const m = schwierRaw.match(/^(\d+)/);
     const schwierNum = m ? parseInt(m[1], 10) : null;
     const zusatz = [];
     if (schwierNum === null && schwierRaw) zusatz.push(`Vergleichende Probe gegen ${schwierRaw}.`);
     if (felder['Kosten']) zusatz.push(`Kosten ${felder['Kosten']}.`);
+    const vorbereitung = (felder['Vorbereitungszeit'] || '').trim();
     return {
       label: felder['Kosten'] ? `${s.name} (Kosten ${felder['Kosten']})` : s.name,
-      hint: `${s.fertigkeit}, Probenwert ${s.pw}. Enter zum Zaubern`,
+      hint: art === 'ritual'
+        ? `${s.fertigkeit}, Probenwert ${s.pw}, Vorbereitung ${vorbereitung || 'unbekannt'}. Enter würfelt`
+        : `${s.fertigkeit}, Probenwert ${s.pw}. Enter zum Zaubern`,
       detail: mitLetztemWurf(id, zauberTooltip(def, s.pw, felder, beschreibung)),
       ergebnisId: id,
       onSelect: () => kampfProbe({
-        id, titel: `Zauber ${s.name}`, vokabel: s.fertigkeit, probenwert: s.pw,
+        id, titel: `${art === 'ritual' ? 'Ritual' : 'Zauber'} ${s.name}`, vokabel: s.fertigkeit, probenwert: s.pw,
         schwierigkeit: schwierNum, zusatz: zusatz.join(' '),
       }),
     };
   });
 
   return menuScreen({
-    title: zauberKategorieLabel(char, db),
-    subtitle: 'Filtern, Enter würfelt die Zauberprobe. Shift und Pfeil-runter liest die Werte. Escape zurück.',
-    items, filter: true, leer: 'Keine Zauber bekannt.',
+    title: art === 'ritual' ? ritualKategorieLabel(char, db) : zauberKategorieLabel(char, db),
+    subtitle: art === 'ritual'
+      ? 'Lange Vorbereitungszeit, nichts für die Kampfrunde. Filtern, Enter würfelt die Probe. Shift und Pfeil-runter liest die Werte. Escape zurück.'
+      : 'Filtern, Enter würfelt die Zauberprobe. Shift und Pfeil-runter liest die Werte. Escape zurück.',
+    items, filter: true,
+    leer: art === 'ritual' ? 'Keine Rituale bekannt.' : 'Keine Zauber bekannt.',
   });
+}
+
+/** Zauber, die in einer Initiative-Phase gewirkt werden können. */
+export function zauberScreen() { return zauberArtScreen('zauber'); }
+
+/** Rituale mit langer Vorbereitungszeit — eigene Liste, nicht für die Kampfrunde. */
+export function ritualScreen() { return zauberArtScreen('ritual'); }
+
+/** Hat der Charakter überhaupt Rituale? Sonst erscheint der Menüpunkt nicht. */
+export function ritualeVorhanden(char, db) {
+  if (!db) return false;
+  for (const g of bekannteZauber(char, db)) {
+    for (const z of g.zauber) {
+      const name = typeof z === 'string' ? z : z.name;
+      if (istPassiv(name)) continue;
+      const def = db.talentByName[name];
+      if (def && istRitual(parseZauberText(def.text).felder)) return true;
+    }
+  }
+  return false;
 }
 
 /**

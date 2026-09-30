@@ -49,10 +49,13 @@
   --db-error-bg:       #2a1111;
   --db-stumm-bg:       #331111;
 
-  /* === Borders === */
-  --db-border-subtle:  #181818;
-  --db-border-medium:  #2a2a2a;
-  --db-border-strong:  #444444;
+  /* === Borders ===
+     Seit 1.41 deutlich sichtbar: Die alten Werte (181818, 2a2a2a) lagen auf
+     dunklem Grund so dicht an der Hintergrundfarbe, dass Rahmen praktisch
+     verschwanden. Ein sehbehinderter Spieler hat das gemeldet. */
+  --db-border-subtle:  #4e4e4e;
+  --db-border-medium:  #767676;
+  --db-border-strong:  #a8a8a8;
   --db-border-focus:   #00aaff;
   --db-border-white:   #ffffff;
 
@@ -100,4 +103,11 @@
 
   /* === Font Offset (user preference, runtime-adjustable) === */
   --db-font-offset: 0px;
+
+  /* === Rahmenbreite ===
+     Waechst mit der Schrifteinstellung mit: Wer die Schrift vergroessert,
+     braucht auch kraeftigere Linien. Mindestens 2 Pixel — ein Pixel war bei
+     grosser Schrift ein Haar. */
+  --db-rahmen: calc(2px + var(--db-font-offset, 0px) * 0.25);
+  --db-rahmen-stark: calc(3px + var(--db-font-offset, 0px) * 0.3);
 }

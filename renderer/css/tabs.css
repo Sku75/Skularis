@@ -19,7 +19,7 @@
   font-weight: 500;
   color: var(--db-text-secondary);
   background: var(--db-bg-primary);
-  border: 1px solid var(--db-border-subtle);
+  border: var(--db-rahmen) solid var(--db-border-subtle);
   border-bottom: none;
   border-radius: var(--db-radius-sm) var(--db-radius-sm) 0 0;
   cursor: pointer;

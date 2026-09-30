@@ -302,6 +302,8 @@ export function oeffneEditorHub(ersetzen) {
   // Modul-Lebenszyklus (1.20): der Editor ist das Modul charakter. Er hat keine
   // Netz-Dienste; der Eintrag haelt die Modul-Zustaende sauber getrennt.
   import('../core/modul.js').then(m => m.betreteModul('charakter')).catch(() => {});
+  // Info-Fenster rechts dauerhaft mitlaufen lassen (per Strg und I abschaltbar).
+  import('../app.js').then(m => m.begleiterStarten && m.begleiterStarten()).catch(() => {});
   editorHub = reiterHub.oeffneHub({
     titel: editorTitel,
     subtitle: 'Mit F1 bis F12 direkt zum Bereich. Escape verlässt die Erstellung.',

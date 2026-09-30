@@ -431,8 +431,45 @@ let infofenster = null;
  * Info-Fenster zum fokussierten Eintrag EIN- und AUSSCHALTEN (Strg I und der
  * i-Schalter oben). Ist es offen, schliesst der zweite Druck es wieder.
  */
+// Soll der Begleiter laufen? Beim Betreten eines Moduls an, per Strg und I aus.
+// Die Entscheidung gilt bis zum Programmende, nicht nur fuer einen Bildschirm.
+let _begleiterAn = false;
+
+/**
+ * Den dauerhaften Begleiter rechts einschalten. Wird beim Betreten von
+ * Charaktereditor, Abenteuertisch und Meistertisch gerufen. Hat der Nutzer ihn
+ * mit Strg und I weggeschaltet, bleibt er weg.
+ */
+export function begleiterStarten() {
+  _begleiterAn = true;
+  begleiterNachziehen();
+}
+
+/** Begleiter ausschalten (Modulwechsel ins Hauptmenue, Strg und I). */
+export function begleiterBeenden() {
+  _begleiterAn = false;
+  if (infofenster && infofenster.imBegleiter()) infofenster.schliesse();
+}
+
+/**
+ * Den Begleiter auf den gerade fokussierten Eintrag nachziehen. Ohne Inhalt
+ * bleibt der letzte Stand stehen — so flackert es nicht bei Zeilen, die nichts
+ * zu erklaeren haben.
+ */
+async function begleiterNachziehen() {
+  if (!_begleiterAn || !infofenster) return;
+  if (infofenster.istOffen() && !infofenster.imBegleiter()) return; // Info oder Tooltip hat Vorrang
+  const el = document.activeElement;
+  if (!el || (el.closest && el.closest('.ii-overlay'))) return;
+  const detail = await detailBaustein(el);
+  if (!hatInhalt(detail)) return;
+  infofenster.oeffneBegleiter(eintragTitel(el), detail);
+}
+
 export async function infoFensterUmschalten() {
   if (!infofenster) return;
+  // Der dauerhafte Begleiter laesst sich mit derselben Taste wegschalten.
+  if (infofenster.imBegleiter()) { begleiterBeenden(); sprache.sage('Info-Fenster aus.'); return; }
   if (infofenster.istOffen()) { infofenster.schliesse(); sprache.sage('Info-Fenster geschlossen.'); return; }
   const el = document.activeElement;
   const detail = await detailBaustein(el);
@@ -441,7 +478,17 @@ export async function infoFensterUmschalten() {
 }
 
 function registriereInfoFenster() {
-  import('./ui/infofenster.js').then(m => { infofenster = m; });
+  import('./ui/infofenster.js').then(m => { infofenster = m; begleiterNachziehen(); });
+
+  // Der Begleiter folgt dem Fokus: Wer sich durch ein Menue bewegt, sieht rechts
+  // immer die Erklaerung zum aktuellen Eintrag. Verzoegert, damit schnelles
+  // Durchblaettern nicht bei jedem Schritt neu aufbaut.
+  let _nachziehTimer = null;
+  document.addEventListener('focusin', () => {
+    if (!_begleiterAn) return;
+    clearTimeout(_nachziehTimer);
+    _nachziehTimer = setTimeout(() => begleiterNachziehen(), 120);
+  });
 
   // Tooltip: Shift gehalten und Pfeil. Läuft in der Erfassungsphase, damit die
   // Pfeil-Navigation im Panel diese Kombination nicht auch verarbeitet.

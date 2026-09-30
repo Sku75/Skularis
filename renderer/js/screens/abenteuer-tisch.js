@@ -34,7 +34,8 @@ import { notizenScreen } from '../abenteuer/notizen.js';
 import { mitspielerScreen } from '../abenteuer/mitspieler.js';
 import { regelnMenuScreen } from './regeln-menu.js';
 import { neuberechne, verfuegbareEP, createCharakter } from '../core/character.js';
-import { zeigeEP, versteckeEP } from '../ui/ep-anzeige.js';
+import { versteckeEP } from '../ui/ep-anzeige.js';
+import { zeigeWurfAnzeige, versteckeWurfAnzeige } from '../ui/wurf-anzeige.js';
 import { audioBereichScreen } from '../meister/audio-bereich.js';
 
 const ipc = window.skularis?.ipc;
@@ -289,20 +290,21 @@ function oeffneHub() {
   // Tisch verlassen wird (Escape, Speichern und zurueck, Strg Pos1, Strg Q,
   // Fenster-X), verlasseModul() stoppt zwingend Verbindung und Zustand.
   modul.betreteModul('abenteuer');
+  // Info-Fenster rechts dauerhaft mitlaufen lassen (per Strg und I abschaltbar).
+  import('../app.js').then(m => m.begleiterStarten && m.begleiterStarten()).catch(() => {});
   modul.dienstRegistrieren('abenteuer-aufraeumen', () => {
     try { sitzung.trenne(); } catch { /* egal */ }
     try { versteckeEP(); } catch { /* egal */ }
+    try { versteckeWurfAnzeige(); } catch { /* egal */ }
     setAbenteuer(null);
     if (_einstieg) _einstieg._liste = null;
   });
 
-  // Feste EP-Anzeige unten mittig einblenden (ein Charakter geladen).
-  const cha = a.charakter;
-  if (cha && cha.erfahrung) {
-    let frei = 0;
-    try { const db = getDb(); if (db) { neuberechne(cha, db); frei = verfuegbareEP(cha); } } catch { /* Anzeige ist nur optisch */ }
-    zeigeEP(frei, cha.erfahrung.gesamt || 0);
-  }
+  // Am Tisch tritt die Würfelbox an die Stelle der EP-Anzeige: Punkte verteilt
+  // man im Charaktereditor, hier ändern sie sich nicht. Dafür ist das
+  // Würfelergebnis mit seiner Rechnung dauerhaft zu sehen.
+  try { versteckeEP(); } catch { /* egal */ }
+  try { zeigeWurfAnzeige(); } catch { /* egal */ }
 
   let hub;
   const punkte = [

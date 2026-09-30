@@ -4,6 +4,105 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.41, 30. September 2026
+
+
+Rituale haben jetzt ihre eigene Liste
+
+- In der Initiative-Phase standen bisher auch Zauber, die man dort gar nicht
+  wirken kann. "Bindung des Stabs" braucht acht Stunden Vorbereitung.
+- Neuer Menüpunkt "Rituale" direkt unter den Zaubern. Dorthin wandert alles,
+  dessen Vorbereitungszeit in Minuten, Stunden, Tagen oder Wochen angegeben ist.
+  In der Datenbank sind das 193 Talente, darunter auch die Schutzkreise mit
+  ihren vier Minuten.
+- Gewürfelt werden sie dort genauso wie vorher, mit Vorbereitungszeit im
+  Hinweistext. Es verschwindet also nichts, es steht nur nicht mehr im Weg.
+- Passive Talente, die "(passiv)" im Namen tragen, tauchen in keiner der beiden
+  Listen mehr auf. Sie haben keine Probe, man kann sie nicht würfeln.
+- Bei den Zaubern bleiben 617 Talente mit Vorbereitungszeit in Aktionen, dazu
+  jene mit unbestimmter Zeit und die ohne Angabe.
+
+
+Das Info-Fenster läuft jetzt dauerhaft mit
+
+- Beim Betreten von Charaktereditor, Abenteuertisch und Meistertisch öffnet sich
+  das Info-Fenster rechts von selbst und zeigt immer die Erklärung zum gerade
+  gewählten Eintrag.
+- Es nimmt dabei keinen Fokus: Man arbeitet links weiter, rechts wandert der
+  Inhalt mit. Und es liest nichts vor, sonst käme jede Zeile doppelt.
+- Mit Strg und I schaltet man es aus, wenn man es nicht möchte. Die Entscheidung
+  gilt dann bis zum nächsten Programmstart.
+- Im Hauptmenü und in der Charakterliste bleibt es zu, dort gibt es nichts zu
+  erklären.
+
+
+Neue Aufteilung: drei Fünftel Menü, zwei Fünftel Info-Fenster
+
+- Das Menü nutzt jetzt die linken drei Fünftel der Bildschirmbreite statt feste
+  720 Pixel. Auf großen Bildschirmen blieb dort viel Fläche ungenutzt.
+- Das Info-Fenster rechts ist von der halben auf zwei Fünftel der Breite
+  geschrumpft. Beides passt jetzt nebeneinander, ohne sich zu überdecken.
+
+
+Langer Text wird gekürzt statt aus dem Bild zu laufen
+
+- Menüzeilen behalten ihre Größe: höchstens zwei Zeilen Beschriftung, höchstens
+  zwei Zeilen Hinweis, danach drei Punkte.
+- Infozeilen im Editor dürfen drei Zeilen hoch werden.
+- Der vollständige Text ist nicht verloren: Er steht als Überschrift im
+  Info-Fenster rechts, und für die Sprachausgabe war ohnehin nie etwas gekürzt.
+- Regelwerk, Meistertexte und Charakterbogen sind ausgenommen. Dort steht Prosa,
+  die man lesen muss.
+
+
+Rollleiste im Info-Fenster
+
+- Der Inhalt hat jetzt eine deutlich sichtbare Rollleiste am rechten Rand.
+- Das Mausrad wirkt dort, sobald der Zeiger über dem Fenster steht. Bisher war
+  das Fenster für die Maus gesperrt, das Rad kam also nicht an.
+
+
+Rahmen sind deutlich sichtbar und wachsen mit der Schrift
+
+- Alle Rahmen liegen jetzt bei mindestens zwei Pixeln statt einem und werden mit
+  der Schrifteinstellung dicker. Wer die Schrift vergrößert, bekommt auch
+  kräftigere Linien.
+- Die Rahmenfarben waren auf dunklem Grund fast unsichtbar. Sie sind jetzt
+  deutlich heller.
+
+
+Würfelergebnis dauerhaft sichtbar am Abenteuertisch
+
+- Neue Box unten rechts, weißer Rahmen, weiße Schrift, groß und immer an
+  derselben Stelle.
+- Oben das Ergebnis der letzten Probe mit Gelungen oder Misslungen, darunter die
+  Rechnung mit Würfeln, Probenwert und allen Abzügen.
+- Darunter als eigener Block der letzte Schadenswurf mit seiner Rechnung. Beide
+  Blöcke stehen unabhängig: Ein Schadenswurf löscht das Probenergebnis nicht.
+- Auch Schnellwürfe und der freie Wurf erscheinen dort.
+- Die EP-Anzeige entfällt am Abenteuertisch dafür. Punkte verteilt man im
+  Charaktereditor, dort bleibt sie unverändert.
+
+
+Editor: Talente hinzufügen ist wieder erreichbar
+
+- Im Übernatürlich-Bereich stand über dem Knopf "Talent hinzufügen" eine
+  Infozeile, die alle noch offenen Talentnamen aufzählte. Bei Fertigkeiten mit
+  vielen Talenten wurde daraus ein Textklotz, der den Knopf aus dem Bild schob.
+- Der Knopf steht jetzt ganz oben, direkt unter der Überschrift, und damit in
+  jeder Fertigkeit an derselben Stelle.
+- Die Übersicht darunter nennt nur noch Zahlen. Die vollständigen Namen stehen
+  im Info-Fenster.
+
+
+Editor: Zurücksetzen-Zeile unter den Kategorien entfernt
+
+- Die Zeile "Name zurücksetzen" erschien nur bei Kategorien mit Werten oder
+  Talenten, stand also mal da und mal nicht. Das machte die Liste unberechenbar.
+- Zurücksetzen geht weiter über den Wert selbst und über das Entfernen einzelner
+  Talente innerhalb der Kategorie.
+
+
 Version 1.40, 16. September 2026
 
 

@@ -88,24 +88,11 @@ export function uebernatuerlichesScreen() {
           },
         }));
 
-        // Nur was der Nutzer selbst gesteigert oder gefüllt hat, lässt sich
-        // zurücksetzen. Die Fertigkeit selbst gehört zur Tradition.
-        const eigene = talenteFuer(char, db, uname)
-          .filter(n => !Object.prototype.hasOwnProperty.call(char.geschenkteTalente || {}, n));
-        if (eintrag.wert > 0 || eigene.length) {
-          wrap.appendChild(aktionZeile(`${uname} zurücksetzen`, async () => {
-            if (!await jaNeinDialog({
-              titel: 'Zurücksetzen',
-              frage: `${uname} auf null setzen und ${eigene.length} Talente entfernen? `
-                + 'Talente, die auch zu anderen Fertigkeiten gehören, verschwinden dort ebenfalls.',
-            })) return;
-            eintrag.wert = 0;
-            for (const n of eigene) entferneTalent(char, n);
-            const f2 = editor.aktualisiere();
-            screen.refresh();
-            sprache.sage(`${uname} zurückgesetzt, ${f2} EP frei.`);
-          }, 'Wert auf null und Talente entfernen'));
-        }
+        // Seit 1.41 KEINE Zeile "Name zurücksetzen" mehr unter jeder Kategorie:
+        // Sie erschien nur bei gefüllten Kategorien, stand also mal da und mal
+        // nicht, und hat die Liste unberechenbar gemacht. Zurücksetzen geht
+        // weiter über den Wert selbst und über das Entfernen einzelner Talente
+        // innerhalb der Kategorie.
       }
 
       // (Energien werden bei den anderen Werten auf der Attribute-Seite gesteigert.)

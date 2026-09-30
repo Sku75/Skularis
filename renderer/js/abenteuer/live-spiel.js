@@ -14,7 +14,7 @@ import { leseInventar, istFernkampf, SLOTS, SET_WAFFENLOS, ergaenzeSets } from '
 import { protokolliere } from '../core/abenteuer.js';
 import { getAbenteuer, speichere } from './state.js';
 import { wuerfeln, kampfProbe, schadenWurf, mitLetztemWurf, letztesKurz, letzterAnhang } from './wuerfel-kern.js';
-import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, GRUNDREGEL_AKTIONEN, attributsprobenScreen, profanScreen } from './kampf-menues.js';
+import { aktionenScreen, manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, ritualScreen, ritualeVorhanden, ritualKategorieLabel, GRUNDREGEL_AKTIONEN, attributsprobenScreen, profanScreen } from './kampf-menues.js';
 import { zauberspeicherVorhanden, zauberspeicherScreen } from './zauberspeicher.js';
 import { comboText } from '../shortcuts.js';
 
@@ -72,7 +72,13 @@ export function liveSpielScreen() {
     { label: 'Profane Fertigkeiten und Talente', taste: () => comboText('ab_profan'), hint: 'auf jede Fertigkeit und jedes Talent würfeln, auch nicht gelernte', onSelect: () => screen.push(profanScreen()) },
   ];
   if (zauberVorhanden(char, db)) {
-    items.push({ label: zauberKategorieLabel(char, db), taste: () => comboText('ab_zauber'), hint: 'Deine bekannten Zauber und Rituale würfeln', onSelect: () => screen.push(zauberScreen()) });
+    items.push({ label: zauberKategorieLabel(char, db), taste: () => comboText('ab_zauber'), hint: 'Deine bekannten Zauber würfeln', onSelect: () => screen.push(zauberScreen()) });
+  }
+  // Rituale stehen getrennt: Sie brauchen Minuten bis Stunden Vorbereitung und
+  // sind damit nichts für die Initiative-Phase. In der Zauberliste standen sie
+  // nur im Weg.
+  if (ritualeVorhanden(char, db)) {
+    items.push({ label: ritualKategorieLabel(char, db), hint: 'Lange Vorbereitung, nichts für die Kampfrunde', onSelect: () => screen.push(ritualScreen()) });
   }
   // Zauberspeicher des Magierstabs (Vorteile "Magierstab Zauberspeicher 1/2") —
   // ganz unten, nach Manöver und Zauber. Zauber laden und spaeter wirken.

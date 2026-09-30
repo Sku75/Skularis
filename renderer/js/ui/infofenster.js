@@ -104,7 +104,7 @@ function sage() {
 
 // --- Öffnen und Schließen ------------------------------------------------
 
-function oeffne(titel, detail, modus) {
+function oeffne(titel, detail, modus, ohneAnimation) {
   baue();
   _zeilen = zuZeilen(detail);
   if (!_zeilen.length) _zeilen = [{ text: 'Keine weiteren Informationen.', ueberschrift: false }];
@@ -113,7 +113,11 @@ function oeffne(titel, detail, modus) {
   _titelEl.textContent = titel || 'Information';
   _overlay.classList.toggle('ii-info', modus === 'info');
   _overlay.classList.toggle('ii-tooltip', modus === 'tooltip');
+  _overlay.classList.toggle('ii-begleiter', modus === 'begleiter');
   zeichneZeilen();
+  // Beim Nachladen im Begleiter-Modus bleibt das Fenster offen: kein Aufrollen
+  // und kein Klang, sonst raschelt es bei jedem Schritt durch die Liste.
+  if (ohneAnimation) { _overlay.classList.add('ii-auf'); return; }
   // Aufrollen: erst im nächsten Rahmen die Klasse setzen, damit die Animation greift.
   requestAnimationFrame(() => _overlay.classList.add('ii-auf'));
   sounds.play('buch_auf');
@@ -126,6 +130,31 @@ export function oeffneTooltip(titel, detail) {
   markiere();
   sage();
 }
+
+/**
+ * Begleiter-Modus (seit 1.41): Das Fenster steht dauerhaft rechts und zeigt
+ * immer die Information zum gerade fokussierten Eintrag.
+ *
+ * Unterschiede zum Info-Modus: Es nimmt KEINEN Fokus (man arbeitet links weiter)
+ * und es liest NICHTS vor — sonst käme jede Zeile doppelt, weil der Screenreader
+ * den fokussierten Eintrag ohnehin ansagt. Mit der Maus lässt sich nur der
+ * Inhalt rollen, nichts auslösen.
+ */
+export function oeffneBegleiter(titel, detail) {
+  if (_modus === 'info') return; // ein ausdrücklich geöffnetes Info-Fenster hat Vorrang
+  const schonOffen = _modus === 'begleiter';
+  oeffne(titel, detail, 'begleiter', schonOffen);
+  markiere();
+}
+
+/** Im Begleiter-Modus den Inhalt austauschen, ohne neu aufzurollen. */
+export function aktualisiereBegleiter(titel, detail) {
+  if (_modus !== 'begleiter') return;
+  oeffneBegleiter(titel, detail);
+}
+
+/** Läuft der Begleiter gerade? */
+export function imBegleiter() { return _modus === 'begleiter'; }
 
 /** Info-Fenster öffnen (Strg und I oder Doppelklick). Bleibt offen. */
 export function oeffneInfo(titel, detail) {
@@ -144,14 +173,14 @@ export function schliesse() {
   const warModus = _modus;
   _modus = null;
   // Nach der Rollo-Animation ganz ausblenden.
-  setTimeout(() => { if (!_modus) _overlay.classList.remove('ii-info', 'ii-tooltip'); }, 350);
+  setTimeout(() => { if (!_modus) _overlay.classList.remove('ii-info', 'ii-tooltip', 'ii-begleiter'); }, 350);
   // Im Info-Modus den Fokus zurückgeben, den wir übernommen hatten.
   if (warModus === 'info' && _fokusVorher && document.contains(_fokusVorher)) {
     _fokusVorher.focus();
   }
 }
 
-/** Nur den Tooltip schließen (Shift losgelassen). */
+/** Nur den Tooltip schließen (Shift losgelassen). Der Begleiter bleibt. */
 export function schliesseTooltip() {
   if (_modus === 'tooltip') schliesse();
 }

@@ -4,7 +4,7 @@
 .db-btn {
   background: var(--db-bg-surface);
   color: var(--db-text-primary);
-  border: 1px solid var(--db-border-medium);
+  border: var(--db-rahmen) solid var(--db-border-medium);
   border-radius: var(--db-radius-sm);
   padding: var(--db-space-sm) var(--db-space-lg);
   font-family: var(--db-font-family);
@@ -68,7 +68,7 @@
 .db-input {
   background: var(--db-bg-surface);
   color: var(--db-text-primary);
-  border: 1px solid var(--db-border-medium);
+  border: var(--db-rahmen) solid var(--db-border-medium);
   border-radius: var(--db-radius-sm);
   padding: var(--db-space-sm) var(--db-space-md);
   font-family: var(--db-font-family);
@@ -97,7 +97,7 @@
 .db-textarea {
   background: var(--db-bg-surface);
   color: var(--db-text-primary);
-  border: 1px solid var(--db-border-medium);
+  border: var(--db-rahmen) solid var(--db-border-medium);
   border-radius: var(--db-radius-sm);
   padding: var(--db-space-sm) var(--db-space-md);
   font-family: var(--db-font-family);
@@ -119,7 +119,7 @@
 .db-select {
   background: var(--db-bg-surface);
   color: var(--db-text-primary);
-  border: 1px solid var(--db-border-medium);
+  border: var(--db-rahmen) solid var(--db-border-medium);
   border-radius: var(--db-radius-sm);
   padding: var(--db-space-sm) var(--db-space-md);
   padding-right: var(--db-space-xl);
@@ -155,7 +155,7 @@
   align-items: center;
   justify-content: center;
   background: var(--db-bg-surface);
-  border: 1px solid var(--db-border-medium);
+  border: var(--db-rahmen) solid var(--db-border-medium);
   border-radius: var(--db-radius-sm);
   color: var(--db-text-primary);
   font-weight: 700;
@@ -243,7 +243,7 @@
   font-weight: 600;
   background: var(--db-bg-active);
   color: var(--db-text-secondary);
-  border: 1px solid var(--db-border-subtle);
+  border: var(--db-rahmen) solid var(--db-border-subtle);
 }
 .db-badge--ap {
   background: rgba(0, 85, 170, 0.2);
@@ -274,7 +274,7 @@
   padding: var(--db-space-xs) var(--db-space-sm);
   background: var(--db-bg-active);
   color: var(--db-text-primary);
-  border: 1px solid var(--db-border-medium);
+  border: var(--db-rahmen) solid var(--db-border-medium);
   border-radius: var(--db-radius-sm);
   font-size: calc(var(--db-font-size-xs) + var(--db-font-offset));
   white-space: nowrap;
@@ -291,7 +291,7 @@
 /* === Listbox / Scrollbare Liste === */
 .db-list {
   background: var(--db-bg-surface);
-  border: 1px solid var(--db-border-medium);
+  border: var(--db-rahmen) solid var(--db-border-medium);
   border-radius: var(--db-radius-sm);
   max-height: 200px;
   overflow-y: auto;
@@ -322,7 +322,7 @@
   gap: var(--db-space-lg);
   padding: var(--db-space-md) var(--db-space-lg);
   background: var(--db-tube-gradient);
-  border: 1px solid var(--db-border-subtle);
+  border: var(--db-rahmen) solid var(--db-border-subtle);
   border-radius: var(--db-radius-md);
 }
 .db-ap-display__label {

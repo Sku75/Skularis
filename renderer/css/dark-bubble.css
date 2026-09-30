@@ -3,7 +3,7 @@
 /* === Zylindrische Rohr-Zeile (Signature Element) === */
 .db-row {
   background: var(--db-tube-gradient);
-  border: 1px solid var(--db-border-subtle);
+  border: var(--db-rahmen) solid var(--db-border-subtle);
   border-radius: var(--db-radius-md);
   padding: var(--db-space-sm) var(--db-space-lg);
   margin-bottom: 2px;
@@ -190,7 +190,7 @@
   color: var(--db-gold);
   letter-spacing: 1px;
   padding-bottom: var(--db-space-xs);
-  border-bottom: 1px solid var(--db-border-subtle);
+  border-bottom: var(--db-rahmen) solid var(--db-border-subtle);
   margin-bottom: var(--db-space-sm);
 }
 .db-section__subtitle {
@@ -202,7 +202,7 @@
 /* === Gruppen-Container === */
 .db-group {
   background: var(--db-bg-elevated);
-  border: 1px solid var(--db-border-subtle);
+  border: var(--db-rahmen) solid var(--db-border-subtle);
   border-radius: var(--db-radius-lg);
   padding: var(--db-space-md);
   margin-bottom: var(--db-space-md);
@@ -213,7 +213,7 @@
   color: var(--db-text-primary);
   margin-bottom: var(--db-space-sm);
   padding-bottom: var(--db-space-xs);
-  border-bottom: 1px solid var(--db-border-subtle);
+  border-bottom: var(--db-rahmen) solid var(--db-border-subtle);
 }
 
 /* === Stumm / Muted-Zustand (z.B. gesperrte Felder) === */

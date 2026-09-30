@@ -110,6 +110,23 @@ export function talentUebersicht(char, db, fname) {
   return teile.join(' ');
 }
 
+/**
+ * Kurzfassung für die SICHTBARE Zeile: nur Zahlen, keine Namenslisten.
+ *
+ * Vorher stand hier die vollständige Aufzählung aller noch offenen Talente. Bei
+ * Fertigkeiten mit vielen Talenten (Kraft, Illusion) wurde daraus ein
+ * Textklotz, der den Knopf "Talent hinzufügen" aus dem Bild geschoben hat. Die
+ * vollständigen Namen stehen weiter im Tooltip (Shift und Pfeil runter).
+ */
+export function talentUebersichtKurz(char, db, fname) {
+  const g = talentGruppen(char, db, fname);
+  if (!g.alle.length) return `${fname} hat keine Talente.`;
+  const teile = [`${g.gewaehlt.length} von ${g.verfuegbar.length + g.gewaehlt.length} verfügbaren Talenten gewählt`];
+  if (g.verfuegbar.length) teile.push(`${g.verfuegbar.length} noch offen`);
+  if (g.gesperrt.length) teile.push(`${g.gesperrt.length} brauchen fehlende Vorteile`);
+  return teile.join(', ') + '.';
+}
+
 export function talentScreen(fname, isUeber) {
   return {
     title: '',
@@ -129,8 +146,9 @@ export function talentScreen(fname, isUeber) {
       wrap.appendChild(abschnittTitel(`Talente: ${fname}`));
 
       const g = talentGruppen(char, db, fname);
-      wrap.appendChild(infoZeile(talentUebersicht(char, db, fname), uebersichtLang(char, db, g)));
 
+      // Der Knopf steht VOR der Übersicht: Er ist die Hauptsache dieser Seite
+      // und soll in jeder Fertigkeit an derselben Stelle stehen.
       wrap.appendChild(aktionZeile(
         `Talent hinzufügen, ${g.verfuegbar.length} verfügbar`,
         () => {
@@ -164,6 +182,10 @@ export function talentScreen(fname, isUeber) {
         },
         'Öffnet eine durchsuchbare Liste',
       ));
+
+      // Übersicht NACH dem Knopf und nur mit Zahlen. Die vollständigen Namen
+      // stehen im Tooltip (Shift und Pfeil runter).
+      wrap.appendChild(infoZeile(talentUebersichtKurz(char, db, fname), uebersichtLang(char, db, g)));
 
       if (g.gewaehlt.length === 0) {
         wrap.appendChild(infoZeile('Noch keine Talente gewählt.'));

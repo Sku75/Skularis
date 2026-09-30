@@ -36,7 +36,7 @@
   justify-content: space-between;
   padding: var(--db-space-md) var(--db-space-lg);
   background: linear-gradient(180deg, #1a1a1a, #141414);
-  border-bottom: 1px solid var(--db-border-subtle);
+  border-bottom: var(--db-rahmen) solid var(--db-border-subtle);
 }
 .db-dialog__title {
   font-size: calc(var(--db-font-size-lg) + var(--db-font-offset));
@@ -97,7 +97,7 @@
   justify-content: flex-end;
   gap: var(--db-space-sm);
   padding: var(--db-space-md) var(--db-space-lg);
-  border-top: 1px solid var(--db-border-subtle);
+  border-top: var(--db-rahmen) solid var(--db-border-subtle);
   background: var(--db-bg-primary);
 }
 
@@ -159,7 +159,7 @@
 .db-dialog__list {
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid var(--db-border-subtle);
+  border: var(--db-rahmen) solid var(--db-border-subtle);
   border-radius: var(--db-radius-sm);
 }
 
@@ -180,13 +180,13 @@
   padding: var(--db-space-sm) var(--db-space-md);
   font-size: calc(var(--db-font-size-sm) + var(--db-font-offset));
   color: var(--db-gold);
-  border-bottom: 1px solid var(--db-border-medium);
+  border-bottom: var(--db-rahmen) solid var(--db-border-medium);
   font-weight: 600;
 }
 .db-shortcuts-table td {
   padding: var(--db-space-xs) var(--db-space-md);
   font-size: calc(var(--db-font-size-sm) + var(--db-font-offset));
-  border-bottom: 1px solid var(--db-border-subtle);
+  border-bottom: var(--db-rahmen) solid var(--db-border-subtle);
 }
 .db-shortcuts-table td:first-child {
   color: var(--db-accent-blue);

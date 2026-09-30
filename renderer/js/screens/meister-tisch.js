@@ -215,6 +215,8 @@ function oeffneHub() {
   // frueher sendete das Radio aus dem Hauptmenue weiter (nur die Post wurde
   // gestoppt). Ein Ausgang fuer alle Wege (Escape, Speichern, Strg Q, Fenster-X).
   modul.betreteModul('meister');
+  // Info-Fenster rechts dauerhaft mitlaufen lassen (per Strg und I abschaltbar).
+  import('../app.js').then(m => m.begleiterStarten && m.begleiterStarten()).catch(() => {});
   modul.dienstRegistrieren('meister-aufraeumen', () => {
     try { sitzung.trenne(); } catch { /* egal */ }
     import('../meister/audio-bereich.js').then(m => { try { m.alleStoppen(); } catch { /* egal */ } }).catch(() => {});

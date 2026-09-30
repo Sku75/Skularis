@@ -19,6 +19,7 @@ import { wundabzug } from '../core/regeln.js';
 import { getAbenteuer, speichere } from './state.js';
 import * as post from '../net/post.js';
 import { wurfKennung, kennungsTon, mitKennung } from '../core/triumph.js';
+import { zeigeProbenwurf, zeigeSchadenswurf } from '../ui/wurf-anzeige.js';
 
 /**
  * Pauschaler Abzug aus den Einschraenkungen (Wunden plus Erschoepfung, Ilaris:
@@ -132,6 +133,8 @@ export function wuerfeln(anzahl, seiten, mod, id, stumm) {
   // Auch einfache Wuerfe (Schnellwuerfe, freier Wurf) fuers Tooltip merken.
   if (id) _letzterWurf[id] = ['Letzter Wurf:', `${bez}: ${wuerfe.join(', ')}${summeText}`];
   zeigeErgebnis(id, mod ? `${wuerfe.join(' ')} = ${summe}` : wuerfe.join(' '), `Letzter Wurf ${wuerfe.join(', ')}${summeText}`);
+  try { zeigeProbenwurf(`Ergebnis: ${mod ? summe : wuerfe.join(', ')}`, `${bez}: ${wuerfe.join(', ')}${summeText}`); }
+  catch { /* Anzeige ist nur optisch */ }
   if (!stumm) { sprache.sage(ansage); protokolliereWurf(`Wurf ${bez}`, `${wuerfe.join(', ')}${summeText}`, ansage); }
 }
 
@@ -313,6 +316,15 @@ export async function kampfProbe(o) {
   // Fokus liegt nach dem Schließen der Dialoge schon wieder auf dem Schalter
   // (das ergibt keinen Fokuswechsel und damit keine Vorlesung), deshalb die
   // Ansage zuverlässig per aria-live. Der Schalter trägt das Ergebnis danach.
+  // Feste Würfelbox unten rechts: Ergebnis in Zeile 1, Rechnung in Zeile 2.
+  try {
+    const erfolgKurz = typeof o.schwierigkeit === 'number'
+      ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : '';
+    zeigeProbenwurf(
+      `Ergebnis: ${ergebnisText}${erfolgKurz}`,
+      `${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${einschrText}${erschText}`,
+    );
+  } catch { /* Anzeige ist nur optisch */ }
   fokusAufZiel(o.id);
   sprache.sage(ansage);
   protokolliereWurf(o.titel || o.vokabel || 'Probe', `Probenergebnis ${ergebnisText}`, ansage);
@@ -341,6 +353,9 @@ export function schadenWurf(o) {
   protokolliere(a, `Schaden ${o.name}: ${wuerfelText}${bText}, gesamt ${summe}.`);
   speichere();
   zeigeErgebnis(o.id, `Schaden ${summe}`, `Letzter Schaden ${summe}`);
+  // Eigener Block in der Würfelbox, unter dem Probenergebnis.
+  try { zeigeSchadenswurf(`Schaden: ${summe}`, `${o.name}: ${wuerfelText}${bText}${zusatz}`); }
+  catch { /* Anzeige ist nur optisch */ }
   sprache.sage(ansage);
   protokolliereWurf(`Schaden ${o.name}`, `Schaden ${summe}`, ansage);
 }
