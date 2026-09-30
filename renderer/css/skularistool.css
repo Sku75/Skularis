@@ -340,11 +340,11 @@
 .wurf-anzeige.sichtbar {
   display: block;
   position: fixed;
-  /* Untere Hälfte der rechten Spalte: genau so breit wie das Info-Fenster
-     darüber (40vw abzüglich seiner Ränder von je 2vw) und an derselben Kante.
-     Damit stehen beide sauber übereinander, und die Rollleiste des
-     Info-Fensters bleibt frei. */
-  bottom: var(--db-wurf-rand);
+  /* Kopf der rechten Spalte (seit 1.43 oben statt unten): genau so breit wie das
+     Info-Fenster darunter (40vw abzüglich seiner Ränder von je 2vw) und an
+     derselben Kante. Das Info-Fenster beginnt erst unter der Box, überdeckt
+     wird also nichts, und die Rollleiste bleibt frei. */
+  top: 2vh;
   right: 2vw;
   width: calc(40vw - 4vw);
   height: var(--db-wurf-hoehe);
@@ -375,6 +375,19 @@
 }
 .wurf-anzeige__haupt:not(:first-child) {
   border-top: var(--db-rahmen) solid rgba(255, 255, 255, 0.55);
+}
+/* Vor dem ersten Wurf: der Programmname, groß und mittig auf der ganzen Fläche. */
+.wurf-anzeige__marke {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: calc(2.6rem + var(--db-font-offset, 0px));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* Beispiel hinter einem Eingabefeld (Aussehen usw.): dezent, nach dem Wert. */

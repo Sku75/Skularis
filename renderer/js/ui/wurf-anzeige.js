@@ -1,5 +1,5 @@
 /**
- * Skularis — feste Würfelanzeige am Abenteuertisch (unten rechts).
+ * Skularis — feste Würfelanzeige oben rechts (Abenteuertisch und Meistertisch).
  *
  * Bis zu vier Zeilen, immer an derselben Stelle:
  *   1. Ergebnis der letzten Probe
@@ -19,11 +19,11 @@
  * im Charaktereditor, am Tisch ändern sie sich nicht. Am Meistertisch läuft sie
  * zusätzlich mit — auch der Meister würfelt.
  *
- * Die Box ist genauso breit wie das Info-Fenster darüber und bildet mit ihm eine
- * Spalte auf der rechten Bildschirmseite: oben die Erklärung, unten das
- * Ergebnis. Solange sie sichtbar ist, trägt das Wurzelelement die Marke
- * 'wurf-platz'; daran verkürzt das Info-Fenster seine Höhe, damit sich beide
- * nicht überdecken und die Rollleiste frei bleibt.
+ * Die Box ist genauso breit wie das Info-Fenster und bildet mit ihm eine Spalte
+ * auf der rechten Bildschirmseite: seit 1.43 OBEN das Ergebnis, darunter die
+ * Erklärung. Solange die Box sichtbar ist, trägt das Wurzelelement die Marke
+ * 'wurf-platz'; daran macht das Info-Fenster oben Platz und beginnt erst
+ * darunter. So überdecken sich beide nicht, und die Rollleiste bleibt frei.
  */
 let _el = null;
 let _probe = null;    // { ergebnis, rechnung }
@@ -38,6 +38,14 @@ function zeile(text, stark) {
   const d = document.createElement('div');
   d.className = stark ? 'wurf-anzeige__zeile wurf-anzeige__haupt' : 'wurf-anzeige__zeile';
   d.textContent = text;
+  return d;
+}
+
+/** Der Programmname, groß und mittig — steht in der Box, solange nicht gewürfelt wurde. */
+function marke() {
+  const d = document.createElement('div');
+  d.className = 'wurf-anzeige__marke';
+  d.textContent = 'Skularis';
   return d;
 }
 
@@ -61,9 +69,9 @@ function male() {
   if (!b) return;
   b.textContent = '';
   if (!_probe && !_schaden) {
-    // Der Rahmen steht von Anfang an. Damit er nicht wie ein Versehen aussieht,
-    // benennt er sich selbst, bis zum ersten Wurf.
-    b.appendChild(zeile('Würfelbox', true));
+    // Der Rahmen steht von Anfang an. Bis zum ersten Wurf trägt er den
+    // Programmnamen, damit die Fläche nicht wie ein Versehen aussieht.
+    b.appendChild(marke());
     return;
   }
   if (_probe) {
@@ -81,7 +89,7 @@ export function zeigeWurfAnzeige() {
   const b = box();
   if (!b) return;
   b.classList.add('sichtbar');
-  // Marke fürs Info-Fenster: Es macht oben Platz, solange die Box unten steht.
+  // Marke fürs Info-Fenster: Es macht oben Platz, solange die Box dort steht.
   document.documentElement.classList.add('wurf-platz');
   male();
 }

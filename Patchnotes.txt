@@ -4,6 +4,23 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.43, 30. September 2026
+
+
+Die Würfelbox sitzt jetzt oben rechts
+
+- Bisher stand sie unten rechts und nahm dem Info-Fenster den unteren Teil weg.
+  Jetzt sitzt sie am Kopf der rechten Spalte, und das Info-Fenster beginnt erst
+  darunter.
+- Das Info-Fenster ist damit oben um die vier Zeilen der Würfelbox gekürzt und
+  reicht dafür bis zum unteren Bildschirmrand.
+- Breite, Höhe und Verhalten bleiben unverändert: genauso breit wie das
+  Info-Fenster, feste Höhe für vier Textzeilen, mitwachsend nur mit der
+  Schriftgröße.
+- Solange nicht gewürfelt wurde, steht in der Box jetzt Skularis in großen
+  Buchstaben statt des Worts Würfelbox.
+
+
 Version 1.42, 30. September 2026
 
 
