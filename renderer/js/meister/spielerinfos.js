@@ -13,7 +13,7 @@ import { menuScreen } from '../ui/menu-screen.js';
 import { infoZeile, abschnittTitel, aktionZeile, verbindeDetail } from '../editor/widgets.js';
 import { baueCharakterbogen } from '../abenteuer/charakterbogen.js';
 import { kampfwerteScreen } from '../abenteuer/live-spiel.js';
-import { manoeverScreen, zauberScreen, zauberVorhanden, attributsprobenScreen, profanScreen } from '../abenteuer/kampf-menues.js';
+import { manoeverScreen, zauberScreen, zauberVorhanden, zauberKategorieLabel, ritualScreen, ritualeVorhanden, ritualKategorieLabel, attributsprobenScreen, profanScreen } from '../abenteuer/kampf-menues.js';
 import { zauberspeicherVorhanden, zauberspeicherScreen } from '../abenteuer/zauberspeicher.js';
 import { setVerdeckt } from '../abenteuer/wuerfel-kern.js';
 import { setAbenteuer, setDb } from '../abenteuer/state.js';
@@ -129,7 +129,11 @@ function charLiveScreen(c) {
       wrap.appendChild(aktionZeile('Manöver', () => screen.push(manoeverScreen()), 'Nahkampf-Manöver mit ihrer Wirkung'));
       wrap.appendChild(aktionZeile('Attributsproben', () => screen.push(attributsprobenScreen()), 'je Attribut eine Probe (Attribut mal zwei), verdeckt'));
       wrap.appendChild(aktionZeile('Profane Fertigkeiten und Talente', () => screen.push(profanScreen()), 'auf jede Fertigkeit und jedes Talent würfeln, auch nicht gelernte, verdeckt'));
-      if (zauberVorhanden(c.bogen, db)) wrap.appendChild(aktionZeile('Zauber und Rituale', () => screen.push(zauberScreen()), 'bekannte Zauber, verdeckt würfeln'));
+      // Zauber und Rituale getrennt, genau wie der Spieler es an seinem Tisch
+      // sieht: Rituale brauchen Minuten bis Stunden Vorbereitung und gehören
+      // nicht in die Initiative-Phase.
+      if (zauberVorhanden(c.bogen, db)) wrap.appendChild(aktionZeile(zauberKategorieLabel(c.bogen, db), () => screen.push(zauberScreen()), 'bekannte Zauber, verdeckt würfeln'));
+      if (ritualeVorhanden(c.bogen, db)) wrap.appendChild(aktionZeile(ritualKategorieLabel(c.bogen, db), () => screen.push(ritualScreen()), 'lange Vorbereitung, verdeckt würfeln'));
       if (zauberspeicherVorhanden(c.bogen)) wrap.appendChild(aktionZeile('Zauberspeicher', () => screen.push(zauberspeicherScreen()), 'Magierstab-Zauberspeicher'));
 
       verbindeDetail(wrap);

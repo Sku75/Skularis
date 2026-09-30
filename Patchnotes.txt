@@ -4,6 +4,23 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.44, 30. September 2026
+
+
+Zauber und Rituale jetzt auch am Meistertisch getrennt
+
+- Die Charakteransicht des Meisters zeigte noch die alte Sammelzeile "Zauber und
+  Rituale". Sie baut ihr Menü selbst auf und hatte die Trennung aus 1.41 deshalb
+  nicht mitbekommen.
+- Jetzt stehen dort dieselben zwei Punkte wie beim Spieler, mit derselben
+  Beschriftung samt Tradition und derselben Aufteilung. Der Meister sieht also
+  das, was der Spieler sieht.
+- Gewürfelt wird dort weiterhin verdeckt.
+- Zwei Unterschiede bleiben bewusst bestehen: In der Charakteransicht gibt es
+  keinen Würfelbecher und keine Aktionen-Übersicht. Beides braucht der Meister
+  dort nicht.
+
+
 Version 1.43, 30. September 2026
 
 
