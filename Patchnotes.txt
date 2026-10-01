@@ -4,6 +4,27 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.46, 1. Oktober 2026
+
+
+Die beiden Hintergrund-Reihen trennen wieder sauber
+
+- Eine Playlist in Reihe 1 und eine Datei in Reihe 2 haben sich gegenseitig
+  abgewürgt, obwohl sie auf getrennten Kanälen laufen. Betroffen war jede
+  Mischung aus Playlist und Einzeldatei über die Reihen hinweg.
+- Drei Ursachen steckten in der Playlist-Verwaltung, alle jetzt behoben:
+- Erstens lief eine Playlist immer auf Reihe 1, egal auf welchem Platz sie lag.
+  Der Kanal wurde aus dem Modus abgeleitet und kannte die Reihe nicht. Jetzt
+  kommt er von der Schnelltaste, die ihre Platznummer kennt.
+- Zweitens hat der Start einer Einzeldatei die laufende Playlist beendet, ohne
+  auf die Reihe zu schauen. Jetzt wird nur die Playlist derselben Reihe beendet.
+- Drittens gab es nur eine Abbruch-Marke für alle Kanäle. Zwei Playlists, eine
+  je Reihe, konnten deshalb nicht gleichzeitig weiterlaufen. Jetzt hat jeder
+  Kanal seine eigene.
+- Unverändert bleibt: Ein Platz im Modus Abspielen beendet weiterhin beide
+  Hintergrund-Reihen.
+
+
 Version 1.45, 1. Oktober 2026
 
 

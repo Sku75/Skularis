@@ -160,11 +160,14 @@ export async function spiele(index) {
   if (!istBelegt(d)) return false;
   const pegel = pegelVon(d);
 
-  // Playlist-Platz: eigene Wiedergabe (Start/Stopp-Umschaltung).
+  // Playlist-Platz: eigene Wiedergabe (Start/Stopp-Umschaltung). Der Kanal wird
+  // wie bei einer Einzeldatei aus der Platznummer bestimmt, damit eine Playlist
+  // in Reihe 2 auch wirklich auf Reihe 2 laeuft.
   if (d.typ === 'playlist') {
     try {
+      const plKanal = d.modus === 'hintergrund' ? (index < 12 ? 'hintergrund' : 'hintergrund2') : 'abspielen';
       const mod = await import('./audio-bereich.js');
-      await mod.spielePlaylistFuerTaste(d.playlist || d.name, { modus: d.modus, loop: !!d.loop, pegel });
+      await mod.spielePlaylistFuerTaste(d.playlist || d.name, { modus: d.modus, kanal: plKanal, loop: !!d.loop, pegel });
     } catch (err) {
       console.error('Kurztaste Playlist:', err);
       sprache.sage('Playlist konnte nicht abgespielt werden.');
@@ -214,7 +217,9 @@ export async function spiele(index) {
   // beenden, damit sie nicht in denselben Kanal hineinredet.
   try {
     const mod = await import('./audio-bereich.js');
-    if (mod.stopPlaylistWiedergabe) mod.stopPlaylistWiedergabe();
+    // Nur die Playlist DIESES Kanals beenden. "Abspielen" raeumt ohnehin alles
+    // ab, dort gilt es fuer alle Kanaele.
+    if (mod.stopPlaylistWiedergabe) mod.stopPlaylistWiedergabe(kanal === 'abspielen' ? undefined : kanal);
     if (mod.panikZuruecksetzen) mod.panikZuruecksetzen(); // die Strg-F12-Leiter beginnt neu
   } catch { /* egal */ }
   try {

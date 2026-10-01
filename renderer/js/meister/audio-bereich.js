@@ -34,8 +34,25 @@ let _statusEl = null;        // Live-Statuszeile (wird von Radio-Rückmeldungen 
 let _verbunden = false;      // Spieler wirklich verbunden (Ton kommt an)
 let _playlists = null;       // { auto:bool, listen:[{name, sounds:[{name,pfad}]}] }
 let _autoWeiter = false;     // Playlist: automatisch zum nächsten Titel
-let _plToken = 0;            // laufende Playlist-Wiedergabe (Abbruch-Marke)
-let _kurzPlaylist = null;    // { name, kanal } der ueber eine Schnelltaste laufenden Playlist
+// Playlist-Buchfuehrung JE KANAL (seit 1.46). Vorher gab es nur eine einzige
+// Abbruch-Marke und eine einzige laufende Playlist. Das hat die beiden
+// Hintergrund-Reihen gegeneinander ausgespielt: Eine Playlist in Reihe 1 und
+// eine Datei in Reihe 2 haben sich abgewuergt, obwohl sie auf getrennten
+// Kanaelen laufen. Jetzt hat jeder Kanal seine eigene Marke und seine eigene
+// laufende Playlist.
+const _plToken = { abspielen: 0, hintergrund: 0, hintergrund2: 0, einspielen: 0 };
+const _kurzPlaylist = {};    // kanal -> Name der dort laufenden Schnelltasten-Playlist
+
+/** Die Wiedergabe-Schleife eines Kanals abbrechen (ohne den Klang zu stoppen). */
+function plAbbrechen(kanal) {
+  _plToken[kanal] = (_plToken[kanal] || 0) + 1;
+  delete _kurzPlaylist[kanal];
+}
+
+/** Alle Playlist-Schleifen abbrechen — fuer "alles stoppen" und Strg F12. */
+function plAlleAbbrechen() {
+  for (const k of Object.keys(_plToken)) plAbbrechen(k);
+}
 let _panikStand = 0;         // wie weit Strg+F12 schon aufgeraeumt hat (0 bis 3)
 let _panikZeit = 0;          // wann zuletzt gedrueckt wurde (fuer den Zeitablauf)
 // Nach dieser Pause faengt die Leiter wieder bei vorne an. Wer schnell mehrmals
@@ -326,8 +343,7 @@ function speicherePlaylists() {
 
 /** Alles stoppen: laufende Klänge, Vorhören, Playlist und das Radio (Übertragung). */
 export function alleStoppen() {
-  _plToken += 1;
-  _kurzPlaylist = null;
+  plAlleAbbrechen();
   try { player.stoppeAlles(); } catch { /* egal */ }
   try { if (player.istVorhoeren()) player.beendeVorhoeren(); } catch { /* egal */ }
   try { radio.stopp(); } catch { /* egal */ }
@@ -340,8 +356,7 @@ export function alleStoppen() {
  * der Sounds, OHNE die Übertragung zu beenden.
  */
 export function klaengeStoppen() {
-  _plToken += 1;
-  _kurzPlaylist = null;
+  plAlleAbbrechen();
   try { player.stoppeAlles(); } catch { /* egal */ }
   try { if (player.istVorhoeren()) player.beendeVorhoeren(); } catch { /* egal */ }
 }
@@ -374,8 +389,7 @@ export async function panikStufe() {
     if (player.istVorhoeren()) { player.beendeVorhoeren(); _panikStand = 1; return 1; }
   } catch { /* egal */ }
   if (_panikStand < 2) {
-    _plToken += 1;
-    _kurzPlaylist = null;
+    plAlleAbbrechen();
     try { player.stoppeAlles(); } catch { /* egal */ }
     _panikStand = 2;
     return 2;
@@ -414,13 +428,13 @@ async function zuPlaylistHinzufuegen(d) {
 // Eine Playlist ab einem Titel sequenziell abspielen (nur bei Auto weiter).
 function spielePlaylist(pl, startIndex) {
   const liste = pl.sounds || [];
-  const token = ++_plToken;
+  const token = ++_plToken.abspielen;
   const los = async (i) => {
-    if (i < 0 || i >= liste.length || token !== _plToken) return;
+    if (i < 0 || i >= liste.length || token !== _plToken.abspielen) return;
     try {
-      await player.spieleEinmal(liste[i], () => { if (token === _plToken && _autoWeiter) los(i + 1); });
+      await player.spieleEinmal(liste[i], () => { if (token === _plToken.abspielen && _autoWeiter) los(i + 1); });
       sprache.sage(`${liste[i].name}.`);
-    } catch (e) { console.error('Playlist:', e); if (token === _plToken && _autoWeiter) los(i + 1); }
+    } catch (e) { console.error('Playlist:', e); if (token === _plToken.abspielen && _autoWeiter) los(i + 1); }
   };
   los(startIndex);
 }
@@ -438,13 +452,13 @@ function spielePlaylistGesamt(pl, { kanal = 'abspielen', loop = false, pegel } =
   _panikStand = 0;
   const liste = pl.sounds || [];
   if (!liste.length) { sprache.sage('Diese Playlist ist leer.'); return; }
-  const token = ++_plToken;
-  const p = pegel != null ? pegel : (kanal === 'hintergrund' ? player.getHintergrundPegel() : 1);
+  const token = ++_plToken[kanal];
+  const p = pegel != null ? pegel : (kanal === 'abspielen' ? 1 : player.getHintergrundPegel());
   const los = (i) => {
-    if (token !== _plToken) return;
-    if (i >= liste.length) { if (loop) i = 0; else { _kurzPlaylist = null; return; } }
-    player.spieleKanal(kanal, liste[i], { loop: false, pegel: p, onEnde: () => { if (token === _plToken) los(i + 1); } })
-      .catch((e) => { console.error('Playlist gesamt:', e); if (token === _plToken) los(i + 1); });
+    if (token !== _plToken[kanal]) return;
+    if (i >= liste.length) { if (loop) i = 0; else { delete _kurzPlaylist[kanal]; return; } }
+    player.spieleKanal(kanal, liste[i], { loop: false, pegel: p, onEnde: () => { if (token === _plToken[kanal]) los(i + 1); } })
+      .catch((e) => { console.error('Playlist gesamt:', e); if (token === _plToken[kanal]) los(i + 1); });
   };
   los(0);
 }
@@ -459,20 +473,30 @@ export async function spielePlaylistFuerTaste(name, opts) {
   await ladePlaylists();
   const pl = ((_playlists && _playlists.listen) || []).find(p => p.name === name);
   if (!pl) { sprache.sage('Playlist nicht gefunden.'); return; }
-  // Umschalten: laeuft genau diese Playlist schon -> stoppen.
-  if (_kurzPlaylist && _kurzPlaylist.name === name) { stopPlaylistWiedergabe(); return; }
+  // Der Kanal kommt vom Aufrufer, denn nur die Schnelltaste kennt ihre REIHE.
+  // Frueher wurde er hier aus dem Modus abgeleitet und landete damit immer auf
+  // Reihe 1 — eine Playlist in Reihe 2 hat dadurch Reihe 1 verdraengt.
+  const kanal = opts.kanal || (opts.modus === 'hintergrund' ? 'hintergrund' : 'abspielen');
+  // Umschalten: laeuft genau diese Playlist auf DIESEM Kanal schon -> stoppen.
+  if (_kurzPlaylist[kanal] === name) { stopPlaylistWiedergabe(kanal); return; }
   if (!pl.sounds || !pl.sounds.length) { sprache.sage('Diese Playlist ist leer.'); return; }
   const loop = !!opts.loop;
-  const kanal = opts.modus === 'hintergrund' ? 'hintergrund' : 'abspielen';
-  const pegel = (typeof opts.pegel === 'number') ? opts.pegel : (kanal === 'hintergrund' ? player.getHintergrundPegel() : 1);
+  const pegel = (typeof opts.pegel === 'number') ? opts.pegel : (kanal === 'abspielen' ? 1 : player.getHintergrundPegel());
   spielePlaylistGesamt(pl, { kanal: kanal, loop: loop, pegel: pegel });
-  _kurzPlaylist = { name: name, kanal: kanal };
+  _kurzPlaylist[kanal] = name;
 }
 
 /** Eine ueber eine Schnelltaste laufende Playlist beenden (falls eine laeuft). */
-export function stopPlaylistWiedergabe() {
-  _plToken += 1;
-  if (_kurzPlaylist) { try { player.stoppeKanal(_kurzPlaylist.kanal); } catch { /* egal */ } _kurzPlaylist = null; }
+export function stopPlaylistWiedergabe(kanal) {
+  // Ohne Angabe alle Kanaele, mit Angabe nur diesen einen. Das ist der Kern des
+  // Fehlers aus 1.41 bis 1.45: Der Start einer Datei hat ohne Angabe gestoppt
+  // und damit die Playlist der ANDEREN Reihe mitgerissen.
+  const liste = kanal ? [kanal] : Object.keys(_plToken);
+  for (const k of liste) {
+    const lief = Object.prototype.hasOwnProperty.call(_kurzPlaylist, k);
+    plAbbrechen(k);
+    if (lief) { try { player.stoppeKanal(k); } catch { /* egal */ } }
+  }
 }
 
 // Untermenü "Playlist vollständig wiedergeben" — dieselben Möglichkeiten wie bei
@@ -492,7 +516,7 @@ async function oeffnePlaylistGesamtDialog(pl) {
   else if (wahl === 'abschleife') { spielePlaylistGesamt(pl, { kanal: 'abspielen', loop: true }); sprache.sage(`${pl.name} läuft in Schleife.`); }
   else if (wahl === 'hg') { spielePlaylistGesamt(pl, { kanal: 'hintergrund', loop: false }); sprache.sage(`${pl.name} läuft leise als Hintergrund.`); }
   else if (wahl === 'hgschleife') { spielePlaylistGesamt(pl, { kanal: 'hintergrund', loop: true }); sprache.sage(`${pl.name} läuft leise als Hintergrund in Schleife.`); }
-  else if (wahl === 'stop') { _plToken += 1; player.stoppeKanal('abspielen'); player.stoppeHintergruende(); sprache.sage('Playlist gestoppt.'); }
+  else if (wahl === 'stop') { plAlleAbbrechen(); player.stoppeKanal('abspielen'); player.stoppeHintergruende(); sprache.sage('Playlist gestoppt.'); }
 }
 
 // Kleiner Zurück-Knopf (nur für die Maus; Blinde nutzen Escape).
@@ -1073,7 +1097,7 @@ function bauePlaylistZeile(pl, plIndex, sIndex) {
   zeile.appendChild(mk('Schleife', () => tuAbspielen(s, true)));
   zeile.appendChild(mk('Vorhören', () => tuVorhoeren(s)));
   zeile.appendChild(mk('Einspielen', () => tuEinspielen(s)));
-  zeile.appendChild(mk('Stop', () => { _plToken += 1; tuStop(s); }));
+  zeile.appendChild(mk('Stop', () => { plAlleAbbrechen(); tuStop(s); }));
   const name = document.createElement('span');
   name.setAttribute('aria-hidden', 'true'); name.style.flex = '1 1 auto'; name.textContent = s.name;
   zeile.appendChild(name);
@@ -1101,7 +1125,7 @@ async function oeffnePlaylistDialog(pl, plIndex, sIndex) {
   else if (wahl === 'hgschleife') tuHintergrund(s, true);
   else if (wahl === 'vor') tuVorhoeren(s);
   else if (wahl === 'ein') tuEinspielen(s);
-  else if (wahl === 'stop') { _plToken += 1; tuStop(s); }
+  else if (wahl === 'stop') { plAlleAbbrechen(); tuStop(s); }
   else if (wahl === 'weg') { pl.sounds.splice(sIndex, 1); speicherePlaylists(); screen.refresh(); sprache.sage(`${s.name} aus der Playlist entfernt.`); }
 }
 
