@@ -4,6 +4,23 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.45, 1. Oktober 2026
+
+
+Strg F12 fängt nach zwei Sekunden wieder bei Stufe 1 an
+
+- Bisher blieb die Leiter auf Stufe 3 stehen. Wer dort einmal angekommen war,
+  löste mit jedem weiteren Druck nur noch Stufe 3 aus und verwarf die gemerkten
+  Stellen, statt wieder vorne anzufangen.
+- Jetzt wird der Merker nach zwei Sekunden ohne weiteren Druck zurückgesetzt.
+  Schnell mehrmals drücken arbeitet die Stufen durch, nach einer Pause beginnt
+  es wieder von vorn.
+- Zurückgesetzt wird er weiterhin auch, sobald wieder ein Klang startet.
+- Unverändert bleibt, dass Stufe 1 übersprungen wird, wenn gar nichts vorgehört
+  wird. Ein einzelner Druck stoppt dann gleich die Klänge, so wie du es
+  ursprünglich wolltest.
+
+
 Version 1.44, 30. September 2026
 
 

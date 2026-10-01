@@ -37,6 +37,10 @@ let _autoWeiter = false;     // Playlist: automatisch zum nächsten Titel
 let _plToken = 0;            // laufende Playlist-Wiedergabe (Abbruch-Marke)
 let _kurzPlaylist = null;    // { name, kanal } der ueber eine Schnelltaste laufenden Playlist
 let _panikStand = 0;         // wie weit Strg+F12 schon aufgeraeumt hat (0 bis 3)
+let _panikZeit = 0;          // wann zuletzt gedrueckt wurde (fuer den Zeitablauf)
+// Nach dieser Pause faengt die Leiter wieder bei vorne an. Wer schnell mehrmals
+// drueckt, arbeitet die Stufen durch; wer spaeter wiederkommt, beginnt neu.
+const PANIK_FENSTER_MS = 2000;
 
 async function ladeGrunddaten() {
   if (!_config) {
@@ -357,8 +361,15 @@ export async function panikStufe() {
   // Stufe 1 wird uebersprungen, wenn gar nichts vorgehoert wird. Stufe 3 dagegen
   // ist NIE mit einem einzigen Druck erreichbar: Sie verwirft die gemerkten
   // Stellen, und das darf nicht aus Versehen passieren. Dafuer merkt sich
-  // _panikStand, wie weit der Meister schon aufgeraeumt hat. Sobald wieder etwas
-  // startet, faengt die Leiter von vorne an (panikZuruecksetzen).
+  // _panikStand, wie weit der Meister schon aufgeraeumt hat.
+  //
+  // Zurueckgesetzt wird der Stand auf zwei Wegen: sobald wieder etwas startet
+  // (panikZuruecksetzen) und nach zwei Sekunden ohne weiteren Druck. Ohne den
+  // Zeitablauf blieb die Leiter auf Stufe 3 stehen und jeder weitere Druck
+  // verwarf nur noch die gemerkten Stellen, statt wieder vorne anzufangen.
+  const jetzt = Date.now();
+  if (jetzt - _panikZeit > PANIK_FENSTER_MS) _panikStand = 0;
+  _panikZeit = jetzt;
   try {
     if (player.istVorhoeren()) { player.beendeVorhoeren(); _panikStand = 1; return 1; }
   } catch { /* egal */ }
@@ -376,7 +387,7 @@ export async function panikStufe() {
 
 /** Die Strg-F12-Leiter zuruecksetzen. Wird gerufen, sobald wieder etwas startet:
  *  Danach beginnt das Aufraeumen erneut bei Stufe 1 bzw. 2. */
-export function panikZuruecksetzen() { _panikStand = 0; }
+export function panikZuruecksetzen() { _panikStand = 0; _panikZeit = 0; }
 
 // Einen Sound zu einer Playlist hinzufügen (nur ein Verweis auf die Datei).
 async function zuPlaylistHinzufuegen(d) {
