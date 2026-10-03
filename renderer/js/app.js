@@ -497,12 +497,21 @@ function registriereInfoFenster() {
     if (!e.shiftKey) return;
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     if (document.querySelector('dialog[open]')) return;
-    // Im Info-Modus steuert das Fenster selbst.
-    if (infofenster.istOffen() && !infofenster.imTooltip()) return;
+    // Nur im ausdrücklich geöffneten Info-Modus steuert das Fenster selbst. Der
+    // dauerhafte Begleiter lässt sich dagegen vorlesen — vorher stieg der
+    // Handler hier aus, und Shift mit Pfeil tat gar nichts mehr.
+    if (infofenster.istOffen() && !infofenster.imTooltip() && !infofenster.imBegleiter()) return;
     e.preventDefault();
     e.stopPropagation();
 
     if (e.repeat) return; // Halten der Pfeiltaste nicht durchlaufen lassen
+
+    // Begleiter läuft: im bereits angezeigten Inhalt lesen bzw. springen.
+    if (infofenster.imBegleiter()) {
+      if (e.ctrlKey) infofenster.begleiterUeberschrift(e.key === 'ArrowDown' ? 1 : -1);
+      else infofenster.begleiterLesen(e.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
 
     if (!infofenster.imTooltip()) {
       // Öffnen: erste Zeile lesen. Mit Strg zusätzlich zur ersten Überschrift.
@@ -529,15 +538,43 @@ function registriereInfoFenster() {
   // i-Schalter in der Kopfzeile dasselbe tut).
   shortcuts.registriere('Ctrl+I', () => infoFensterUmschalten(), 'Info-Fenster ein und aus', 'info');
 
-  // Doppelklick auf einen Eintrag öffnet ebenfalls das Info-Fenster.
-  document.addEventListener('dblclick', async (e) => {
-    if (!infofenster) return;
-    const el = e.target.closest('[tabindex], button');
-    if (!el || el.closest('.ii-overlay')) return;
-    const detail = await detailBaustein(el);
-    if (!hatInhalt(detail)) return;
-    infofenster.oeffneInfo(eintragTitel(el), detail);
-  });
+  // Der Doppelklick öffnete früher das Info-Fenster. Seit 1.47 löst er die Zeile
+  // aus, und das Info-Fenster läuft ohnehin dauerhaft rechts mit — der alte Weg
+  // ist damit überflüssig und würde sich mit dem Auslösen in die Quere kommen.
+  registriereZeilenKlick();
+}
+
+// --- Einfacher Klick wählt, Doppelklick löst aus -------------------------
+//
+// Vorher löste schon der erste Klick auf einen Zauber oder eine Aktion den Wurf
+// aus. Jetzt setzt ein einzelner Klick nur den Rahmen auf die Zeile; das
+// Info-Fenster rechts zieht über den Fokus nach. Erst Doppelklick oder die
+// Eingabetaste lösen aus. Damit verhält sich die Maus wie die Pfeiltasten.
+//
+// Abgegrenzt wird über e.detail: Ein echter Einzelklick der Maus hat 1, der
+// Doppelklick 2, und ein per Tastatur ausgelöster Klick (Eingabetaste, auch
+// element.click() aus der Pfeil-Navigation) hat 0 — Enter bleibt also unberührt.
+const ZEILEN_WAHL = '.db-menu__item, .ed-aktion';
+
+function registriereZeilenKlick() {
+  document.addEventListener('click', (e) => {
+    if (e.detail !== 1) return;                       // 0 = Tastatur, 2 = Doppelklick
+    const zeile = e.target.closest(ZEILEN_WAHL);
+    if (!zeile) return;
+    // Schalter in Dialogen und im Info-Fenster wirken sofort.
+    if (zeile.closest('dialog') || zeile.closest('.ii-overlay')) return;
+    // Ein eigener Schalter INNERHALB der Zeile (Abspielen, Schleife, Vorhören,
+    // Stop in der Audio-Liste) behält seinen Einzelklick.
+    const direkt = e.target.closest('button, [role="button"], input, select, a');
+    if (direkt && direkt !== zeile) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (document.activeElement !== zeile) {
+      sprache.benenneFuerFokus(zeile);
+      zeile.focus();
+      sounds.playNavigation();
+    }
+  }, true);
 }
 
 /**

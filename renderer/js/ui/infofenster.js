@@ -28,6 +28,9 @@ let _inhaltEl = null;
 let _schliessenEl = null;
 
 let _zeilen = [];
+// Wurde im Begleiter-Modus schon vorgelesen? Beim ersten Shift-Pfeil kommt
+// Zeile 1, danach geht es weiter.
+let _gelesen = false;
 let _index = 0;
 let _modus = null;          // 'tooltip' | 'info' | null
 let _fokusVorher = null;    // Element, zu dem der Info-Modus zurückkehrt
@@ -106,6 +109,8 @@ function sage() {
 
 function oeffne(titel, detail, modus, ohneAnimation) {
   baue();
+  // Jeder neue Inhalt beginnt wieder oben: Der erste Shift-Pfeil liest Zeile 1.
+  _gelesen = false;
   _zeilen = zuZeilen(detail);
   if (!_zeilen.length) _zeilen = [{ text: 'Keine weiteren Informationen.', ueberschrift: false }];
   _index = 0;
@@ -155,6 +160,30 @@ export function aktualisiereBegleiter(titel, detail) {
 
 /** Läuft der Begleiter gerade? */
 export function imBegleiter() { return _modus === 'begleiter'; }
+
+/**
+ * Im Begleiter-Modus vorlesen (Shift und Pfeil).
+ *
+ * Der Begleiter zeigt schon den Inhalt der fokussierten Zeile, es muss also
+ * nichts geöffnet werden. Der erste Shift-Pfeil liest die erste Zeile, jeder
+ * weitere geht eine Zeile weiter. Ohne diesen Weg war Shift und Pfeil seit dem
+ * dauerhaften Begleiter (1.41) wirkungslos: Der Tooltip-Handler stieg aus, weil
+ * das Fenster ja schon offen war.
+ */
+export function begleiterLesen(schritt) {
+  if (_modus !== 'begleiter') return false;
+  if (!_gelesen) { _gelesen = true; _index = 0; markiere(); sage(); return true; }
+  weiter(schritt);
+  return true;
+}
+
+/** Im Begleiter-Modus von Überschrift zu Überschrift (Strg und Shift und Pfeil). */
+export function begleiterUeberschrift(richtung) {
+  if (_modus !== 'begleiter') return false;
+  _gelesen = true;
+  zurUeberschrift(richtung);
+  return true;
+}
 
 /** Info-Fenster öffnen (Strg und I oder Doppelklick). Bleibt offen. */
 export function oeffneInfo(titel, detail) {

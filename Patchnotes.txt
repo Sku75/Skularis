@@ -4,6 +4,41 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.47, 3. Oktober 2026
+
+
+Shift und Pfeil liest wieder vor
+
+- Seit das Info-Fenster dauerhaft mitläuft (1.41), tat Shift mit Pfeil runter
+  nichts mehr. Der Handler stieg aus, weil das Fenster ja schon offen war.
+- Jetzt liest Shift und Pfeil runter den Inhalt des Fensters vor: Der erste
+  Druck liest Zeile 1, jeder weitere geht eine Zeile weiter. Pfeil hoch geht
+  zurück.
+- Strg und Shift und Pfeil springt wieder von Überschrift zu Überschrift.
+- Wandert der Fokus in der Liste weiter, beginnt das Vorlesen wieder oben beim
+  neuen Inhalt.
+- Ist das Info-Fenster mit Strg und I abgeschaltet, verhält sich Shift und Pfeil
+  wie früher und öffnet den Tooltip.
+
+
+Einfacher Klick wählt, Doppelklick löst aus
+
+- Bisher löste schon der erste Klick auf einen Zauber oder eine Aktion den Wurf
+  aus. Das war zu schnell und nicht rückholbar.
+- Jetzt setzt ein einzelner Klick nur den Rahmen auf die Zeile. Das Info-Fenster
+  rechts zieht sofort nach und zeigt den Inhalt dieser Zeile.
+- Erst Doppelklick oder die Eingabetaste lösen aus. Die Maus verhält sich damit
+  wie die Pfeiltasten: Was umrahmt ist, steht rechts im Fenster.
+- Gilt im ganzen Programm, an beiden Tischen und im Editor.
+- Schalter in Dialogen wirken weiter beim ersten Klick, sonst könnte man keine
+  Frage mehr beantworten.
+- Eigene Schalter innerhalb einer Zeile behalten ihren Einzelklick, etwa
+  Abspielen, Schleife, Vorhören und Stop in der Audio-Liste.
+- Der Doppelklick öffnete früher das Info-Fenster. Das ist entfallen: Das
+  Fenster läuft ohnehin dauerhaft mit, und beides zugleich hätte sich
+  gegenseitig gestört.
+
+
 Version 1.46, 1. Oktober 2026
 
 
