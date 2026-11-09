@@ -546,6 +546,7 @@ function registriereInfoFenster() {
   // aus, und das Info-Fenster läuft ohnehin dauerhaft rechts mit — der alte Weg
   // ist damit überflüssig und würde sich mit dem Auslösen in die Quere kommen.
   registriereZeilenKlick();
+  registriereZeilenMaus();
 }
 
 // --- Einfacher Klick wählt, Doppelklick löst aus -------------------------
@@ -563,6 +564,63 @@ function registriereInfoFenster() {
 // einer Wertzeile sind Schalter INNERHALB der Zeile und behalten ihren
 // Einzelklick — das regelt die Abfrage auf button weiter unten.
 const ZEILEN_WAHL = '.db-menu__item, .ed-aktion, .ed-zeile, .ed-ueberschrift';
+
+/**
+ * Der Fokus geht unter der Maus mit (1.49). Faehrt die Maus ueber eine Zeile,
+ * wird diese Zeile fokussiert — mit Rahmen, Ton und NVDA-Ansage, genau wie bei
+ * den Pfeiltasten. So gibt es immer nur EINEN Rahmen auf dem Bildschirm, und
+ * von der Zeile unter der Maus aus wirkt die Eingabetaste sofort.
+ *
+ * Die 70 Millisekunden Beruhigungszeit sind der Kern: ein schneller Schwenk
+ * ueber zwanzig Zeilen soll nicht zwanzig Ansagen ausloesen. Der Fokus springt
+ * erst, wenn die Maus auf derselben Zeile liegen bleibt.
+ *
+ * Textfelder bleiben aussen vor. Dort wuerde ein Vorbeifahren der Maus den
+ * Schreibcursor stehlen, waehrend der Nutzer in einem anderen Feld tippt.
+ */
+function registriereZeilenMaus() {
+  // Breiter als ZEILEN_WAHL: unter der Maus soll JEDE Zeile den Fokus holen,
+  // auch die Rohr-Zeilen des Charakterbogens und die selbstgebauten Zeilen der
+  // Spieltische. [tabindex="0"] faengt sie alle — fokussierbar ist genau das,
+  // was auch die Pfeiltasten erreichen.
+  const MAUS_WAHL = `${ZEILEN_WAHL}, .db-row, .db-list__item, [tabindex="0"]`;
+  let timer = null;
+  let ziel = null;
+
+  const abbrechen = () => { if (timer) { clearTimeout(timer); timer = null; } ziel = null; };
+
+  document.addEventListener('mouseover', (e) => {
+    const zeile = e.target.closest ? e.target.closest(MAUS_WAHL) : null;
+    if (!zeile) { abbrechen(); return; }
+    // Dialoge und das Info-Fenster bringen ihre eigene Steuerung mit.
+    if (zeile.closest('dialog') || zeile.closest('.ii-overlay')) return;
+    if (document.querySelector('dialog[open]')) return;
+    if (zeile === document.activeElement || zeile === ziel) return;
+    const tag = zeile.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    // Wer gerade in einem Textfeld schreibt, verliert den Cursor nicht.
+    const aktiv = document.activeElement;
+    if (aktiv && (aktiv.tagName === 'INPUT' || aktiv.tagName === 'TEXTAREA')) return;
+
+    abbrechen();
+    ziel = zeile;
+    timer = setTimeout(() => {
+      timer = null;
+      const z = ziel;
+      ziel = null;
+      if (!z || !z.isConnected || z === document.activeElement) return;
+      if (!z.matches(':hover')) return;        // Maus ist weitergewandert
+      sprache.benenneFuerFokus(z);
+      z.focus();
+      sounds.playNavigation();
+    }, 70);
+  }, true);
+
+  document.addEventListener('mouseout', (e) => {
+    const zeile = e.target.closest ? e.target.closest(MAUS_WAHL) : null;
+    if (zeile && zeile === ziel) abbrechen();
+  }, true);
+}
 
 function registriereZeilenKlick() {
   document.addEventListener('click', (e) => {

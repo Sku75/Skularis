@@ -114,8 +114,10 @@
      Signale wuerden sich gegenseitig aufheben, und weisse Schrift auf heller
      Flaeche waere schlechter lesbar als vorher. Der Zuschlag ist eine
      halbtransparente weisse Lage, damit er auf jedem Untergrund gleich wirkt. */
-  --db-fokus-breite: calc(4px + var(--db-font-offset, 0px) * 0.3);
-  --db-fokus-flaeche: rgba(255, 255, 255, 0.10);
+  --db-fokus-breite: calc(7px + var(--db-font-offset, 0px) * 0.45);
+  --db-fokus-innen: calc(2px + var(--db-font-offset, 0px) * 0.1);
+  --db-fokus-flaeche: rgba(255, 255, 255, 0.16);
+  --db-fokus-flaeche-maus: rgba(255, 255, 255, 0.07);
 
   --db-rahmen: calc(2px + var(--db-font-offset, 0px) * 0.25);
   --db-rahmen-stark: calc(3px + var(--db-font-offset, 0px) * 0.3);

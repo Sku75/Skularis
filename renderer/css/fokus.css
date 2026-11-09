@@ -1,0 +1,91 @@
+/* Skularis 1.49 — Die aktive Zeile. Eine Stelle fuer den Rahmen.
+ *
+ * Diese Datei wird ZULETZT geladen und gewinnt damit gegen jede frueher
+ * gesetzte Fokusregel. Vorher war der Rahmen auf viele Dateien verteilt:
+ * accessibility.css setzte fuer .db-btn und .db-list__item sogar
+ * "outline: none", skularistool.css malte ihn fuer einzelne Zeilenarten
+ * wieder hin. Je nach Zeilenart und je nach Maus oder Tastatur kam etwas
+ * anderes heraus. Jetzt sieht jede aktive Zeile gleich aus.
+ *
+ * Drei Dinge waren schuld daran, dass der Rahmen duenn wirkte oder verschwand:
+ * 1. Er lag als outline zwei Pixel NEBEN der Zeile, also im Zwischenraum.
+ * 2. Die Zeilen stehen nur zwei Pixel auseinander und sind selbst
+ *    positioniert. Die naechste Zeile wird spaeter gemalt und uebermalt den
+ *    Rahmen der aktiven Zeile. Darum hilft hier ein z-index.
+ * 3. Der Browser setzt :focus-visible bei einem Mausklick absichtlich nicht,
+ *    "outline: none" fuer .db-btn:focus-visible griff also nur bei der
+ *    Tastatur. Klicken zeigte den Rahmen, Pfeiltaste nahm ihn weg.
+ */
+
+/* Die aktive Zeile, egal wodurch sie aktiv wurde. :focus deckt den Mausklick
+   ab, :focus-visible die Tastatur. Beide sehen gleich aus. */
+.screen *:focus,
+.screen *:focus-visible,
+.ii-overlay *:focus,
+.ii-overlay *:focus-visible,
+.db-dialog *:focus,
+.db-dialog *:focus-visible {
+  outline: var(--db-fokus-breite) solid var(--db-border-white, #ffffff);
+  outline-offset: 0;
+  /* Erste Lage: eine schwarze Haarlinie innen. Sie trennt das Weiss von
+     hellen Flaechen, etwa den gruenen und roten Schaltern.
+     Zweite Lage: sie hellt die ganze Zeile auf. Ueber box-shadow und nicht
+     ueber background-image, damit die Woelbung der Rohr-Zeilen bleibt. */
+  box-shadow: inset 0 0 0 var(--db-fokus-innen) #000000,
+              inset 0 0 0 9999px var(--db-fokus-flaeche);
+  position: relative;
+  z-index: 4;
+}
+
+/* Maus ueber einer Zeile: derselbe dicke weisse Rahmen, nur die Flaeche ist
+   schwaecher. Liegt die Maus auf einer anderen Zeile als die Tastatur, bleibt
+   so erkennbar, welche Zeile die Tastatur hat. */
+.screen .db-menu__item:hover,
+.screen .db-row:hover,
+.screen .ed-aktion:hover,
+.screen .ed-ueberschrift:hover,
+.screen .db-list__item:hover,
+.screen .db-tabs__tab:hover,
+.ii-overlay .ii-zeile:hover,
+.db-dialog .db-btn:hover {
+  outline: var(--db-fokus-breite) solid var(--db-border-white, #ffffff);
+  outline-offset: 0;
+  box-shadow: inset 0 0 0 var(--db-fokus-innen) #000000,
+              inset 0 0 0 9999px var(--db-fokus-flaeche-maus);
+  position: relative;
+  z-index: 3;
+}
+
+/* Kein Dunklerwerden mehr unter der Maus. Dunkler heisst im Dunkelmodus
+   weniger Kontrast, das ist die falsche Richtung. Die Zeile behaelt ihre
+   normale Flaeche, der Rahmen traegt das Signal. */
+.screen .db-menu__item:hover,
+.screen .ed-aktion:hover {
+  background-color: var(--db-bg-surface);
+}
+.screen .db-list__item:hover:not(.db-list__item--selected),
+.ii-overlay .ii-zeile:hover {
+  background-color: transparent;
+}
+
+/* Ein Schalter INNERHALB einer Zeile bleibt dezent: die Plus- und
+   Minus-Schalter der Wertzeilen, Abspielen und Stop in den Audio-Listen.
+   Zwei dicke Rahmen ineinander wuerden sich gegenseitig auffressen. */
+.screen .db-row button:focus,
+.screen .db-row button:focus-visible,
+.screen .db-row [role="button"]:focus,
+.screen .db-row [role="button"]:focus-visible,
+.screen .db-menu__item button:focus,
+.screen .db-menu__item button:focus-visible {
+  outline-width: var(--db-rahmen-stark);
+  box-shadow: inset 0 0 0 var(--db-fokus-innen) #000000;
+  z-index: 5;
+}
+.screen .db-row button:hover,
+.screen .db-row [role="button"]:hover,
+.screen .db-menu__item button:hover {
+  outline: var(--db-rahmen-stark) solid var(--db-border-white, #ffffff);
+  outline-offset: 0;
+  position: relative;
+  z-index: 5;
+}

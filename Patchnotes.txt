@@ -4,6 +4,49 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.49, 9. November 2026
+
+
+Die aktive Zeile ist deutlich zu sehen
+
+- Der Rahmen um die aktive Zeile ist jetzt 7 Pixel dick statt 4 und wächst
+  stärker mit der Schriftgröße mit. Bei größter Schrift sind es gut 12 Pixel.
+- Er liegt jetzt direkt an der Zeile. Vorher lag er 2 Pixel daneben, also genau
+  im Zwischenraum zwischen zwei Zeilen.
+- Innen läuft eine schwarze Haarlinie mit. Dadurch steht das Weiß auch auf
+  hellen Flächen, etwa auf den grünen und roten Schaltern.
+- Die Zeile selbst wird aufgehellt, nicht abgedunkelt.
+
+- Der Rahmen verschwand bisher manchmal ganz, je nach Zeilenart und je nachdem,
+  ob man geklickt oder die Pfeiltasten benutzt hatte. Drei Ursachen:
+- Er lag im Zwischenraum, und die nächste Zeile wird später gezeichnet. Sie
+  übermalte den unteren Rand. Deshalb wirkte der Rahmen auch dünner, als er
+  war.
+- "Kein Rahmen" war für Schalter und Listenzeilen ausdrücklich gesetzt, und
+  diese Regel griff nur bei der Tastatur. Klicken zeigte den Rahmen, die
+  Pfeiltaste nahm ihn wieder weg.
+- Jede Zeilenart hatte ihre eigene Rahmenregel in einer anderen Datei. Manche
+  Zeilenarten hatten gar keine.
+- Jetzt gibt es eine Stelle für alle: renderer/css/fokus.css, zuletzt geladen.
+  Jede aktive Zeile sieht gleich aus, in Menüs, im Charakterbogen, im Editor,
+  in Listen, im Info-Fenster und in Dialogen.
+
+
+Der Fokus geht unter der Maus mit
+
+- Fährt die Maus über eine Zeile, holt diese Zeile den Fokus: Rahmen, Ton und
+  Ansage wie bei den Pfeiltasten. Die Eingabetaste wirkt dann sofort auf die
+  Zeile unter der Maus.
+- Es ist also immer nur EIN Rahmen auf dem Bildschirm. Maus und Pfeiltasten
+  zeigen dasselbe.
+- Der Fokus springt erst, wenn die Maus 70 Millisekunden auf derselben Zeile
+  liegt. Ein schneller Schwenk über zwanzig Zeilen löst sonst zwanzig Ansagen
+  aus.
+- Textfelder bleiben außen vor. Wer gerade schreibt, verliert den Schreibcursor
+  nicht, weil die Maus daneben vorbeifährt.
+- Das Dunklerwerden unter der Maus ist weg. Dunkler heißt im Dunkelmodus
+  weniger Kontrast, das war die falsche Richtung.
+
 Version 1.48, 9. November 2026
 
 
