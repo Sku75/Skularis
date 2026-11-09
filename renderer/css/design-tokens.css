@@ -114,10 +114,12 @@
      Signale wuerden sich gegenseitig aufheben, und weisse Schrift auf heller
      Flaeche waere schlechter lesbar als vorher. Der Zuschlag ist eine
      halbtransparente weisse Lage, damit er auf jedem Untergrund gleich wirkt. */
-  --db-fokus-breite: calc(7px + var(--db-font-offset, 0px) * 0.45);
-  --db-fokus-innen: calc(2px + var(--db-font-offset, 0px) * 0.1);
+  /* Das aktive Element wird invertiert, es braucht keine Breite (1.50).
+     Hier steht nur noch der Rahmen, der dem Mausnutzer zeigt, wo sein Zeiger
+     liegt: halb so dick wie der Rahmen aus 1.49. */
+  --db-fokus-breite-maus: calc(3.5px + var(--db-font-offset, 0px) * 0.22);
+  --db-fokus-breite: var(--db-fokus-breite-maus);
   --db-fokus-flaeche: rgba(255, 255, 255, 0.16);
-  --db-fokus-flaeche-maus: rgba(255, 255, 255, 0.07);
 
   --db-rahmen: calc(2px + var(--db-font-offset, 0px) * 0.25);
   --db-rahmen-stark: calc(3px + var(--db-font-offset, 0px) * 0.3);

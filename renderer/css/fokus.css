@@ -1,45 +1,67 @@
-/* Skularis 1.49 — Die aktive Zeile. Eine Stelle fuer den Rahmen.
+/* Skularis 1.50 — Zwei Anzeigearten, eine Stelle.
+ *
+ * 1. Das AKTIVE Element. Das ist die Zeile, deren Inhalt rechts im
+ *    Info-Fenster steht und die NVDA vorliest. Sie wird invertiert:
+ *    weisser Grund, schwarze dicke Schrift. Kein Rahmen — die Umkehrung ist
+ *    das staerkste Signal, das ein Bildschirm hergibt.
+ *    Bewegt wird sie von den Pfeiltasten und von einem Mausklick.
+ *
+ * 2. Der MAUSZEIGER. Die Zeile unter der Maus bekommt einen weissen Rahmen,
+ *    halb so dick wie der Rahmen in 1.49. Er ist eine reine Anzeige fuer den
+ *    Mausnutzer: er verschiebt den Fokus nicht, loest nichts aus und bringt
+ *    NVDA nicht zum Sprechen.
  *
  * Diese Datei wird ZULETZT geladen und gewinnt damit gegen jede frueher
- * gesetzte Fokusregel. Vorher war der Rahmen auf viele Dateien verteilt:
+ * gesetzte Fokusregel. Vorher war der Rahmen auf vier Dateien verteilt:
  * accessibility.css setzte fuer .db-btn und .db-list__item sogar
  * "outline: none", skularistool.css malte ihn fuer einzelne Zeilenarten
- * wieder hin. Je nach Zeilenart und je nach Maus oder Tastatur kam etwas
- * anderes heraus. Jetzt sieht jede aktive Zeile gleich aus.
- *
- * Drei Dinge waren schuld daran, dass der Rahmen duenn wirkte oder verschwand:
- * 1. Er lag als outline zwei Pixel NEBEN der Zeile, also im Zwischenraum.
- * 2. Die Zeilen stehen nur zwei Pixel auseinander und sind selbst
- *    positioniert. Die naechste Zeile wird spaeter gemalt und uebermalt den
- *    Rahmen der aktiven Zeile. Darum hilft hier ein z-index.
- * 3. Der Browser setzt :focus-visible bei einem Mausklick absichtlich nicht,
- *    "outline: none" fuer .db-btn:focus-visible griff also nur bei der
- *    Tastatur. Klicken zeigte den Rahmen, Pfeiltaste nahm ihn weg.
+ * wieder hin, und "outline: none" griff nur bei der Tastatur, weil der
+ * Browser :focus-visible bei einem Mausklick absichtlich nicht setzt.
  */
 
-/* Die aktive Zeile, egal wodurch sie aktiv wurde. :focus deckt den Mausklick
-   ab, :focus-visible die Tastatur. Beide sehen gleich aus. */
+/* === 1. Das aktive Element: invertiert === */
 .screen *:focus,
 .screen *:focus-visible,
 .ii-overlay *:focus,
 .ii-overlay *:focus-visible,
 .db-dialog *:focus,
 .db-dialog *:focus-visible {
-  outline: var(--db-fokus-breite) solid var(--db-border-white, #ffffff);
-  outline-offset: 0;
-  /* Erste Lage: eine schwarze Haarlinie innen. Sie trennt das Weiss von
-     hellen Flaechen, etwa den gruenen und roten Schaltern.
-     Zweite Lage: sie hellt die ganze Zeile auf. Ueber box-shadow und nicht
-     ueber background-image, damit die Woelbung der Rohr-Zeilen bleibt. */
-  box-shadow: inset 0 0 0 var(--db-fokus-innen) #000000,
-              inset 0 0 0 9999px var(--db-fokus-flaeche);
+  /* background-image muss ausdruecklich weg: die Rohr-Zeilen tragen ihre
+     Woelbung als Farbverlauf, der sonst ueber dem Weiss liegen bleibt. */
+  background-image: none;
+  background-color: var(--db-border-white, #ffffff);
+  color: #000000;
+  font-weight: 700;
+  outline: none;
+  box-shadow: none;
+  /* Die Zeilen stehen nur zwei Pixel auseinander und sind selbst
+     positioniert. Ohne z-index malt die naechste Zeile ueber den Rand. */
   position: relative;
   z-index: 4;
 }
 
-/* Maus ueber einer Zeile: derselbe dicke weisse Rahmen, nur die Flaeche ist
-   schwaecher. Liegt die Maus auf einer anderen Zeile als die Tastatur, bleibt
-   so erkennbar, welche Zeile die Tastatur hat. */
+/* Alles IN der aktiven Zeile wird mitschwarz: Werte, Tastenkuerzel,
+   Erklaerungszeile. Die Erklaerung steht normal auf 70 Prozent Deckkraft —
+   auf weissem Grund waere sie damit blass. */
+.screen *:focus *,
+.screen *:focus-visible *,
+.ii-overlay *:focus *,
+.ii-overlay *:focus-visible *,
+.db-dialog *:focus *,
+.db-dialog *:focus-visible * {
+  color: #000000;
+  opacity: 1;
+}
+
+/* Der Schreibcursor und markierter Text bleiben auf weissem Grund sichtbar. */
+.screen input:focus,
+.screen textarea:focus,
+.db-dialog input:focus,
+.db-dialog textarea:focus {
+  caret-color: #000000;
+}
+
+/* === 2. Der Mauszeiger: nur ein Rahmen === */
 .screen .db-menu__item:hover,
 .screen .db-row:hover,
 .screen .ed-aktion:hover,
@@ -48,12 +70,24 @@
 .screen .db-tabs__tab:hover,
 .ii-overlay .ii-zeile:hover,
 .db-dialog .db-btn:hover {
-  outline: var(--db-fokus-breite) solid var(--db-border-white, #ffffff);
+  outline: var(--db-fokus-breite-maus) solid var(--db-border-white, #ffffff);
   outline-offset: 0;
-  box-shadow: inset 0 0 0 var(--db-fokus-innen) #000000,
-              inset 0 0 0 9999px var(--db-fokus-flaeche-maus);
   position: relative;
   z-index: 3;
+}
+
+/* Liegt die Maus auf der aktiven Zeile, wird der Rahmen schwarz. Weiss auf
+   weiss waere nicht zu sehen. */
+.screen .db-menu__item:focus:hover,
+.screen .db-row:focus:hover,
+.screen .ed-aktion:focus:hover,
+.screen .ed-ueberschrift:focus:hover,
+.screen .db-list__item:focus:hover,
+.screen .db-tabs__tab:focus:hover,
+.ii-overlay .ii-zeile:focus:hover,
+.db-dialog .db-btn:focus:hover {
+  outline-color: #000000;
+  z-index: 4;
 }
 
 /* Kein Dunklerwerden mehr unter der Maus. Dunkler heisst im Dunkelmodus
@@ -68,23 +102,23 @@
   background-color: transparent;
 }
 
-/* Ein Schalter INNERHALB einer Zeile bleibt dezent: die Plus- und
-   Minus-Schalter der Wertzeilen, Abspielen und Stop in den Audio-Listen.
-   Zwei dicke Rahmen ineinander wuerden sich gegenseitig auffressen. */
-.screen .db-row button:focus,
-.screen .db-row button:focus-visible,
-.screen .db-row [role="button"]:focus,
-.screen .db-row [role="button"]:focus-visible,
-.screen .db-menu__item button:focus,
-.screen .db-menu__item button:focus-visible {
-  outline-width: var(--db-rahmen-stark);
-  box-shadow: inset 0 0 0 var(--db-fokus-innen) #000000;
-  z-index: 5;
+/* Ein gesperrter Schalter bleibt blass. Die Zeile hellt alles in sich auf
+   volle Deckkraft auf; ein Plus-Schalter am Maximum soll trotzdem als
+   gesperrt zu erkennen sein. */
+.screen *:focus *:disabled,
+.screen *:focus-visible *:disabled,
+.db-dialog *:focus *:disabled {
+  opacity: 0.25;
 }
+
+/* Ein Schalter INNERHALB einer Zeile bekommt unter der Maus seinen eigenen
+   Rahmen: die Plus- und Minus-Schalter der Wertzeilen, Abspielen und Stop in
+   den Audio-Listen. Ist er selbst das aktive Element, wird er invertiert wie
+   jede andere aktive Stelle. */
 .screen .db-row button:hover,
 .screen .db-row [role="button"]:hover,
 .screen .db-menu__item button:hover {
-  outline: var(--db-rahmen-stark) solid var(--db-border-white, #ffffff);
+  outline: var(--db-fokus-breite-maus) solid var(--db-border-white, #ffffff);
   outline-offset: 0;
   position: relative;
   z-index: 5;

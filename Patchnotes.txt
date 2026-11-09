@@ -4,6 +4,30 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.50, 9. November 2026
+
+
+Zwei Anzeigearten, klar getrennt
+
+- Das AKTIVE Element wird invertiert: weißer Grund, schwarze dicke Schrift.
+  Das ist die Zeile, deren Inhalt rechts im Info-Fenster steht und die NVDA
+  vorliest. Kein Rahmen mehr — die Umkehrung ist das stärkste Signal, das ein
+  Bildschirm hergibt, und sie ist auf jeder Zeilenart gleich zu erkennen.
+- Bewegt wird das weiße Feld von den Pfeiltasten und von einem Mausklick.
+- Alles in der aktiven Zeile wird mitschwarz: Werte, Tastenkürzel und die
+  Erklärungszeile. Die Erklärung steht normal auf 70 Prozent Deckkraft und
+  wäre auf weißem Grund sonst blass. Ein gesperrter Plus-Schalter bleibt
+  blass, sonst wäre nicht mehr zu sehen, dass er am Anschlag steht.
+
+- Der MAUSZEIGER bekommt seine eigene Anzeige: die Zeile unter der Maus
+  erhält einen weißen Rahmen, halb so dick wie der Rahmen aus 1.49.
+- Dieser Rahmen ist eine reine Anzeige für den Mausnutzer. Er verschiebt den
+  Fokus nicht, löst nichts aus und bringt NVDA nicht zum Sprechen.
+- Liegt die Maus auf der aktiven Zeile, wird der Rahmen schwarz. Weiß auf
+  weiß wäre nicht zu sehen.
+- Das Mitgehen des Fokus unter der Maus aus 1.49 ist damit wieder draußen.
+  Ein Klick wählt weiter aus, wie seit 1.48.
+
 Version 1.49, 9. November 2026
 
 
