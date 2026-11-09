@@ -452,9 +452,13 @@ export function begleiterBeenden() {
 }
 
 /**
- * Den Begleiter auf den gerade fokussierten Eintrag nachziehen. Ohne Inhalt
- * bleibt der letzte Stand stehen — so flackert es nicht bei Zeilen, die nichts
- * zu erklaeren haben.
+ * Den Begleiter auf den gerade fokussierten Eintrag nachziehen.
+ *
+ * Bis 1.47 blieb bei einer Zeile ohne Inhalt der ALTE Stand stehen. Wer von
+ * einem Zauber zum naechsten ging, las dann weiter die Werte des vorigen — der
+ * Fehler, der als "das Fenster wechselt nicht mit" gemeldet wurde. Ab 1.48 zieht
+ * das Fenster IMMER nach: der Titel nennt stets die Zeile, zu der der Inhalt
+ * gehoert, und hat die Zeile nichts zu erklaeren, steht das auch so da.
  */
 async function begleiterNachziehen() {
   if (!_begleiterAn || !infofenster) return;
@@ -462,8 +466,8 @@ async function begleiterNachziehen() {
   const el = document.activeElement;
   if (!el || (el.closest && el.closest('.ii-overlay'))) return;
   const detail = await detailBaustein(el);
-  if (!hatInhalt(detail)) return;
-  infofenster.oeffneBegleiter(eintragTitel(el), detail);
+  const titel = eintragTitel(el);
+  infofenster.oeffneBegleiter(titel, hatInhalt(detail) ? detail : null);
 }
 
 export async function infoFensterUmschalten() {
@@ -554,7 +558,11 @@ function registriereInfoFenster() {
 // Abgegrenzt wird über e.detail: Ein echter Einzelklick der Maus hat 1, der
 // Doppelklick 2, und ein per Tastatur ausgelöster Klick (Eingabetaste, auch
 // element.click() aus der Pfeil-Navigation) hat 0 — Enter bleibt also unberührt.
-const ZEILEN_WAHL = '.db-menu__item, .ed-aktion';
+// Ab 1.48 auch .ed-zeile (die Wertzeilen mit Plus und Minus) und .ed-ueberschrift
+// (die Abschnitts-Zeilen im Editor, Wunsch c). Die Plus- und Minus-Schalter in
+// einer Wertzeile sind Schalter INNERHALB der Zeile und behalten ihren
+// Einzelklick — das regelt die Abfrage auf button weiter unten.
+const ZEILEN_WAHL = '.db-menu__item, .ed-aktion, .ed-zeile, .ed-ueberschrift';
 
 function registriereZeilenKlick() {
   document.addEventListener('click', (e) => {
@@ -584,11 +592,17 @@ function registriereZeilenKlick() {
  */
 async function detailBaustein(el) {
   if (!el) return null;
+  const d0 = el.__detail;
+  if (d0 === undefined) return null;
+  // Ein Detail als FUNKTION wird jedes Mal neu gebaut. Genau deshalb ist es eine
+  // Funktion: Der letzte Wurf, der aktuelle Geldstand, die Wunden aendern sich
+  // im Spiel. Ein Zwischenspeicher hat hier bis 1.47 den Stand des ersten
+  // Aufrufs festgehalten. Nur feste Texte werden gemerkt.
+  if (typeof d0 === 'function') {
+    try { return (await d0()) || null; } catch { return null; }
+  }
   if (el.__detailCache !== undefined) return el.__detailCache;
-  let d = el.__detail;
-  if (d === undefined) return null;
-  if (typeof d === 'function') { try { d = await d(); } catch { d = null; } }
-  el.__detailCache = d || null;
+  el.__detailCache = d0 || null;
   return el.__detailCache;
 }
 

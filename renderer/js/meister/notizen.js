@@ -49,6 +49,7 @@ function listeScreen(feld, einzeln, vorlesen) {
       // darunter, neueste zuerst, so wie im Tagebuch.
       items.push({
         label: `${einzeln} hinzufuegen`,
+        hint: 'erst der Titel, dann der Text',
         onSelect: async () => {
           const titel = await textDialog({ titel: einzeln, label: 'Titel' });
           if (titel === null || !titel.trim()) return;
@@ -82,9 +83,10 @@ function eintragScreen(feld, index, einzeln, vorlesen) {
       this.title = n.titel || einzeln;
       const items = [];
       if (vorlesen) items.push({ label: 'Vorlesen', hint: 'liest den Text vor', onSelect: () => sprache.sage(n.inhalt || '') });
-      items.push({ label: `Text: ${n.inhalt || '(leer)'}`, onSelect: () => sprache.sage(n.inhalt || 'Leer.') });
+      items.push({ label: `Text: ${n.inhalt || '(leer)'}`, hint: 'Enter liest den Text noch einmal vor', onSelect: () => sprache.sage(n.inhalt || 'Leer.') });
       items.push({
         label: 'Bearbeiten',
+        hint: 'erst der Titel, dann der Text',
         onSelect: async () => {
           const titel = await textDialog({ titel: einzeln, label: 'Titel', wert: n.titel });
           if (titel === null) return;
@@ -96,6 +98,7 @@ function eintragScreen(feld, index, einzeln, vorlesen) {
       });
       items.push({
         label: 'Loeschen',
+        hint: 'löscht den Eintrag dauerhaft, nach Rückfrage',
         onSelect: async () => {
           if (!await jaNeinDialog({ titel: 'Loeschen', frage: `${n.titel || einzeln} loeschen?` })) return;
           a[feld].splice(index, 1); await speichere(); screen.pop(); sprache.sage('Geloescht.');

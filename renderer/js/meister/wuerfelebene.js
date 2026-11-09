@@ -111,10 +111,10 @@ function waehleAngriff(k) {
 async function angriffWurf(k, art) {
   const ang = await waehleAngriff(k);
   if (!ang) { sprache.sage(`${k.name} hat keine Angriffe.`); return; }
-  if (art === 'at') verdeckteProbe({ wer: k.name, was: `Attacke ${ang.name}`, probenwert: (ang.at != null ? ang.at : ang.wert || 0), anzahl: 1 });
+  if (art === 'at') verdeckteProbe({ wer: k.name, was: `Attacke ${ang.name}`, probenwert: (ang.at != null ? ang.at : ang.wert || 0), anzahl: 1, wunden: k.wunden, erschoepfung: k.erschoepfung });
   else if (art === 'pa') {
     if (ang.pa == null) { sprache.sage(`${ang.name} hat keine Parade.`); return; }
-    verdeckteProbe({ wer: k.name, was: `Parade ${ang.name}`, probenwert: ang.pa, anzahl: 1 });
+    verdeckteProbe({ wer: k.name, was: `Parade ${ang.name}`, probenwert: ang.pa, anzahl: 1, wunden: k.wunden, erschoepfung: k.erschoepfung });
   } else if (art === 'sch') verdeckterWurf(ang.wuerfel || 0, ang.seiten || 6, ang.bonus || 0, `Schaden ${ang.name}`);
 }
 
@@ -132,10 +132,10 @@ function monsterKarteMenue(k) {
         title: k.name,
         subtitle: 'Escape zurueck.',
         items: [
-          { label: 'Attacke wuerfeln', onSelect: () => angriffWurf(k, 'at') },
-          { label: 'Parade wuerfeln', onSelect: () => angriffWurf(k, 'pa') },
-          { label: 'Schaden wuerfeln', onSelect: () => angriffWurf(k, 'sch') },
-          { label: `Ausweichen wuerfeln (${k.ausweichen || 0})`, onSelect: () => verdeckteProbe({ wer: k.name, was: 'Ausweichen', probenwert: k.ausweichen || 0, anzahl: 1 }) },
+          { label: 'Attacke wuerfeln', hint: 'verdeckt, ein W20 plus Attacke des Angriffs, Wunden werden abgezogen', onSelect: () => angriffWurf(k, 'at') },
+          { label: 'Parade wuerfeln', hint: 'verdeckt, ein W20 plus Parade des Angriffs, Wunden werden abgezogen', onSelect: () => angriffWurf(k, 'pa') },
+          { label: 'Schaden wuerfeln', hint: 'verdeckt, die Schadenswuerfel des Angriffs, ohne Malus', onSelect: () => angriffWurf(k, 'sch') },
+          { label: `Ausweichen wuerfeln (${k.ausweichen || 0})`, hint: 'verdeckt, ein W20 plus Ausweichen, Wunden werden abgezogen', onSelect: () => verdeckteProbe({ wer: k.name, was: 'Ausweichen', probenwert: k.ausweichen || 0, anzahl: 1, wunden: k.wunden, erschoepfung: k.erschoepfung }) },
         ],
       }).build();
     },
@@ -153,10 +153,10 @@ function spielerKarteMenue(k) {
     title: k.name,
     build() {
       const items = [
-        { label: 'Attacke wuerfeln', onSelect: () => angriffWurf(k, 'at') },
-        { label: 'Parade wuerfeln', onSelect: () => angriffWurf(k, 'pa') },
-        { label: 'Schaden wuerfeln', onSelect: () => angriffWurf(k, 'sch') },
-        { label: 'Freier Wurf', onSelect: () => oeffneFreierWurf() },
+        { label: 'Attacke wuerfeln', hint: 'verdeckt, ein W20 plus Attacke des Angriffs, Wunden werden abgezogen', onSelect: () => angriffWurf(k, 'at') },
+        { label: 'Parade wuerfeln', hint: 'verdeckt, ein W20 plus Parade des Angriffs, Wunden werden abgezogen', onSelect: () => angriffWurf(k, 'pa') },
+        { label: 'Schaden wuerfeln', hint: 'verdeckt, die Schadenswuerfel des Angriffs, ohne Malus', onSelect: () => angriffWurf(k, 'sch') },
+        { label: 'Freier Wurf', hint: 'Anzahl, Seiten und Modifikator frei einstellen', onSelect: () => oeffneFreierWurf() },
       ];
       return menuScreen({ title: k.name, subtitle: 'Escape zurueck.', items }).build();
     },

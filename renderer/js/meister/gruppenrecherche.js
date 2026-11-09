@@ -18,6 +18,8 @@ import { getDb } from '../core/db-laden.js';
 import { fertigkeitProbenwert, fertigkeitBasiswert, attributProbenwert, abgeleiteteWerte } from '../core/regeln.js';
 import { getMeister } from './state.js';
 import { verdeckteProbe } from './wuerfel.js';
+import { malusAusVitalitaet, ergebnisRechnung } from '../core/malus.js';
+import { beschreibungFuer } from '../core/beschreibung.js';
 
 const ATTRIBUTE = {
   KO: 'Konstitution', MU: 'Mut', GE: 'Gewandtheit', KK: 'Koerperkraft',
@@ -73,7 +75,7 @@ function deute(begriff, db) {
 }
 
 /** Tooltip mit den genauen Werten einer Fertigkeitszeile. */
-function fertigkeitDetail(char, fdef, fw, hatTalent, talentName) {
+function fertigkeitDetail(char, fdef, fw, hatTalent, talentName, db) {
   const basis = fertigkeitBasiswert(char, fdef);
   const pwOhne = fertigkeitProbenwert(char, fdef, fw, false);
   const pwMit = fertigkeitProbenwert(char, fdef, fw, true);
@@ -84,6 +86,9 @@ function fertigkeitDetail(char, fdef, fw, hatTalent, talentName) {
     `Probenwert ohne Talent ${pwOhne}, mit passendem Talent ${pwMit}.`,
     attrs ? `Attribute: ${attrs}.` : '',
     talentName ? (hatTalent ? 'Held besitzt das Talent, es zaehlt der volle Fertigkeitswert.' : 'Ohne Talent zaehlt der halbe Fertigkeitswert (Fertigkeitsgruppe).') : '',
+    // Zahlen zuerst, dann der Beschreibungstext aus der Datenbank (Stufe 5).
+    talentName ? beschreibungFuer(db, 'talent', talentName) : '',
+    beschreibungFuer(db, fdef.uebernatuerlich ? 'uebernat' : 'fertigkeit', fdef.name),
   ];
   return zeilen.filter(Boolean).join(' ');
 }
@@ -99,7 +104,8 @@ function zeilen(deutung, db) {
       const pw = attributProbenwert(char, deutung.abk);
       const av = char.attribute?.[deutung.abk] || 0;
       rows.push({ name: c.name, wert: pw, text: `Probenwert ${pw}`, probenwert: pw, was: deutung.name,
-        detail: `${deutung.name} ${deutung.abk}. Attributwert ${av}, Probenwert ${pw} (Attribut mal zwei).` });
+        detail: [`${deutung.name} ${deutung.abk}. Attributwert ${av}, Probenwert ${pw} (Attribut mal zwei).`,
+          beschreibungFuer(db, 'attribut', deutung.abk)].filter(Boolean).join(' ') });
     } else if (deutung.typ === 'abgeleitet') {
       const w = abgeleiteteWerte(char);
       const v = w[deutung.key] || 0;
@@ -111,14 +117,14 @@ function zeilen(deutung, db) {
       const pw = fertigkeitProbenwert(char, f, fw, false);
       const talente = (f.talente || []).map(t => t.name).filter(n => (char.talente || []).includes(n));
       const text = `Probenwert ${pw}` + (talente.length ? `, Talente: ${talente.join(', ')}` : ', kein Talent');
-      rows.push({ name: c.name, wert: pw, text, probenwert: pw, was: f.name, detail: fertigkeitDetail(char, f, fw, talente.length > 0, null) });
+      rows.push({ name: c.name, wert: pw, text, probenwert: pw, was: f.name, detail: fertigkeitDetail(char, f, fw, talente.length > 0, null, db) });
     } else if (deutung.typ === 'talent') {
       const f = deutung.fdef;
       const fw = char.fertigkeiten?.[f.name]?.wert || 0;
       const hat = (char.talente || []).includes(deutung.talentName);
       const pw = fertigkeitProbenwert(char, f, fw, hat);
       const text = hat ? `Talent ${deutung.talentName}, Probenwert ${pw}` : `${deutung.talentName} kein Talent. ${f.name} Probenwert ${pw}`;
-      rows.push({ name: c.name, wert: pw, text, probenwert: pw, was: hat ? deutung.talentName : f.name, detail: fertigkeitDetail(char, f, fw, hat, deutung.talentName) });
+      rows.push({ name: c.name, wert: pw, text, probenwert: pw, was: hat ? deutung.talentName : f.name, detail: fertigkeitDetail(char, f, fw, hat, deutung.talentName, db) });
     } else {
       const tr = auskunft(char, deutung.begriff);
       rows.push({ name: c.name, wert: tr.hat ? 1 : 0, text: tr.hat ? `ja, ${tr.treffer}` : 'nein', probenwert: null, was: deutung.begriff,
@@ -191,7 +197,7 @@ export function gruppenrechercheScreen() {
           hint: rollbar ? 'Enter wuerfelt verdeckt' : '',
           detail: r.detail || '',
           onSelect: () => {
-            if (rollbar) verdeckteProbe({ wer: r.name, was: r.was, probenwert: r.probenwert, anzahl: 3 });
+            if (rollbar) verdeckteProbe({ wer: r.name, was: r.was, probenwert: r.probenwert, anzahl: 3, ...vital(r.name) });
             else sprache.sage(`${r.name}, ${r.was}: ${r.text}.`);
           },
         });
@@ -259,7 +265,9 @@ async function starteGruppenprobe() {
     const res = verdeckteProbeStumm(r, schwierigkeit, anzahl);
     const wtext = res.n === 3 ? `drei W20 ${res.wuerfe.join(', ')}, mittlerer ${res.wert}` : `ein W20 ${res.wert}`;
     // Reihenfolge (Nutzerwunsch): Name, Probenwert direkt danach, dann Wurfergebnis, dann die Formel.
-    const detail = `${r.name}, Probenwert ${r.probenwert} (${r.was}). Ergebnis ${res.ew}, gegen Schwierigkeit ${schwierigkeit} ${res.gelungen ? 'gelungen' : 'misslungen'}. Formel: ${wtext} plus Probenwert ${r.probenwert}.`;
+    const malusZeile = res.malus ? ` Malus ${res.malus} aus Wunden und Erschöpfung.` : '';
+    const beschr = beschreibungFuer(db, 'auto', r.was);
+    const detail = `${r.name}, Probenwert ${r.probenwert} (${r.was}). ${res.rechnung.text}, gegen Schwierigkeit ${schwierigkeit} ${res.gelungen ? 'gelungen' : 'misslungen'}. Formel: ${wtext} plus Probenwert ${r.probenwert}.${malusZeile}${beschr ? ' ' + beschr : ''}`;
     return { name: r.name, ew: res.ew, gelungen: res.gelungen, detail };
   });
   ergebnisse.sort((x, y) => y.ew - x.ew);
@@ -274,6 +282,12 @@ async function starteGruppenprobe() {
   sprache.sage(zusammen);
 }
 
+/** Wunden und Erschoepfung eines Helden aus der geteilten Vitalitaet des Meisters. */
+function vital(name) {
+  try { const v = (getMeister().vitalitaet || {})[name] || {}; return { wunden: v.wunden || 0, erschoepfung: v.erschoepfung || 0 }; }
+  catch { return { wunden: 0, erschoepfung: 0 }; }
+}
+
 /** Wie verdeckteProbe, aber ohne einzelne Ansage (fuer die Gruppenprobe-Sammelansage). */
 function verdeckteProbeStumm(r, schwierigkeit, anzahl) {
   const wuerfe = [];
@@ -281,6 +295,10 @@ function verdeckteProbeStumm(r, schwierigkeit, anzahl) {
   for (let i = 0; i < n; i++) wuerfe.push(1 + Math.floor(Math.random() * 20));
   const s = [...wuerfe].sort((a, b) => a - b);
   const wert = n === 3 ? s[1] : wuerfe[0];
-  const ew = wert + (r.probenwert || 0);
-  return { ew, gelungen: ew >= schwierigkeit, wuerfe, wert, n };
+  // Auch in der Gruppenprobe zaehlt der Malus des einzelnen Helden mit.
+  let malus = 0;
+  try { malus = malusAusVitalitaet((getMeister().vitalitaet || {})[r.name]); } catch { malus = 0; }
+  const rechnung = ergebnisRechnung(wert + (r.probenwert || 0), 0, malus);
+  const ew = rechnung.endwert;
+  return { ew, gelungen: ew >= schwierigkeit, wuerfe, wert, n, malus, rechnung };
 }

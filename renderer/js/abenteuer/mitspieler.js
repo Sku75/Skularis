@@ -53,10 +53,11 @@ function mitspielerDetail(index) {
             await speichere(); screen.refresh(); sprache.sage('Gespeichert.');
           },
         },
-        { label: 'Nach oben verschieben', onSelect: async () => { if (verschiebe(a, index, -1)) { await speichere(); screen.pop(); sprache.sage('Nach oben verschoben.'); } else sprache.sage('Schon ganz oben.'); } },
-        { label: 'Nach unten verschieben', onSelect: async () => { if (verschiebe(a, index, 1)) { await speichere(); screen.pop(); sprache.sage('Nach unten verschoben.'); } else sprache.sage('Schon ganz unten.'); } },
+        { label: 'Nach oben verschieben', hint: 'einen Platz nach oben in der Sitzordnung', onSelect: async () => { if (verschiebe(a, index, -1)) { await speichere(); screen.pop(); sprache.sage('Nach oben verschoben.'); } else sprache.sage('Schon ganz oben.'); } },
+        { label: 'Nach unten verschieben', hint: 'einen Platz nach unten in der Sitzordnung', onSelect: async () => { if (verschiebe(a, index, 1)) { await speichere(); screen.pop(); sprache.sage('Nach unten verschoben.'); } else sprache.sage('Schon ganz unten.'); } },
         {
           label: 'Mitspieler entfernen',
+          hint: 'nimmt den Mitspieler aus der Liste, nach Rückfrage',
           onSelect: async () => {
             if (!await jaNeinDialog({ titel: 'Entfernen', frage: `${m.name} wirklich entfernen?` })) return;
             a.mitspieler.splice(index, 1);

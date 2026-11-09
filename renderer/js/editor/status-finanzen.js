@@ -11,7 +11,8 @@
 import * as editor from './editor.js';
 import * as screen from '../ui/screen.js';
 import * as sprache from '../sprache.js';
-import { abschnittTitel, infoZeile, wertZeile, verbindeDetail } from './widgets.js';
+import { abschnittTitel, infoZeile, wertZeile, verbindeDetail, aktionZeile } from './widgets.js';
+import { textDialog } from '../ui/dialog.js';
 import { listenSchalter } from './assistent-seite.js';
 import { abgeleiteteWerte } from '../core/regeln.js';
 import {
@@ -110,6 +111,7 @@ export function statusFinanzenScreen() {
       wrap.appendChild(infoZeile('Dein Bargeld zum Mitnehmen ins Abenteuer.',
         'Dukaten, Silbertaler, Heller und Kreuzer. Beim Erstellen eines Abenteuers wird die Münzbörse übernommen, beim Speichern wieder in den Charakterbogen zurückgeschrieben. Ein Dukat sind zehn Silbertaler, ein Silbertaler zehn Heller, ein Heller zehn Kreuzer.'));
       const g = char.geldboerse || (char.geldboerse = { dukaten: 0, silber: 0, heller: 0, kupfer: 0 });
+      if (typeof char.wertgegenstaende !== 'string') char.wertgegenstaende = '';
       const muenzen = document.createElement('div');
       for (const [key, label] of [['dukaten', 'Dukaten'], ['silber', 'Silbertaler'], ['heller', 'Heller'], ['kupfer', 'Kreuzer']]) {
         muenzen.appendChild(wertZeile({
@@ -122,6 +124,22 @@ export function statusFinanzenScreen() {
         }));
       }
       wrap.appendChild(muenzen);
+
+      // Wertvolles ohne Muenzwert: Schmuck, Edelsteine, Schuldscheine. Steht am
+      // Bogen und wandert mit ihm, genau wie die Muenzboerse. Am Spieltisch
+      // liegt dasselbe Feld unter der Geldboerse.
+      wrap.appendChild(aktionZeile('Weitere Wertgegenstände', async () => {
+        const neu = await textDialog({
+          titel: 'Weitere Wertgegenstände',
+          label: 'Schmuck, Edelsteine, Schuldscheine, Wertvolles ohne Münzwert',
+          wert: char.wertgegenstaende || '', mehrzeilig: true,
+        });
+        if (neu === null) return;
+        char.wertgegenstaende = String(neu);
+        editor.aktualisiere();
+        screen.refresh();
+        sprache.sage(String(neu).trim() ? 'Weitere Wertgegenstände gespeichert.' : 'Weitere Wertgegenstände geleert.');
+      }, (char.wertgegenstaende || '').trim() ? String(char.wertgegenstaende).replace(/\s+/g, ' ').slice(0, 120) : 'noch nichts eingetragen'));
 
       verbindeDetail(wrap);
       return wrap;

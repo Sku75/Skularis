@@ -279,7 +279,7 @@ function tischBoardScreen() {
       }
       const ang = await waehleAngriff(k);
       if (!ang) { fokusNach(); return; }
-      if (wahl === 'at') { const r = verdeckteProbe({ wer: k.name, was: `Angriff ${ang.name}`, probenwert: (ang.at != null ? ang.at : ang.wert || 0), anzahl: 1, stumm: true }); k.letztesErgebnis = `Angriff ${ang.name}, Probe ${r.ew}`; }
+      if (wahl === 'at') { const r = verdeckteProbe({ wer: k.name, was: `Angriff ${ang.name}`, probenwert: (ang.at != null ? ang.at : ang.wert || 0), anzahl: 1, stumm: true, wunden: k.wunden, erschoepfung: k.erschoepfung }); k.letztesErgebnis = `Angriff ${ang.name}, Probe ${r.ew}`; }
       else { const r = verdeckterWurf(ang.wuerfel, ang.seiten, ang.bonus, `Schaden ${ang.name}`, true); k.letztesErgebnis = `Schaden ${ang.name}, ${r.summe}`; }
       speichere(); zeichne();
       setTimeout(() => {

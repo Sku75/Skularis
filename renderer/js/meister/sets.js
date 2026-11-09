@@ -319,6 +319,7 @@ function setEintragScreen(uebersicht, s) {
           { label: 'Bearbeiten', hint: 'Name und Karten aendern', onSelect: () => screen.push(setBearbeitenScreen(uebersicht, s)) },
           {
             label: 'Loeschen',
+            hint: 'löscht das Set mit allen Karten darin, nach Rückfrage',
             onSelect: async () => {
               if (!await jaNeinDialog({ titel: 'Loeschen', frage: `Set ${s.name} loeschen?` })) return;
               const i = _store.sets.indexOf(s); if (i >= 0) _store.sets.splice(i, 1);

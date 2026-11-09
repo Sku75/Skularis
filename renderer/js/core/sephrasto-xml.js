@@ -140,6 +140,8 @@ export function parse(xml, db) {
       const d = JSON.parse(sd.textContent);
       if (typeof d.id === 'string' && d.id) c.id = d.id; // stabile Charakter-ID
       if (d.geldboerse) c.geldboerse = d.geldboerse;
+      if (typeof d.wertgegenstaende === 'string') c.wertgegenstaende = d.wertgegenstaende;
+      if (Array.isArray(d.boersenProtokoll)) c.boersenProtokoll = d.boersenProtokoll;
       if (d.spielinventar) c.spielinventar = d.spielinventar;
       if (typeof d.startkapital === 'number') c.startkapital = d.startkapital;
       if (typeof d.astralspeicherStab === 'number') c.astralspeicherStab = d.astralspeicherStab;
@@ -693,6 +695,8 @@ function schreibeSkularisDaten(root, c) {
   const daten = {};
   if (c.id) daten.id = c.id; // stabile Charakter-ID mitschreiben
   if (c.geldboerse) daten.geldboerse = c.geldboerse;
+  if (c.wertgegenstaende) daten.wertgegenstaende = c.wertgegenstaende;
+  if (Array.isArray(c.boersenProtokoll) && c.boersenProtokoll.length) daten.boersenProtokoll = c.boersenProtokoll;
   if (c.spielinventar) daten.spielinventar = c.spielinventar;
   if (typeof c.startkapital === 'number') daten.startkapital = c.startkapital;
   if (typeof c.astralspeicherStab === 'number') daten.astralspeicherStab = c.astralspeicherStab;

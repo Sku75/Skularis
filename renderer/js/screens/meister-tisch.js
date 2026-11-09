@@ -172,6 +172,7 @@ function meisterEintragScreen(eintrag) {
           { label: 'Öffnen', hint: 'Meisterabenteuer öffnen zum Bearbeiten oder Spielen', onSelect: () => oeffneMeister(eintrag) },
           {
             label: 'Umbenennen',
+            hint: 'neuer Name für das Meisterabenteuer; die Datei wird mitumbenannt',
             onSelect: async () => {
               const neu = await textDialog({ titel: 'Umbenennen', label: 'Neuer Name', wert: eintrag.name });
               if (neu === null || !neu.trim() || neu.trim() === eintrag.name) return;
@@ -190,6 +191,7 @@ function meisterEintragScreen(eintrag) {
           },
           {
             label: 'Löschen',
+            hint: 'löscht das Meisterabenteuer samt Gegnern, Szenen und Notizen dauerhaft, nach Rückfrage',
             onSelect: async () => {
               if (!await jaNeinDialog({ titel: 'Löschen', frage: `Meisterabenteuer ${eintrag.name} wirklich löschen?` })) return;
               try { await ipc.meisterLoeschen(eintrag.pfad); } catch (e) { console.error('löschen:', e); }

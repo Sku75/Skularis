@@ -1054,11 +1054,11 @@ function playlistScreen(index) {
       wrap.appendChild(aktionZeile('Playlist umbenennen', async () => {
         const v = await textDialog({ titel: 'Playlist umbenennen', label: 'Name', wert: pl.name });
         if (v === null || !v.trim()) return; pl.name = v.trim(); speicherePlaylists(); screen.refresh(); sprache.sage(`Heißt jetzt ${v.trim()}.`);
-      }));
+      }, 'neuer Name für diese Playlist'));
       wrap.appendChild(aktionZeile('Playlist löschen', async () => {
         if (!await jaNeinDialog({ titel: 'Löschen', frage: `Playlist ${pl.name} wirklich löschen? Die Sounds bleiben in der Bibliothek.` })) return;
         _playlists.listen.splice(index, 1); speicherePlaylists(); screen.pop(); sprache.sage('Playlist gelöscht.');
-      }));
+      }, 'löscht die Zusammenstellung; die Klänge bleiben in der Bibliothek'));
       verbindeDetail(wrap);
       rueckKnopf(wrap);
       return wrap;

@@ -98,6 +98,7 @@ export function statblockScreen(art, index) {
 
       items.push({
         label: `Name: ${sb.name}`,
+        hint: 'Enter öffnet ein Eingabefeld für den Namen',
         onSelect: async () => {
           const v = await textDialog({ titel: 'Name', label: 'Name', wert: sb.name });
           if (v === null || !v.trim()) return;
@@ -136,6 +137,7 @@ export function statblockScreen(art, index) {
       });
       items.push({
         label: 'Angriff hinzufuegen',
+        hint: 'nach Name, Attacke, Parade, Schadenswürfeln und Bonus wird gefragt',
         onSelect: async () => {
           const name = await textDialog({ titel: 'Angriff', label: 'Name des Angriffs, z. B. Krummsaebel' });
           if (name === null || !name.trim()) return;
@@ -156,6 +158,7 @@ export function statblockScreen(art, index) {
 
       items.push({
         label: `Notizen${sb.notizen ? ': ' + sb.notizen : ''}`,
+        hint: 'Enter öffnet ein mehrzeiliges Feld für eigene Notizen',
         onSelect: async () => {
           const v = await textDialog({ titel: 'Notizen', label: 'Notizen', wert: sb.notizen, mehrzeilig: true });
           if (v === null) return;
@@ -186,6 +189,7 @@ export function statblockScreen(art, index) {
       });
       items.push({
         label: `${einzeln} loeschen`,
+        hint: 'entfernt den Eintrag dauerhaft aus diesem Abenteuer, nach Rückfrage',
         onSelect: async () => {
           if (!await jaNeinDialog({ titel: 'Loeschen', frage: `${sb.name} wirklich loeschen?` })) return;
           liste(a, art).splice(index, 1);
@@ -212,13 +216,13 @@ function angriffScreen(art, sbIndex, ai) {
         {
           label: `Attacke wuerfeln, AT ${atWert}`,
           hint: 'verdeckt, 1 W20 plus Attacke',
-          onSelect: () => verdeckteProbe({ wer: sb.name, was: `Attacke ${ang.name}`, probenwert: atWert, anzahl: 1 }),
+          onSelect: () => verdeckteProbe({ wer: sb.name, was: `Attacke ${ang.name}`, probenwert: atWert, anzahl: 1, wunden: sb.wunden, erschoepfung: sb.erschoepfung }),
         },
       ];
       if (ang.pa != null) items.push({
         label: `Parade wuerfeln, PA ${ang.pa}`,
         hint: 'verdeckt, 1 W20 plus Parade',
-        onSelect: () => verdeckteProbe({ wer: sb.name, was: `Parade ${ang.name}`, probenwert: ang.pa, anzahl: 1 }),
+        onSelect: () => verdeckteProbe({ wer: sb.name, was: `Parade ${ang.name}`, probenwert: ang.pa, anzahl: 1, wunden: sb.wunden, erschoepfung: sb.erschoepfung }),
       });
       items.push(
         {
@@ -228,6 +232,7 @@ function angriffScreen(art, sbIndex, ai) {
         },
         {
           label: 'Angriff bearbeiten',
+          hint: 'Attacke, Parade, Schadenswürfel und Bonus nacheinander ändern',
           onSelect: async () => {
             const at = await zahlDialog({ titel: 'Attacke', label: 'Attacke (AT)', wert: atWert, min: 0, max: 40 });
             if (at === null) return;
@@ -243,6 +248,7 @@ function angriffScreen(art, sbIndex, ai) {
         },
         {
           label: 'Angriff entfernen',
+          hint: 'löscht diesen Angriff aus der Karte, nach Rückfrage',
           onSelect: async () => {
             if (!await jaNeinDialog({ titel: 'Entfernen', frage: `Angriff ${ang.name} entfernen?` })) return;
             sb.angriffe.splice(ai, 1); await speichere(); screen.pop(); sprache.sage('Angriff entfernt.');

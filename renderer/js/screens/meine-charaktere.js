@@ -37,6 +37,7 @@ function listeScreen() {
   return {
     title: 'Meine Charaktere',
     build() {
+      import('../app.js').then(m => m.begleiterStarten && m.begleiterStarten()).catch(() => {});
       const wrap = document.createElement('div');
       wrap.className = 'db-menu ed-bereich';
       wrap.appendChild(abschnittTitel('Meine Charaktere'));

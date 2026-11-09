@@ -15,7 +15,7 @@ import * as screen from '../ui/screen.js';
 import { menuScreen } from '../ui/menu-screen.js';
 import { knopfDialog, erschwernisDialog } from '../ui/dialog.js';
 import { protokolliere } from '../core/abenteuer.js';
-import { wundabzug } from '../core/regeln.js';
+import { malusAusRessourcen, ergebnisRechnung, malusHerkunft } from '../core/malus.js';
 import { getAbenteuer, speichere } from './state.js';
 import * as post from '../net/post.js';
 import { wurfKennung, kennungsTon, mitKennung } from '../core/triumph.js';
@@ -29,14 +29,23 @@ import { zeigeProbenwurf, zeigeSchadenswurf, mitProbeWort } from '../ui/wurf-anz
  * Erschwernis-Dialog einstellt. Am Meistertisch (Charakteransicht) sind die
  * Zaehler leer, dort bleibt der Abzug automatisch null.
  */
+/** Wunden und Erschoepfung des laufenden Abenteuers als Malus. Rechnung in core/malus.js. */
 function einschraenkungsAbzug() {
   try {
     const a = getAbenteuer();
-    if (!a || !a.ressourcen) return 0;
-    const wu = a.ressourcen.Wunden ? (a.ressourcen.Wunden.aktuell || 0) : 0;
-    const er = a.ressourcen.Erschoepfung ? (a.ressourcen.Erschoepfung.aktuell || 0) : 0;
-    return wundabzug(wu + er);
+    return a ? malusAusRessourcen(a.ressourcen) : 0;
   } catch { return 0; }
+}
+
+/** Wunden und Erschoepfung im Klartext, fuer die Herkunftszeile im Tooltip. */
+function einschraenkungsWerte() {
+  try {
+    const r = (getAbenteuer() || {}).ressourcen || {};
+    return {
+      wunden: r.Wunden ? (r.Wunden.aktuell || 0) : 0,
+      erschoepfung: r.Erschoepfung ? (r.Erschoepfung.aktuell || 0) : 0,
+    };
+  } catch { return { wunden: 0, erschoepfung: 0 }; }
 }
 
 /**
@@ -138,9 +147,6 @@ export function wuerfeln(anzahl, seiten, mod, id, stumm) {
   if (!stumm) { sprache.sage(ansage); protokolliereWurf(`Wurf ${bez}`, `${wuerfe.join(', ')}${summeText}`, ansage); }
 }
 
-// --- Erschwernis (gemerkt je Schalter) -----------------------------------
-const _letzteErschwernis = {};
-
 // Letzter Wurf je Schalter-Id, mehrzeilig fuer den Tooltip. Bleibt die Sitzung
 // ueber erhalten (nur im Speicher, beim App-Start leer).
 const _letzterWurf = {};
@@ -152,18 +158,19 @@ const _letzterWurf = {};
  */
 export function mitLetztemWurf(id, basis) {
   return () => {
+    // Die Grundlage darf selbst eine Baufunktion sein: dann wird der feste Teil
+    // erst in diesem Moment gebaut. Bei ueber 300 Fertigkeiten und Talenten
+    // entstehen so nicht 300 Texte im Voraus, sondern nur der gelesene.
+    const b = typeof basis === 'function' ? basis() : basis;
     const lw = _letzterWurf[id];
-    if (!lw || !lw.length) return basis;
-    const basisArr = basis == null || basis === '' ? [] : (Array.isArray(basis) ? basis : [basis]);
+    if (!lw || !lw.length) return b;
+    const basisArr = b == null || b === '' ? [] : (Array.isArray(b) ? b : [b]);
     return [...lw, '', ...basisArr];
   };
 }
 
-async function erschwernisAbfrage(id) {
-  const vor = _letzteErschwernis[id] || 0;
-  const e = await erschwernisDialog({ titel: 'Erschwernis', wert: vor });
-  if (e !== null) _letzteErschwernis[id] = e;
-  return e;
+async function erschwernisAbfrage() {
+  return erschwernisDialog({ titel: 'Erschwernis', wert: 0 });
 }
 
 // Kurzer Titel OHNE Vorspann: der Screenreader sagt beim Öffnen nur "Würfel
@@ -273,15 +280,18 @@ export async function kampfProbe(o) {
   // Pauschaler Einschraenkungs-Abzug (Wunden plus Erschoepfung) — automatisch,
   // ZUSAETZLICH zur situativen Erschwernis aus dem Dialog, nie vermischt.
   const einschr = einschraenkungsAbzug();
-  const ew = wert + o.probenwert + extraMod - ersch - einschr;
+  // EINE Rechnung, EINE Ergebniszeile: Rohwert, Erschwernis, Malus, Endwert.
+  // Der Endwert ist derselbe wie bisher (wert + Probenwert + Mods - Erschwernis
+  // - Malus); nachgewiesen in _test/pruefung-rechnung.js.
+  const roh = wert + o.probenwert + extraMod;
+  const rechnung = ergebnisRechnung(roh, ersch, einschr);
+  const ew = rechnung.endwert;
   sounds.playWuerfel();
 
   const wuerfelText = anzahl === 3
     ? `drei W20 ${wuerfe.join(', ')}, der mittlere zählt ${wert}`
     : `ein W20 ${wert}`;
   const modText = extraMod ? (extraMod > 0 ? `, Modifikatoren plus ${extraMod}` : `, Modifikatoren minus ${-extraMod}`) : '';
-  const einschrText = einschr ? `, Einschränkungen minus ${einschr}` : '';
-  const erschText = ersch ? (ersch > 0 ? `, Erschwernis minus ${ersch}` : `, Erleichterung plus ${-ersch}`) : '';
   const modNamenText = modNamen.length ? ` Modifikatoren: ${modNamen.join(', ')}.` : '';
   // Bei fester Schwierigkeit gleich Erfolg oder Misserfolg ansagen; sonst der
   // vom Aufrufer mitgegebene Zusatz (z. B. vergleichende Probe, Kosten).
@@ -294,23 +304,28 @@ export async function kampfProbe(o) {
   const kennung = wurfKennung(wert, typeof o.schwierigkeit === 'number' ? ew >= o.schwierigkeit : null);
   const ergebnisText = mitKennung(kennung, ew);
   kennungsTon(kennung);
+  // EINE Ergebniszeile fuer Sprachausgabe, Wuerfelbox, Tooltip und Protokoll:
+  // "Ergebnis 18, minus Erschwernis 2, minus Malus 2, gleich Ergebnis 14".
+  // Ohne Erschwernis und ohne Malus bleibt schlicht "Ergebnis 18".
+  const kopf = kennung ? `${kennung}. ${rechnung.text}` : rechnung.text;
+  const w = einschraenkungsWerte();
   const zusatzText = o.zusatz ? ` ${o.zusatz}` : '';
   // Das Probenergebnis steht bewusst ganz vorn — das ist beim Würfeln die
   // wichtigste Zahl. Danach Erfolg/Misserfolg, dann Herkunft (Titel, Würfel,
   // Werte) und zuletzt die Zusätze (Kosten usw.).
-  const ansage = `${vd()}Probenergebnis ${ergebnisText}.${erfolgText} ${o.titel}, ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}${einschrText}${erschText}.${zusatzText}${modNamenText}`;
+  const ansage = `${vd()}${kopf}.${erfolgText} ${o.titel}, ${wuerfelText}, plus dein ${o.vokabel}-Wert ${o.probenwert}${modText}.${zusatzText}${modNamenText}`;
 
   // Letzten Wurf mehrzeilig fuer den Tooltip merken (bleibt die Sitzung ueber).
   _letzterWurf[o.id] = [
     'Letzter Wurf:',
-    `Probenergebnis ${ergebnisText}${typeof o.schwierigkeit === 'number' ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : ''}`,
+    `${kopf}${typeof o.schwierigkeit === 'number' ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : ''}`,
     anzahl === 3 ? `Wurf drei W20 ${wuerfe.join(', ')}` : `Wurf ein W20 ${wuerfe[0]}`,
     anzahl === 3 ? `Mittlerer Wurf zaehlt ${wert}` : null,
-    `Dein ${o.vokabel}-Wert ${o.probenwert}${modText}${erschText}`,
-    einschr ? `Einschränkungen minus ${einschr} (Wunden und Erschöpfung)` : null,
+    `Dein ${o.vokabel}-Wert ${o.probenwert}${modText}`,
+    einschr ? malusHerkunft(einschr, w.wunden, w.erschoepfung) : null,
   ].filter(Boolean);
 
-  protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${einschrText}${erschText}, Ergebnis ${ergebnisText}.${erfolgText}${modNamenText}`);
+  protokolliere(a, `${o.titel}: ${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}. ${kopf}.${erfolgText}${modNamenText}`);
   speichere();
   zeigeErgebnis(o.id, `Ergebnis ${ergebnisText}`, `Letztes Probenergebnis ${ergebnisText}${typeof o.schwierigkeit === 'number' ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : ''}`);
   // Fokus liegt nach dem Schließen der Dialoge schon wieder auf dem Schalter
@@ -322,7 +337,7 @@ export async function kampfProbe(o) {
       ? (ew >= o.schwierigkeit ? ', gelungen' : ', misslungen') : '';
     zeigeProbenwurf(
       `Würfelergebnis: ${ergebnisText}${erfolgKurz} (${mitProbeWort(o.titel || o.vokabel)})`,
-      `${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}${einschrText}${erschText}`,
+      `${rechnung.kurz ? rechnung.kurz + '. ' : ''}${wuerfelText}, ${o.vokabel} ${o.probenwert}${modText}`,
     );
   } catch { /* Anzeige ist nur optisch */ }
   fokusAufZiel(o.id);

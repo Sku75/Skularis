@@ -19,6 +19,8 @@ import { abschnittTitel, aktionZeile, infoZeile, verbindeDetail } from '../edito
 import { BESTIARIUM } from '../daten/gegner-bestiarium.js';
 import { baueStatblockKarte, angriffeText, leererStatblock } from '../core/meister-abenteuer.js';
 import { getMeister, speichere } from './state.js';
+import { getDb } from '../core/db-laden.js';
+import { beschreibungFuer } from '../core/beschreibung.js';
 import { statblockScreen } from './gegnerkartei.js';
 import { ladeUserBib, eigeneGegner, generiereGegner, neuerGegner, eigeneListeScreen } from './gegner-bibliothek.js';
 
@@ -61,8 +63,24 @@ function gegnerDetail(g) {
     `${g.name}${g.kategorie ? ', ' + g.kategorie : ''}. Wundschwelle ${g.ws}, Rüstung ${g.rs}, Initiative ${g.ini}${g.ausweichen ? `, Ausweichen ${g.ausweichen}` : ''}.`,
     angriffeText(g) || 'Keine Angriffe.',
     faeh.length ? `Fähigkeiten: ${faeh.join(', ')}.` : '',
+    // Was die Fähigkeiten bewirken, stand bisher nirgends — der Meister musste
+    // nachschlagen. Ab 1.48 steht die Wirkung aus der Datenbank dabei (Stufe 5).
+    faehigkeitenWirkung(faeh),
     g.notizen ? `Notizen: ${g.notizen}` : '',
   ].filter(Boolean).join(' ');
+}
+
+/** Zu jeder Faehigkeit des Gegners ihre Wirkung aus der Datenbank. */
+function faehigkeitenWirkung(faeh) {
+  let db = null;
+  try { db = getDb(); } catch { db = null; }
+  if (!db || !faeh.length) return '';
+  const teile = [];
+  for (const n of faeh) {
+    const t = beschreibungFuer(db, 'auto', n);
+    if (t) teile.push(`${n}: ${t}`);
+  }
+  return teile.length ? `Wirkung der Fähigkeiten. ${teile.join(' ')}` : '';
 }
 
 /** Einen Gegner als Kampfkarte auf den Kampfspieltisch legen. */

@@ -127,7 +127,7 @@ function abenteuerScreen(ab) {
         detail: (p.karten || []).map(k => k.name).join(', '),
         onSelect: () => screen.push(packUntermenueScreen(ab, p)),
       }));
-      items.push({ label: 'Neues Kampfszenenpack in diesem Abenteuer', onSelect: () => neuesPackIn(ab) });
+      items.push({ label: 'Neues Kampfszenenpack in diesem Abenteuer', hint: 'Name vergeben, danach öffnet sich der Karteneditor', onSelect: () => neuesPackIn(ab) });
       return menuScreen({ title: this.title, subtitle: 'Enter oeffnet ein Kampfszenenpack. Escape zurueck.', items, leer: 'Noch keine Kampfszenenpacks in diesem Abenteuer.' }).build();
     },
   };
@@ -155,10 +155,11 @@ function packUntermenueScreen(ab, pack) {
         items: [
           { label: 'Bearbeiten', hint: 'Karten hinzufuegen und aendern', onSelect: () => screen.push(kartenEditorScreen(pack, speichere)) },
           { label: 'Auf den Kampfspieltisch laden', hint: 'die Karten des Packs auf den Tisch legen', onSelect: () => { const n = ladeAufTisch(pack); sounds.playOeffnen(); sprache.sage(`${n} Karten aus ${pack.name} auf den Kampfspieltisch geladen.`); } },
-          { label: 'Umbenennen', onSelect: async () => { const v = await textDialog({ titel: 'Umbenennen', label: 'Neuer Name', wert: pack.name }); if (v === null || !v.trim()) return; pack.name = v.trim(); await speichere(); screen.refresh(); sprache.sage(`Umbenannt in ${pack.name}.`); } },
+          { label: 'Umbenennen', hint: 'neuer Name für dieses Kampfszenenpack', onSelect: async () => { const v = await textDialog({ titel: 'Umbenennen', label: 'Neuer Name', wert: pack.name }); if (v === null || !v.trim()) return; pack.name = v.trim(); await speichere(); screen.refresh(); sprache.sage(`Umbenannt in ${pack.name}.`); } },
           { label: 'Verschieben', hint: 'in ein anderes Abenteuer', onSelect: () => verschiebePack(ab, pack) },
           {
             label: 'Loeschen',
+            hint: 'löscht das Pack mit allen Karten darin, nach Rückfrage',
             onSelect: async () => {
               if (!await jaNeinDialog({ titel: 'Loeschen', frage: `Kampfszenenpack ${pack.name} loeschen?` })) return;
               const i = ab.packs.indexOf(pack); if (i >= 0) ab.packs.splice(i, 1);
@@ -270,8 +271,8 @@ function karteEintragScreen(obj, index, save) {
         title: k.name,
         subtitle: 'Escape zurueck.',
         items: [
-          { label: `Umbenennen (aktuell ${k.name})`, onSelect: async () => { const v = await textDialog({ titel: 'Umbenennen', label: 'Neuer Name', wert: k.name }); if (v === null || !v.trim()) return; k.name = v.trim(); sichern(); screen.refresh(); sprache.sage(`Umbenannt in ${k.name}.`); } },
-          { label: 'Entfernen', onSelect: async () => { if (!await jaNeinDialog({ titel: 'Entfernen', frage: `${k.name} entfernen?` })) return; obj.karten.splice(index, 1); sichern(); screen.pop(); sprache.sage('Entfernt.'); } },
+          { label: `Umbenennen (aktuell ${k.name})`, hint: 'neuer Name für diese Karte', onSelect: async () => { const v = await textDialog({ titel: 'Umbenennen', label: 'Neuer Name', wert: k.name }); if (v === null || !v.trim()) return; k.name = v.trim(); sichern(); screen.refresh(); sprache.sage(`Umbenannt in ${k.name}.`); } },
+          { label: 'Entfernen', hint: 'nimmt diese Karte aus dem Pack, nach Rückfrage', onSelect: async () => { if (!await jaNeinDialog({ titel: 'Entfernen', frage: `${k.name} entfernen?` })) return; obj.karten.splice(index, 1); sichern(); screen.pop(); sprache.sage('Entfernt.'); } },
         ],
       }).build();
     },

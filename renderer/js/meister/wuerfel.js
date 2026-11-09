@@ -11,6 +11,7 @@ import { getMeister, speichere } from './state.js';
 import { protokolliere } from '../core/meister-abenteuer.js';
 import { wurfKennung, kennungsTon, mitKennung } from '../core/triumph.js';
 import { zeigeProbenwurf, zeigeSchadenswurf, mitProbeWort } from '../ui/wurf-anzeige.js';
+import { malusAus, ergebnisRechnung, malusHerkunft } from '../core/malus.js';
 
 function mittel3(w) { const s = [...w].sort((a, b) => a - b); return s[1]; }
 
@@ -27,13 +28,19 @@ function merke(text) {
  * @param {number} o.probenwert
  * @param {number} [o.schwierigkeit]  feste Schwierigkeit (dann Erfolg/Misserfolg)
  * @param {number} [o.anzahl]   1 (Konflikt) oder 3 (entspannt, mittlerer zaehlt); Standard 3
+ * @param {number} [o.wunden]       Wunden der Figur (Held, Gegner oder Freund)
+ * @param {number} [o.erschoepfung] Erschoepfung der Figur
  */
 export function verdeckteProbe(o) {
   const anzahl = o.anzahl === 1 ? 1 : 3;
   const wuerfe = [];
   for (let i = 0; i < anzahl; i++) wuerfe.push(1 + Math.floor(Math.random() * 20));
   const wert = anzahl === 3 ? mittel3(wuerfe) : wuerfe[0];
-  const ew = wert + (o.probenwert || 0);
+  // Malus aus Wunden und Erschoepfung — fuer Helden wie fuer Gegner. Ein
+  // angeschlagener Gegner trifft schlechter, das gilt ab 1.48 auch verdeckt.
+  const malus = malusAus(o.wunden, o.erschoepfung);
+  const rechnung = ergebnisRechnung(wert + (o.probenwert || 0), 0, malus);
+  const ew = rechnung.endwert;
   sounds.playWuerfel();
   const wtext = anzahl === 3 ? `drei W20 ${wuerfe.join(', ')}, der mittlere zaehlt ${wert}` : `ein W20 ${wert}`;
   let erfolg = '';
@@ -46,8 +53,11 @@ export function verdeckteProbe(o) {
   const kennung = wurfKennung(wert, gelungen);
   const ergebnisText = mitKennung(kennung, ew);
   if (!o.stumm) kennungsTon(kennung);
-  const ansage = `Verdeckt. Probenergebnis ${ergebnisText}.${erfolg} ${o.wer}, ${o.was}, Probenwert ${o.probenwert}, ${wtext}.`;
-  merke(`Verdeckte Probe, ${o.wer}, ${o.was}: ${wtext}, Probenwert ${o.probenwert}, Ergebnis ${ergebnisText}.${erfolg}`);
+  // EINE Rechnung, wie am Spielertisch: Ergebnis 18, minus Malus 2, gleich Ergebnis 16.
+  const kopf = kennung ? `${kennung}. ${rechnung.text}` : rechnung.text;
+  const malusText = malus ? ' ' + malusHerkunft(malus, o.wunden, o.erschoepfung) : '';
+  const ansage = `Verdeckt. ${kopf}.${erfolg} ${o.wer}, ${o.was}, Probenwert ${o.probenwert}, ${wtext}.${malusText}`;
+  merke(`Verdeckte Probe, ${o.wer}, ${o.was}: ${wtext}, Probenwert ${o.probenwert}. ${kopf}.${erfolg}`);
   // stumm: der Aufrufer sagt selbst an (z. B. auf dem Spielbrett mit Kartennamen zuerst).
   // Würfelbox unten rechts. Die Gruppenprobe läuft über verdeckteProbeStumm und
   // kommt hier absichtlich nicht vorbei: Ihre vielen Einzelergebnisse stehen
@@ -55,11 +65,11 @@ export function verdeckteProbe(o) {
   try {
     zeigeProbenwurf(
       `Würfelergebnis: ${ergebnisText}${erfolg ? (gelungen ? ', gelungen' : ', misslungen') : ''} (${mitProbeWort(o.was)}, ${o.wer})`,
-      `${wtext}, Probenwert ${o.probenwert}`,
+      `${rechnung.kurz ? rechnung.kurz + '. ' : ''}${wtext}, Probenwert ${o.probenwert}`,
     );
   } catch { /* Anzeige ist nur optisch */ }
   if (!o.stumm) sprache.sage(ansage);
-  return { ew, wuerfe, gelungen, ansage, kennung };
+  return { ew, wuerfe, gelungen, ansage, kennung, malus };
 }
 
 /** Freier verdeckter Wurf (Anzahl, Seiten, Modifikator). stumm: Aufrufer sagt selbst an. */

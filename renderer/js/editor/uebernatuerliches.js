@@ -16,6 +16,7 @@ import { wertZeile, aktionZeile, abschnittTitel, infoZeile, verbindeDetail } fro
 import { jaNeinDialog } from '../ui/dialog.js';
 import { fertigkeitBasiswert, fertigkeitProbenwert } from '../core/regeln.js';
 import { lesbar } from '../core/voraussetzungen.js';
+import { beschreibungFuer } from '../core/beschreibung.js';
 import { talentUebersicht, talentGruppen } from './talente.js';
 import { talenteFuer, entferneTalent } from '../core/character.js';
 
@@ -84,7 +85,8 @@ export function uebernatuerlichesScreen() {
               + ` ohne Talent ${fertigkeitProbenwert(char, udef, fw, false)}.`
               + ` Basiswert ${b}, der gerundete Mittelwert der Attribute ${attrText}.`
               + ` Steigerungsfaktor ${udef.steigerungsfaktor}.`
-              + (udef.voraussetzungen ? ` Zugänglich durch: ${lesbar(db, udef.voraussetzungen)}.` : '');
+              + (udef.voraussetzungen ? ` Zugänglich durch: ${lesbar(db, udef.voraussetzungen)}.` : '')
+              + (beschreibungFuer(db, 'uebernat', uname) ? ' ' + beschreibungFuer(db, 'uebernat', uname) : '');
           },
         }));
 

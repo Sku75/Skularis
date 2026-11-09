@@ -221,5 +221,14 @@ export function textFeld({ label, id, wert = '', mehrzeilig = false, hint, beisp
   }
 
   box.__eingabe = input;
+  // Erklaerung der Zeile IST die Erklaerung des Feldes: Was ein Aufrufer auf die
+  // Zeile schreibt, landet am fokussierbaren Feld — sonst findet das Info-Fenster
+  // sie nie. Die Sprechfolge bleibt dabei Label (aria-label), dann Feldinhalt,
+  // dann Beispielzeile (aria-describedby).
+  Object.defineProperty(box, '__detail', {
+    configurable: true,
+    get() { return input.__detail; },
+    set(v) { input.__detail = v; },
+  });
   return box;
 }

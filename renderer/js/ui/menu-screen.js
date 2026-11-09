@@ -22,16 +22,18 @@ import { alsText } from '../core/infotext.js';
 const FILTER_AB = 10; // ab so vielen Einträgen automatisch Filter anbieten
 
 function resolveDetail(b) {
-  if (b.__detailText !== undefined) return Promise.resolve(b.__detailText);
   // Ein Detail kann String oder strukturierte Zeilenliste sein; die sichtbare
   // Detailleiste zeigt beides als Text.
-  const fin = (t) => { b.__detailText = alsText(t); return b.__detailText; };
   const d = b.__detail;
+  // Als Funktion uebergebene Details werden JEDES MAL neu gebaut (letzter Wurf,
+  // Geldstand, Wunden). Nur feste Texte werden gemerkt.
   if (typeof d === 'function') {
-    try { return Promise.resolve(d()).then(fin).catch(() => fin('')); }
-    catch { return Promise.resolve(fin('')); }
+    try { return Promise.resolve(d()).then(t => alsText(t)).catch(() => ''); }
+    catch { return Promise.resolve(''); }
   }
-  return Promise.resolve(fin(d));
+  if (b.__detailText !== undefined) return Promise.resolve(b.__detailText);
+  b.__detailText = alsText(d);
+  return Promise.resolve(b.__detailText);
 }
 
 export function menuScreen(opts) {

@@ -178,9 +178,9 @@ function allgemeinScreen() {
         },
         { label: 'Lautstärke erhöhen', taste: () => shortcuts.comboText('lautstaerke_plus'), hint: 'Software-Sounds lauter', onSelect: () => setVolume(sounds.getVolume() + 5) },
         { label: 'Lautstärke verringern', taste: () => shortcuts.comboText('lautstaerke_minus'), hint: 'Software-Sounds leiser', onSelect: () => setVolume(sounds.getVolume() - 5) },
-        { label: 'Schrift vergrößern', taste: () => shortcuts.comboText('schrift_plus'), onSelect: async () => setFont((await aktuellerFont()) + 1) },
-        { label: 'Schrift verkleinern', taste: () => shortcuts.comboText('schrift_minus'), onSelect: async () => setFont((await aktuellerFont()) - 1) },
-        { label: 'Schrift auf Normalgröße', taste: () => shortcuts.comboText('schrift_reset'), onSelect: () => setFont(0) },
+        { label: 'Schrift vergrößern', taste: () => shortcuts.comboText('schrift_plus'), hint: 'einen Schritt größer; Rahmen und Zeilenhöhe wachsen mit', onSelect: async () => setFont((await aktuellerFont()) + 1) },
+        { label: 'Schrift verkleinern', taste: () => shortcuts.comboText('schrift_minus'), hint: 'einen Schritt kleiner', onSelect: async () => setFont((await aktuellerFont()) - 1) },
+        { label: 'Schrift auf Normalgröße', taste: () => shortcuts.comboText('schrift_reset'), hint: 'zurück auf die Ausgangsgröße', onSelect: () => setFont(0) },
       ];
       // Alle umbelegbaren Allgemein-Kürzel als eigene Tastenzeilen.
       for (const k of shortcuts.belegbareListe('global')) items.push(kuerzelEintrag(k));

@@ -90,8 +90,12 @@ export function erschwernisDialog({ titel = 'Erschwernis', wert = 0 }) {
     dlg.insertAdjacentHTML('beforeend', `
       <div class="db-dialog__header"><span class="db-dialog__title">${titel} einstellen</span></div>
       <div class="db-dialog__body">
-        <p class="db-dialog__label">Pfeil hoch: Erschwernis. Pfeil runter: Erleichterung. Eingabetaste bestätigt.</p>
+        <p class="db-dialog__label">Pfeil hoch: Erleichterung. Pfeil runter: Erschwernis. Eingabetaste bestätigt.</p>
         <div id="dlg-ersch" class="db-input" tabindex="0" role="spinbutton"></div>
+        <div class="db-ersch-knoepfe">
+          <button class="db-btn db-ersch-knopf db-ersch-knopf--leicht" id="dlg-leicht" tabindex="-1" aria-hidden="true">Erleichterung, Pfeil hoch</button>
+          <button class="db-btn db-ersch-knopf db-ersch-knopf--schwer" id="dlg-schwer" tabindex="-1" aria-hidden="true">Erschwernis, Pfeil runter</button>
+        </div>
       </div>
       <div class="db-dialog__footer">
         <button class="db-btn db-btn--primary" id="dlg-ok">OK</button>
@@ -101,21 +105,35 @@ export function erschwernisDialog({ titel = 'Erschwernis', wert = 0 }) {
     versteckeKopf(dlg);
     let v = wert | 0;
     const anzeige = dlg.querySelector('#dlg-ersch');
-    const text = () => (v > 0 ? `${v} erschwert, minus ${v}` : (v < 0 ? `${-v} erleichtert, plus ${-v}` : 'keine, null'));
+    const text = () => (v > 0 ? `${v} Erschwernis, minus ${v}` : (v < 0 ? `${-v} Erleichterung, plus ${-v}` : 'keine, null'));
     const zeige = () => { anzeige.textContent = text(); anzeige.setAttribute('aria-label', text()); };
     const fertig = (val) => { dlg.close(); dlg.remove(); resolve(val); };
+    // Ein Schritt in eine Richtung: Ton wie beim Verstellen jedes anderen Wertes
+    // im Programm, am Anschlag der Grenzton.
+    const stelle = (d) => {
+      const vor = v;
+      v = Math.max(-100, Math.min(100, v + d));
+      if (v === vor) { sounds.playGrenze(); return; }
+      if (d > 0) sounds.playWertRunter(); else sounds.playWertHoch();
+      zeige(); melde(dlg, text());
+    };
     dlg.querySelector('#dlg-ok').addEventListener('click', () => fertig(v));
     dlg.querySelector('#dlg-ab').addEventListener('click', () => fertig(null));
+    for (const [id, d] of [['#dlg-leicht', -1], ['#dlg-schwer', 1]]) {
+      const b = dlg.querySelector(id);
+      b.addEventListener('mousedown', (e) => e.preventDefault());
+      b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); anzeige.focus(); stelle(d); });
+    }
     dlg.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); v = Math.min(100, v + 1); zeige(); melde(dlg, text()); }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); v = Math.max(-100, v - 1); zeige(); melde(dlg, text()); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); stelle(-1); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); stelle(1); }
       else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); fertig(v); }
       else if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); e.stopPropagation(); fertig(null); }
     });
     dlg.showModal();
     anzeige.focus();
     zeige();
-    melde(dlg, 'Pfeil hoch erschwert, Pfeil runter erleichtert. Eingabetaste bestätigt, Escape bricht ab.');
+    melde(dlg, 'Pfeil hoch erleichtert, Pfeil runter erschwert. Eingabetaste bestätigt, Escape bricht ab.');
   });
 }
 

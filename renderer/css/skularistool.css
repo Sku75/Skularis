@@ -124,10 +124,15 @@
   padding: 0.5rem 0 1rem;
 }
 
-/* Fokus-Sichtbarkeit für Sehende (ergänzt accessibility.css) */
+/* Fokus-Sichtbarkeit für Sehende (ergänzt accessibility.css).
+   Seit 1.48 mit :focus, nicht nur :focus-visible — der Browser setzt
+   :focus-visible bei einem Mausklick absichtlich NICHT, deshalb wanderte der
+   Rahmen beim Klicken nicht mit, obwohl der Fokus korrekt sprang. */
+.db-menu__item:focus,
 .db-menu__item:focus-visible {
-  outline: 3px solid currentColor;
+  outline: var(--db-fokus-breite) solid var(--db-border-white, #ffffff);
   outline-offset: 2px;
+  background-image: linear-gradient(var(--db-fokus-flaeche), var(--db-fokus-flaeche));
 }
 
 /* --- Editor --- */
@@ -190,11 +195,15 @@
 .ed-zeile__stell:active:not(:disabled) { transform: scale(0.94); }
 .ed-zeile__stell:disabled { opacity: 0.25; cursor: default; }
 
+.ed-zeile:focus,
+.ed-info:focus,
+.ed-feld input:focus,
 .ed-zeile:focus-visible,
 .ed-info:focus-visible,
 .ed-feld input:focus-visible {
-  outline: 3px solid currentColor;
+  outline: var(--db-fokus-breite) solid var(--db-border-white, #ffffff);
   outline-offset: 2px;
+  background-image: linear-gradient(var(--db-fokus-flaeche), var(--db-fokus-flaeche));
 }
 
 .ed-feld { flex-direction: column; align-items: stretch; gap: 0.35rem; }
@@ -233,9 +242,11 @@
   font-weight: 700;
   border-radius: 8px;
 }
+.ed-ueberschrift:focus,
 .ed-ueberschrift:focus-visible {
-  outline: 3px solid currentColor;
+  outline: var(--db-fokus-breite) solid var(--db-border-white, #ffffff);
   outline-offset: 2px;
+  background-image: linear-gradient(var(--db-fokus-flaeche), var(--db-fokus-flaeche));
 }
 
 /* Inhaltsbereich unter Info, Navigation und Filter */
@@ -510,4 +521,34 @@
   outline: none;
   border-left-color: var(--db-accent-blue, #44ddff);
   background: var(--db-bg-surface, rgba(255, 255, 255, 0.07));
+}
+
+/* === Erschwernis-Dialog: Schalter fuer die Maus (1.48) ===================
+   Pfeil hoch erleichtert, Pfeil runter erschwert. Die beiden Schalter sagen
+   ihre Bedeutung IM TEXT, die Farbe kommt nur dazu — wer Farben nicht
+   unterscheidet, liest es trotzdem. Dunkle Schrift auf hellem Grund, damit der
+   Kontrast in beide Richtungen stimmt. */
+.db-ersch-knoepfe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.db-ersch-knopf {
+  font-weight: 700;
+  color: #0a0a0a;
+  border-width: var(--db-rahmen, 2px);
+  border-style: solid;
+  text-shadow: none;
+}
+.db-ersch-knopf--leicht {
+  background: #7ae582;
+  border-color: #b9f5bd;
+}
+.db-ersch-knopf--schwer {
+  background: #ff8a8a;
+  border-color: #ffc2c2;
+}
+.db-ersch-knopf:hover {
+  filter: brightness(1.15);
 }

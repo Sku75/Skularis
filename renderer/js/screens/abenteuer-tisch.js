@@ -248,6 +248,7 @@ function abenteuerEintragScreen(eintrag) {
           { label: 'Öffnen', hint: 'Abenteuer öffnen zum Bearbeiten oder Spielen', onSelect: () => oeffneAbenteuer(eintrag) },
           {
             label: 'Umbenennen',
+            hint: 'neuer Name für das Abenteuer; die Datei wird mitumbenannt',
             onSelect: async () => {
               const neu = await textDialog({ titel: 'Umbenennen', label: 'Neuer Name', wert: eintrag.name });
               if (neu === null || !neu.trim() || neu.trim() === eintrag.name) return;
@@ -266,6 +267,7 @@ function abenteuerEintragScreen(eintrag) {
           },
           {
             label: 'Löschen',
+            hint: 'löscht das Abenteuer samt Verlauf dauerhaft, nach Rückfrage; der Charakterbogen bleibt',
             onSelect: async () => {
               if (!await jaNeinDialog({ titel: 'Löschen', frage: `Abenteuer ${eintrag.name} wirklich löschen?` })) return;
               try { await ipc.abenteuerLoeschen(eintrag.pfad); } catch (e) { console.error('löschen:', e); }

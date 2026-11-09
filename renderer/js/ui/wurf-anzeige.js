@@ -25,6 +25,8 @@
  * 'wurf-platz'; daran macht das Info-Fenster oben Platz und beginnt erst
  * darunter. So überdecken sich beide nicht, und die Rollleiste bleibt frei.
  */
+import { schriftzugSvg } from './schriftzug.js';
+
 let _el = null;
 let _probe = null;    // { ergebnis, rechnung }
 let _schaden = null;  // { ergebnis, rechnung }
@@ -41,11 +43,15 @@ function zeile(text, stark) {
   return d;
 }
 
-/** Der Programmname, groß und mittig — steht in der Box, solange nicht gewürfelt wurde. */
+/**
+ * Der Schriftzug, groß und mittig — steht in der Box, solange nicht gewürfelt
+ * wurde. Dasselbe Bauteil wie im leeren Info-Fenster (ui/schriftzug.js).
+ */
 function marke() {
   const d = document.createElement('div');
   d.className = 'wurf-anzeige__marke';
-  d.textContent = 'Skularis';
+  d.setAttribute('aria-hidden', 'true');
+  d.innerHTML = schriftzugSvg(64);
   return d;
 }
 

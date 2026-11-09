@@ -21,6 +21,7 @@ import { getDb } from '../core/db-laden.js';
 import { parse, serialisiere } from '../core/sephrasto-xml.js';
 import { holeBogenPerCode, uebernahmeScreen, gesamtEP } from '../core/bogen-uebernahme.js';
 import { getMeister, speichere } from './state.js';
+import { vitalitaet } from '../core/meister-abenteuer.js';
 import * as post from '../net/post.js';
 
 const ipc = window.skularis?.ipc;
@@ -100,9 +101,17 @@ export function charakterboegenScreen() {
 
 /** Transienten Ansicht-Kontext setzen (Bogen als Charakter, verdeckt, keine Persistenz). */
 function setzeAnsicht(c) {
+  // Wunden und Erschoepfung aus der geteilten Vitalitaet des Meisters durchreichen,
+  // damit die verdeckten Wuerfe hier denselben Malus rechnen wie am Spielertisch.
+  // Bis 1.47 stand hier ein leerer Block, deshalb rechnete die Meisteransicht
+  // immer ohne Malus. Die Felder heissen in der Vitalitaet KLEIN, im Abenteuer
+  // GROSS — genau das war die Falle.
+  let wu = 0, er = 0;
+  try { const v = vitalitaet(getMeister(), c.name); wu = v.wunden || 0; er = v.erschoepfung || 0; } catch { /* ohne Meister: ohne Malus */ }
   setAbenteuer({
     name: `Ansicht ${c.name}`, charakter: c.bogen,
-    ressourcen: {}, inventar: { geldboerse: {}, rucksack: [], guertel: [] },
+    ressourcen: { Wunden: { aktuell: wu }, Erschoepfung: { aktuell: er } },
+    inventar: { geldboerse: {}, rucksack: [], guertel: [] },
     journal: [], protokoll: [], mitspieler: [], zauberspeicher: [], _transient: true,
   });
   setDb(getDb());

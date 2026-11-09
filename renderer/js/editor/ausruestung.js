@@ -578,6 +578,7 @@ function ruestungssetsScreen() {
 
       const items = [{
         label: 'Neues Rüstungsset anlegen',
+        hint: 'Name vergeben, danach Rüstungsteile hinzufügen',
         onSelect: async () => {
           const name = await textDialog({ titel: 'Neues Rüstungsset', label: 'Name des Sets' });
           if (name === null || !name.trim()) return;

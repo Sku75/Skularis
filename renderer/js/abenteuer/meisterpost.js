@@ -197,10 +197,11 @@ function nachrichtMenuScreen(index) {
         // Nachrichtentext als ERSTE, fokussierte Zeile — sofort auffindbar und vorlesbar.
         { label: m.text || 'Kein Text.', hint: `Post von ${m.von}${z ? ', ' + z : ''}`, detail: `Post von ${m.von}${z ? ', ' + z : ''}. ${m.text || 'Kein Text.'}`, onSelect: () => sprache.sage(m.text || 'Kein Text.') },
         { label: 'Antworten', hint: `Antwort an ${m.von}`, onSelect: () => schreibeInhalt(m.von) },
-        { label: 'In Notizbuch verschieben', onSelect: verschiebe('notiz', 'das Notizbuch') },
-        { label: 'In Tagebuch verschieben', onSelect: verschiebe('tagebuch', 'das Tagebuch') },
+        { label: 'In Notizbuch verschieben', hint: 'legt den Text als Notiz ab und nimmt ihn aus dem Posteingang', onSelect: verschiebe('notiz', 'das Notizbuch') },
+        { label: 'In Tagebuch verschieben', hint: 'legt den Text als Tagebucheintrag ab und nimmt ihn aus dem Posteingang', onSelect: verschiebe('tagebuch', 'das Tagebuch') },
         {
           label: 'Löschen',
+          hint: 'löscht die Nachricht dauerhaft, nach Rückfrage',
           onSelect: async () => {
             if (!await jaNeinDialog({ titel: 'Löschen', frage: 'Diese Nachricht löschen?' })) return;
             a.posteingang.splice(index, 1);
@@ -247,8 +248,8 @@ function postausgangScreen() {
             return menuScreen({
               title: `An ${m.an}`, subtitle: 'Escape zurück.',
               items: [
-                { label: 'Vorlesen', onSelect: () => sprache.sage(`An ${m.an}. ${m.text}`) },
-                { label: 'Löschen', onSelect: async () => { a.postAusgang.splice(i, 1); await speichere(); screen.pop(); sprache.sage('Gelöscht.'); } },
+                { label: 'Vorlesen', hint: 'liest Empfänger und Text vor', onSelect: () => sprache.sage(`An ${m.an}. ${m.text}`) },
+                { label: 'Löschen', hint: 'löscht die gesendete Nachricht aus dem Postausgang', onSelect: async () => { a.postAusgang.splice(i, 1); await speichere(); screen.pop(); sprache.sage('Gelöscht.'); } },
               ],
             }).build();
           },

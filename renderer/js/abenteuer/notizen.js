@@ -53,7 +53,7 @@ function eintragMenuScreen(index) {
       const wort = e.typ === 'tagebuch' ? 'Tagebucheintrag' : 'Notiz';
       this.title = `${wort}: ${e.titel}`;
       const items = [
-        { label: 'Vorlesen', onSelect: () => sprache.sage(`${e.titel}. ${e.inhalt || 'Kein Inhalt.'}`) },
+        { label: 'Vorlesen', hint: 'liest Titel und Text vor', onSelect: () => sprache.sage(`${e.titel}. ${e.inhalt || 'Kein Inhalt.'}`) },
         {
           label: 'Bearbeiten', hint: 'Titel und Inhalt ändern',
           onSelect: async () => {
@@ -79,6 +79,7 @@ function eintragMenuScreen(index) {
         },
         {
           label: 'Löschen',
+          hint: 'löscht den Eintrag dauerhaft, nach Rückfrage',
           onSelect: async () => {
             if (!await jaNeinDialog({ titel: 'Löschen', frage: `${wort} ${e.titel} löschen?` })) return;
             a.journal.splice(index, 1);

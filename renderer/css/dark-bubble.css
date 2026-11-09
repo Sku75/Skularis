@@ -22,8 +22,18 @@
 .db-row:focus-within {
   background: var(--db-tube-active-gradient);
   border-color: var(--db-border-focus);
-  box-shadow: var(--db-focus-ring);
   outline: none;
+}
+/* Der dicke weisse Rahmen nur, wenn die ZEILE selbst den Fokus hat (1.48).
+   Bei einem fokussierten Schalter in der Zeile wuerden sonst zwei Rahmen
+   ineinander stehen. */
+.db-row:focus {
+  outline: var(--db-fokus-breite) solid var(--db-border-white, #ffffff);
+  outline-offset: 2px;
+  background-image: linear-gradient(var(--db-fokus-flaeche), var(--db-fokus-flaeche));
+}
+.db-row:focus-within:not(:focus) {
+  box-shadow: var(--db-focus-ring);
 }
 .db-row--disabled {
   opacity: 0.5;

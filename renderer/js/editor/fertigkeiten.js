@@ -8,6 +8,7 @@ import * as screen from '../ui/screen.js';
 import { wertZeile, abschnittTitel, infoZeile, verbindeDetail } from './widgets.js';
 import { fertigkeitBasiswert, fertigkeitProbenwert } from '../core/regeln.js';
 import { talentUebersicht, talentGruppen } from './talente.js';
+import { beschreibungFuer } from '../core/beschreibung.js';
 
 export function fertigkeitenScreen() {
   return {
@@ -59,7 +60,10 @@ export function fertigkeitenScreen() {
               + ` Probenwert mit passendem Talent ${fertigkeitProbenwert(char, f, fw, true)},`
               + ` ohne Talent ${fertigkeitProbenwert(char, f, fw, false)}.`
               + ` Basiswert ${b}, der gerundete Mittelwert der Attribute ${attrText}.`
-              + ` Steigerungsfaktor ${f.steigerungsfaktor}.`;
+              + ` Steigerungsfaktor ${f.steigerungsfaktor}.`
+              // Zum Schluss der Beschreibungstext aus der Datenbank (Stufe 5):
+              // was diese Fertigkeit ueberhaupt kann.
+              + (beschreibungFuer(db, 'fertigkeit', f.name) ? ' ' + beschreibungFuer(db, 'fertigkeit', f.name) : '');
           },
         }));
       }

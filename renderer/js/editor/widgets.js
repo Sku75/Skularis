@@ -103,6 +103,18 @@ export function wertZeile(o) {
   btnMinus.addEventListener('click', klick(-1));
   btnPlus.addEventListener('click', klick(1));
 
+  // Doppelklick loest aus wie die Eingabetaste (1.48, Wunsch c). Der Einzelklick
+  // setzt nur den Rahmen auf die Zeile (app.js registriereZeilenKlick); die
+  // Plus- und Minus-Schalter in der Zeile behalten ihren Einzelklick.
+  row.addEventListener('dblclick', (e) => {
+    if (e.target.closest('.ed-zeile__stell')) return; // Plus/Minus bleibt Plus/Minus
+    if (!o.onActivate) return;
+    e.preventDefault();
+    e.stopPropagation();
+    row.focus();
+    o.onActivate();
+  });
+
   row.addEventListener('keydown', (e) => {
     // Enter öffnet optional eine Detailebene (z. B. Talente der Fertigkeit)
     if (e.key === 'Enter' && o.onActivate) {

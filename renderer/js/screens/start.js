@@ -10,6 +10,9 @@ import { versteckeEP } from '../ui/ep-anzeige.js';
 
 export function build() {
   versteckeEP(); // Im Hauptmenü ist kein einzelner Charakter geladen.
+  // Info-Fenster rechts auch hier: zu jedem Menüpunkt die Erklärung, und wo es
+  // nichts zu erklären gibt, der Skularis-Schriftzug.
+  import('../app.js').then(m => m.begleiterStarten && m.begleiterStarten()).catch(() => {});
   return menuScreen({
     title: 'Skularis',
     subtitle: 'Hauptmenü — mit Pfeiltasten wählen, Eingabetaste öffnet, Escape zurück.',

@@ -118,9 +118,10 @@ function heldScreen(index) {
         title: c.name,
         subtitle: 'Escape zurueck zur Gruppe.',
         items: [
-          { label: 'Charakterbogen ansehen', onSelect: () => screen.push(baueCharakterbogen(c.bogen, getDb(), `Charakterbogen ${c.name}`)) },
+          { label: 'Charakterbogen ansehen', hint: 'der ganze Bogen zum Lesen, Werte werden nicht geändert', onSelect: () => screen.push(baueCharakterbogen(c.bogen, getDb(), `Charakterbogen ${c.name}`)) },
           {
             label: 'Aus der Gruppe entfernen',
+            hint: 'nimmt den Helden aus dieser Runde, der Charakterbogen bleibt erhalten',
             onSelect: async () => {
               if (!await jaNeinDialog({ titel: 'Entfernen', frage: `${c.name} wirklich aus der Gruppe nehmen?` })) return;
               a.charaktere.splice(index, 1);

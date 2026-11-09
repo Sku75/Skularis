@@ -108,6 +108,15 @@
      Waechst mit der Schrifteinstellung mit: Wer die Schrift vergroessert,
      braucht auch kraeftigere Linien. Mindestens 2 Pixel — ein Pixel war bei
      grosser Schrift ein Haar. */
+  /* === Fokus ===
+     Der Rahmen um die aktive Zeile fuehrt (Council 1.48): weiss und dick, waechst
+     mit der Schrift. Die Flaeche wird nur massvoll angehoben — zwei starke
+     Signale wuerden sich gegenseitig aufheben, und weisse Schrift auf heller
+     Flaeche waere schlechter lesbar als vorher. Der Zuschlag ist eine
+     halbtransparente weisse Lage, damit er auf jedem Untergrund gleich wirkt. */
+  --db-fokus-breite: calc(4px + var(--db-font-offset, 0px) * 0.3);
+  --db-fokus-flaeche: rgba(255, 255, 255, 0.10);
+
   --db-rahmen: calc(2px + var(--db-font-offset, 0px) * 0.25);
   --db-rahmen-stark: calc(3px + var(--db-font-offset, 0px) * 0.3);
 

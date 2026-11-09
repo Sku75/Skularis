@@ -17,6 +17,7 @@ import { bauInfo } from '../core/infotext.js';
 import { zahlDialog } from '../ui/dialog.js';
 import { getAbenteuer } from './state.js';
 import { kampfProbe, mitLetztemWurf } from './wuerfel-kern.js';
+import { probenInfo, beschreibungFuer } from '../core/beschreibung.js';
 import { AKTIONEN, MANOEVER } from '../daten/kampf-listen.js';
 
 const TYP_NAME = { einfach: 'einfache Aktion', voll: 'volle Aktion', frei: 'freie Aktion' };
@@ -153,13 +154,19 @@ const ATTR_REIHENFOLGE = ['MU', 'KL', 'IN', 'CH', 'FF', 'GE', 'KO', 'KK'];
 /** Attributsproben: je Attribut ein Wurf gegen den Probenwert (Attribut mal zwei). */
 export function attributsprobenScreen() {
   const char = getAbenteuer().charakter;
+  const db = getDb();
   let idx = 0;
   const items = ATTR_REIHENFOLGE.map((abk) => {
     const av = (char.attribute && char.attribute[abk]) || 0;
     const pw = attributProbenwert(char, abk); // Attribut mal zwei
     const name = ATTR_NAME[abk] || abk;
     const id = `attr-${idx++}`;
-    const info = `${name}. Attributwert ${av}, Probenwert ${pw} (Attribut mal zwei).`;
+    // Zahlen zuerst, danach der Beschreibungstext des Attributs aus der
+    // Datenbank. Als Funktion uebergeben, damit er erst beim Lesen entsteht.
+    const info = probenInfo({
+      titel: name, db, art: 'attribut', name: abk,
+      werte: `Attributwert ${av}, Probenwert ${pw} (Attribut mal zwei).`,
+    });
     return {
       label: `${name}: Probe ${pw}`,
       hint: `Attributwert ${av}, Probenwert ${pw}. Enter würfelt`,
@@ -201,7 +208,14 @@ export function profanScreen() {
     items.push({
       label: `${f.name}: Probe ${pwOhne}`,
       hint: `Fertigkeit, ohne spezielles Talent. Basiswert ${basis}, Fertigkeitswert ${fw}. Enter würfelt`,
-      detail: mitLetztemWurf(idF, `${f.name}. Basiswert ${basis}, Fertigkeitswert ${fw}. Probenwert mit Talent ${pwMit}, ohne Talent ${pwOhne}.`),
+      detail: mitLetztemWurf(idF, probenInfo({
+        titel: f.name, db, art: 'fertigkeit',
+        werte: [
+          `Basiswert ${basis}, Fertigkeitswert ${fw}.`,
+          `Probenwert mit passendem Talent ${pwMit}, ohne Talent ${pwOhne}.`,
+          (f.attribute || []).length ? `Attribute: ${(f.attribute || []).join(', ')}.` : '',
+        ],
+      })),
       ergebnisId: idF,
       onSelect: () => kampfProbe({ id: idF, titel: `${f.name}`, vokabel: f.name, probenwert: pwOhne }),
     });
@@ -211,7 +225,14 @@ export function profanScreen() {
       const pw = hat ? pwMit : pwOhne;
       const id = `prof-${idx++}`;
       const vorn = hat ? '' : 'Nicht gelernt: ';
-      const info = `${t.name}, Fertigkeit ${f.name}. ${hat ? 'Gelernt, voller Fertigkeitswert' : 'Nicht gelernt, halber Fertigkeitswert'}. Probenwert ${pw} (Basiswert ${basis} plus ${hat ? `Fertigkeitswert ${fw}` : `halber Fertigkeitswert ${Math.round(fw / 2)}`}).`;
+      const info = probenInfo({
+        titel: t.name, db, art: 'talent',
+        werte: [
+          `Fertigkeit ${f.name}.`,
+          `Probenwert ${pw} (Basiswert ${basis} plus ${hat ? `Fertigkeitswert ${fw}` : `halber Fertigkeitswert ${Math.round(fw / 2)}`}).`,
+        ],
+        hinweise: hat ? 'Gelernt, es zählt der volle Fertigkeitswert.' : 'Nicht gelernt, es zählt der halbe Fertigkeitswert.',
+      });
       items.push({
         label: `${vorn}${t.name} (${f.name}): Probe ${pw}`,
         hint: hat ? 'gelernt, voller Fertigkeitswert. Enter würfelt' : 'nicht gelernt, halber Fertigkeitswert. Enter würfelt',

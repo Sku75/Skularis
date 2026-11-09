@@ -4,6 +4,154 @@ Diese Datei wird laufend fortgeführt und liegt immer beim jeweiligen Programmor
 Die neueste Version steht oben. Hinweise zur Pflege stehen ganz unten.
 
 
+Version 1.48, 9. November 2026
+
+
+Würfelmalus aus Wunden und Erschöpfung wird angesagt
+
+- Der Abzug durch Wunden und Erschöpfung wurde schon immer gerechnet, aber still
+  in die Endzahl gesetzt. Jetzt steht die ganze Rechnung in der Ansage:
+  "Ergebnis 18, minus Erschwernis 2, minus Malus 2, gleich Ergebnis 14".
+- Ohne Erschwernis und ohne Malus bleibt es schlicht bei "Ergebnis 18".
+- Dieselbe Rechnung steht in der Sprachausgabe, in der Würfelbox, im Tooltip und
+  im Protokoll. Sie entsteht an einer Stelle, nicht an vier.
+- Der Tooltip sagt dazu, woher der Malus kommt: "Malus 2 aus 2 Wunden und 1
+  Erschöpfung, zusammen 3 Einschränkungen."
+
+- Der Malus gilt jetzt überall, wo gewürfelt wird:
+- in der Charakteransicht des Meisters. Dort stand bisher ein leerer
+  Werteblock, deshalb rechnete sie immer ohne Malus.
+- bei verdeckten Meisterwürfen, auch für Gegner und freundliche NPC. Ein
+  angeschlagener Gegner trifft schlechter.
+- in Gruppenprobe und Gruppenrecherche, je Held mit seinen eigenen Wunden.
+- im Zauberspeicher. Der Malus zählt beim LADEN: wer verletzt speichert,
+  speichert eine schlechtere Qualität. Beim Wirken wird nicht mehr gewürfelt,
+  die gespeicherte Qualität gilt, auch wenn der Magier bis dahin genesen ist.
+- Keinen Malus gibt es auf Schadenswürfe und freie Würfe.
+
+
+Erschwernis beginnt bei jedem Wurf wieder bei null
+
+- Bisher merkte sich jeder Würfelschalter seine letzte Erschwernis. Wer einmal 4
+  eingestellt hatte, würfelte beim nächsten Mal wieder mit 4, ohne es zu merken.
+- Der Abzug aus Wunden und Erschöpfung rechnet ohnehin automatisch mit; was im
+  Dialog eingestellt wird, gilt für genau diesen einen Wurf.
+- Die Anzeige sagt jetzt "2 Erschwernis" oder "2 Erleichterung" statt einer
+  nackten Zahl.
+- Pfeil hoch erleichtert, Pfeil runter erschwert. Jeder Schritt hat seinen Ton,
+  am Anschlag kommt der Grenzton.
+- Daneben stehen zwei Schaltflächen für die Maus: hellgrün "Erleichterung, Pfeil
+  hoch" und hellrot "Erschwernis, Pfeil runter". Die Bedeutung steht im Text,
+  nicht nur in der Farbe.
+
+
+Geld: der Charakterbogen ist die einzige Quelle
+
+- Das Geld lag an zwei Orten: am Charakterbogen und als Kopie im Abenteuer. Beim
+  Abschluss eines Spieltags schrieb die Kopie den gepflegten Stand wieder zu —
+  ausgegebenes Geld war am nächsten Abend teilweise wieder da.
+- Jetzt gewinnt immer der Bogen. Die Kopie im Abenteuer wird weiter
+  mitgeschrieben, damit ältere Skularis-Versionen in der Gruppe und die
+  Meisterbox den Betrag weiter lesen können.
+- Ausgeben und Erhalten laufen über EINEN Bildschirm mit allen vier Münzsorten
+  gleichzeitig. Pfeil links und rechts stellt die Anzahl, Übernehmen verrechnet.
+- Gewechselt wird nur, wenn es nötig ist. 5 Heller erhalten legt fünf Heller
+  dazu und lässt die übrige Börse in Ruhe. Erst wenn eine Sorte nicht reicht,
+  wird über die Gesamtsumme gerechnet.
+- Jede Münzsorte lässt sich weiter frei von Hand verstellen.
+- Neu: Börsen-Protokoll. Zeigt im Info-Fenster je Änderung eine Zeile mit Datum
+  und Zeit, darunter den erreichten Stand, danach eine Leerzeile. Jüngste
+  Änderung oben, bis zu 200 Einträge.
+- Neu: Freitextfeld "Weitere Wertgegenstände" für Schmuck, Edelsteine und
+  Schuldscheine. Steht am Charakter und wandert mit dem Bogen; zu finden unter
+  der Geldbörse am Spieltisch und im Editor bei der Münzbörse.
+
+
+Info-Fenster zeigt immer die Zeile, auf der man steht
+
+- Hatte eine Zeile nichts zu erklären, blieb der ALTE Inhalt stehen. Wer von
+  einem Zauber zum nächsten ging, las dann weiter die Werte des vorigen.
+- Jetzt zieht das Fenster immer nach. Der Titel nennt stets die Zeile, zu der
+  der Inhalt gehört, und hat die Zeile nichts zu erklären, steht das auch so da.
+- Erklärungen, die sich im Spiel ändern (letzter Wurf, Geldstand, Wunden), waren
+  zwischengespeichert und blieben auf dem ersten Stand stehen. Sie werden jetzt
+  bei jedem Lesen neu gebaut.
+- Das Info-Fenster gibt es jetzt auch im Hauptmenü und in der Charakterliste.
+- Wo es nichts zu erklären gibt, steht dort der Skularis-Schriftzug: weiße
+  Schrift auf schwarzem Grund mit Schnörkeln, als Vektorgrafik gezeichnet und
+  damit in jeder Schriftgröße scharf. Dasselbe Bild steht in der Würfelbox,
+  solange nicht gewürfelt wurde.
+
+
+Beschreibungstexte in den Probenlisten
+
+- In den Probenlisten stand nur die Rechnung: "Basiswert 6, Fertigkeitswert 4,
+  Probenwert 10". Was die Fertigkeit überhaupt kann, stand nirgends, obwohl es
+  in der Ilaris-Datenbank liegt.
+- Jetzt steht in der Erklärung erst die Rechnung und danach der
+  Beschreibungstext aus der Datenbank. Mit Shift und Pfeil runter lesbar.
+- Eingebaut bei: Attributsproben, profane Fertigkeiten und Talente (auch nicht
+  gelernte), Charakteransicht des Meisters, Gruppenrecherche, Gruppenprobe,
+  Fertigkeiten und übernatürliche Fertigkeiten im Editor.
+- Bei Gegnern steht jetzt dabei, was ihre Fähigkeiten bewirken. Der Meister muss
+  nicht mehr nachschlagen.
+- Die Texte werden erst gebaut, wenn eine Zeile wirklich gelesen wird. Bei über
+  300 Einträgen entstehen so nicht 300 Texte im Voraus.
+
+
+Fokus ist deutlich besser zu sehen
+
+- Die markierte Zeile bekommt einen dicken weißen Rahmen. Er wächst mit der
+  Schriftgröße mit.
+- Die Fläche der markierten Zeile wird maßvoll aufgehellt. Der Rahmen führt;
+  zwei starke Signale würden sich gegenseitig aufheben, und weiße Schrift auf
+  heller Fläche wäre schlechter lesbar.
+- Der Rahmen springt jetzt auch beim Mausklick mit. Der Browser setzt
+  :focus-visible bei einem Mausklick absichtlich nicht, deshalb wanderte er
+  bisher nicht mit, obwohl der Fokus korrekt sprang.
+- Liegt der Fokus auf einem Schalter innerhalb einer Zeile, bleibt es beim
+  dezenten Rand — sonst stünden zwei Rahmen ineinander.
+
+
+Einzelklick wählt, Doppelklick löst aus — jetzt auch bei Wertzeilen
+
+- Doppelklick auf eine Wertzeile tut, was die Eingabetaste tut. Die Plus- und
+  Minus-Schalter in der Zeile behalten ihren Einzelklick.
+- Einzelklick setzt auch bei Wertzeilen und bei den Überschriften der
+  Charaktererstellung nur den Rahmen.
+
+
+Editor-Textfelder: die Erklärung gehört an das Feld
+
+- Bei Geburtsdatum, Größe und den freien Aussehen-Zeilen blieb das Info-Fenster
+  leer. Die Erklärung hing an der Zeile, gelesen wird sie aber vom Feld darin.
+- Jetzt gibt die Zeile ihre Erklärung an das Feld weiter. Die Sprechfolge bleibt
+  Feldname, Feldinhalt, dann die Beispielzeile.
+
+
+Erklärungen nachgerüstet
+
+- 428 Menüzeilen durchgezählt. 72 hatten keine Erklärung, jetzt sind es 9.
+- Nachgerüstet bei: Würfelebene, Gegner-Bibliothek, Gegnerkartei,
+  Kampfszenenpacks, Sets, Gruppe, Notizen, Mitspieler, Postkasten, Meisterpost,
+  Inventar, Ausrüstung, Audio-Playlists, Optionen, Abenteuer- und Meistertisch.
+- Bewusst ohne Erklärung bleiben die Lesezeilen des Regelwerk-Betrachters und
+  der Patchnotes: dort ist jede Zeile ein Stück Text, eine Erklärung dazu wäre
+  Lärm beim Lesen.
+
+
+Unter der Haube
+
+- Neu: core/malus.js. Der Würfelmalus und die Ergebniszeile entstehen an einer
+  Stelle für alle Würfelstellen.
+- Neu: core/boerse.js. Jede Geldänderung läuft durch eine Funktion.
+- Neu: core/beschreibung.js. Die Beschreibungstexte kommen aus einer Stelle.
+- Neu: ui/schriftzug.js. Der Skularis-Schriftzug als Vektorgrafik.
+- Neu: zwei Prüfskripte, die vor jedem Release laufen.
+  node _test/pruefung-rechnung.js prüft die Malus-Staffel, die Ergebniszeile und
+  das Umwechseln der Münzen. node _test/pruefung-boerse.mjs prüft die Geldbörse
+  mit echten Zahlen.
+
 Version 1.47, 3. Oktober 2026
 
 

@@ -94,7 +94,15 @@ export function inventarAusCharakter(char) {
  */
 export function uebernehmeAbenteuerdaten(char, a) {
   const inv = (a && a.inventar) || {};
-  char.geldboerse = { ...(inv.geldboerse || { dukaten: 0, silber: 0, heller: 0, kupfer: 0 }) };
+  // Der Bogen ist Koenig. char.geldboerse wurde im Spiel DIREKT gepflegt
+  // (core/boerse.js), a.inventar.geldboerse ist nur der mitgeschriebene
+  // Spiegel fuer aeltere Versionen in der Gruppe und fuer die Meisterbox.
+  // Bis 1.47 hat dieser Spiegel hier den gepflegten Stand zugeschrieben —
+  // ausgegebenes Geld war am naechsten Abend teilweise wieder da. Der Spiegel
+  // gewinnt nur noch, wenn der Bogen gar keine Boerse hat (alter Datensatz).
+  if (!char.geldboerse) {
+    char.geldboerse = { ...(inv.geldboerse || { dukaten: 0, silber: 0, heller: 0, kupfer: 0 }) };
+  }
   // Einträge können Strings (aktuelles Abenteuer-Modell) oder alte {text}-Objekte sein.
   const alsText = (x) => (typeof x === 'string' ? x : (x && x.text) || '');
   const gegenstaende = [];

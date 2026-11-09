@@ -157,7 +157,7 @@ export function eigeneListeScreen() {
         detail: vorlageDetail(g),
         onSelect: () => screen.push(eigenEintragScreen(i)),
       }));
-      items.push({ label: 'Neuen Gegner erstellen', onSelect: () => neuerGegner() });
+      items.push({ label: 'Neuen Gegner erstellen', hint: 'Name vergeben, dann Werte und Angriffe im Editor', onSelect: () => neuerGegner() });
       return menuScreen({ title: this.title, subtitle: 'Escape zurück.', items, leer: 'Noch keine eigenen Gegner.' }).build();
     },
   };
@@ -174,10 +174,11 @@ function eigenEintragScreen(index) {
         title: this.title,
         subtitle: 'Escape zurück.',
         items: [
-          { label: 'In die Auswahl übernehmen', onSelect: () => uebernehmen(g) },
-          { label: 'Bearbeiten', onSelect: () => screen.push(editorScreen(g, async () => { await speichereUserBib(); })) },
+          { label: 'In die Auswahl übernehmen', hint: 'legt eine Kopie in die Gegner dieses Abenteuers; die Bibliothek behält ihr Original', onSelect: () => uebernehmen(g) },
+          { label: 'Bearbeiten', hint: 'Werte und Angriffe des Bibliothekseintrags ändern', onSelect: () => screen.push(editorScreen(g, async () => { await speichereUserBib(); })) },
           {
             label: 'Aus der Bibliothek löschen',
+            hint: 'entfernt den Eintrag dauerhaft aus deiner Bibliothek, nach Rückfrage',
             onSelect: async () => {
               if (!await jaNeinDialog({ titel: 'Löschen', frage: `${g.name} aus der Bibliothek löschen?` })) return;
               _userBib.gegner.splice(index, 1);
@@ -250,10 +251,12 @@ export function editorScreen(sb, onChange) {
       const items = [];
       const textFeld = (label, key) => items.push({
         label: `${label}: ${sb[key] || ''}`,
+        hint: 'Enter öffnet ein Eingabefeld',
         onSelect: async () => { const v = await textDialog({ titel: label, label, wert: sb[key] || '' }); if (v === null) return; sb[key] = v.trim(); sichern(); screen.refresh(); sprache.sage(`${label} ${sb[key]}.`); },
       });
       const zahlFeld = (label, key, min, max) => items.push({
         label: `${label}: ${sb[key]}`,
+        hint: `Enter öffnet ein Zahlenfeld von ${min} bis ${max}`,
         onSelect: async () => { const v = await zahlDialog({ titel: label, label, wert: sb[key] || 0, min, max }); if (v === null) return; sb[key] = v; sichern(); screen.refresh(); sprache.sage(`${label} ${v}.`); },
       });
       const listeFeld = (label, key) => items.push({
@@ -275,7 +278,7 @@ export function editorScreen(sb, onChange) {
           onSelect: () => screen.push(angriffEditorScreen(sb, ai, sichern)),
         });
       });
-      items.push({ label: 'Angriff hinzufügen', onSelect: () => neuerAngriff(sb, sichern) });
+      items.push({ label: 'Angriff hinzufügen', hint: 'nach Name, Attacke, Parade, Schadenswürfeln und Bonus wird gefragt', onSelect: () => neuerAngriff(sb, sichern) });
 
       listeFeld('Vorteile', 'vorteile');
       listeFeld('Manöver', 'manoever');
@@ -316,6 +319,7 @@ function angriffEditorScreen(sb, ai, sichern) {
         items: [
           {
             label: 'Werte bearbeiten',
+            hint: 'Attacke, Parade, Schadenswürfel und Bonus nacheinander ändern',
             onSelect: async () => {
               const at = await zahlDialog({ titel: 'Attacke', label: 'Attacke (AT)', wert: ang.at != null ? ang.at : ang.wert || 0, min: 0, max: 40 }); if (at === null) return;
               const pa = await zahlDialog({ titel: 'Parade', label: 'Parade (PA), 0 wenn keine', wert: ang.pa || 0, min: 0, max: 40 }); if (pa === null) return;
@@ -327,6 +331,7 @@ function angriffEditorScreen(sb, ai, sichern) {
           },
           {
             label: 'Angriff entfernen',
+            hint: 'löscht diesen Angriff aus dem Eintrag, nach Rückfrage',
             onSelect: async () => { if (!await jaNeinDialog({ titel: 'Entfernen', frage: `Angriff ${ang.name} entfernen?` })) return; sb.angriffe.splice(ai, 1); sichern(); screen.pop(); sprache.sage('Angriff entfernt.'); },
           },
         ],

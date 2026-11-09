@@ -144,3 +144,22 @@
   .ii-fenster { transition: opacity 0.2s ease-out; transform: scaleY(1); }
   .ii-overlay:not(.ii-auf) .ii-fenster { opacity: 0; }
 }
+
+/* === Skularis-Schriftzug (1.48) ==========================================
+   Steht im Info-Fenster, wenn es nichts zu erklaeren gibt, und als Platzhalter
+   in der Wuerfelbox. Zierde, deshalb im HTML aria-hidden. */
+.sku-schriftzug {
+  display: block;
+  margin: 0 auto 10px auto;
+  max-width: 100%;
+  border: var(--db-rahmen, 2px) solid var(--db-border-medium, #767676);
+  border-radius: 6px;
+  background: #000000;
+}
+.sku-schriftzug-rahmen {
+  padding: 0;
+}
+.wurf-anzeige__marke .sku-schriftzug {
+  margin-bottom: 0;
+  border: none;
+}

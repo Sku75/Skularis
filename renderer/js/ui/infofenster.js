@@ -21,6 +21,7 @@
 import * as sprache from '../sprache.js';
 import * as sounds from '../sounds.js';
 import { zuZeilen } from '../core/infotext.js';
+import { schriftzugSvg } from './schriftzug.js';
 
 let _overlay = null;
 let _titelEl = null;
@@ -28,6 +29,7 @@ let _inhaltEl = null;
 let _schliessenEl = null;
 
 let _zeilen = [];
+let _leer = false; // keine Zeile mit Text: Schriftzug statt Inhalt
 // Wurde im Begleiter-Modus schon vorgelesen? Beim ersten Shift-Pfeil kommt
 // Zeile 1, danach geht es weiter.
 let _gelesen = false;
@@ -80,6 +82,9 @@ function baue() {
 
 function zeichneZeilen() {
   _inhaltEl.innerHTML = '';
+  // Hat das Fenster nichts zu erklaeren, steht der Skularis-Schriftzug darin.
+  // Er ist Zierde (aria-hidden); gelesen wird die Zeile darunter.
+  if (_leer) _inhaltEl.insertAdjacentHTML('beforeend', schriftzugSvg(96));
   _zeilen.forEach((z, i) => {
     const el = document.createElement('div');
     el.className = 'ii-zeile' + (z.ueberschrift ? ' ii-ueberschrift' : '') + (i === _index ? ' ii-aktuell' : '');
@@ -112,7 +117,10 @@ function oeffne(titel, detail, modus, ohneAnimation) {
   // Jeder neue Inhalt beginnt wieder oben: Der erste Shift-Pfeil liest Zeile 1.
   _gelesen = false;
   _zeilen = zuZeilen(detail);
-  if (!_zeilen.length) _zeilen = [{ text: 'Keine weiteren Informationen.', ueberschrift: false }];
+  // Leer heisst: keine einzige Zeile mit Text. Dann steht der Schriftzug darin
+  // und eine klare Zeile, damit nie der Inhalt der vorigen Zeile stehen bleibt.
+  _leer = !_zeilen.some(z => String(z.text).trim());
+  if (_leer) _zeilen = [{ text: 'Keine weiteren Informationen.', ueberschrift: false }];
   _index = 0;
   _modus = modus;
   _titelEl.textContent = titel || 'Information';
